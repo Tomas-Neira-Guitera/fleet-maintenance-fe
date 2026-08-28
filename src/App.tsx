@@ -3,9 +3,9 @@ import './App.css'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
-type PingResponse = {
+type HealthResponse = {
   status: string
-  service: string
+  database: string
   timestamp: string
 }
 
@@ -13,10 +13,10 @@ function App() {
   const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking')
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/ping`)
+    fetch(`${API_BASE_URL}/api/health`)
       .then((res) => {
         if (!res.ok) throw new Error('bad response')
-        return res.json() as Promise<PingResponse>
+        return res.json() as Promise<HealthResponse>
       })
       .then(() => setApiStatus('online'))
       .catch(() => setApiStatus('offline'))
