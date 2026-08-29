@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import DefectosList from './DefectosList'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
@@ -24,8 +25,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Mantenimiento de Flotas</h1>
-      <p>Mantenimiento preventivo e inspecciones de flota.</p>
+      <h1>Defectos</h1>
       <p>
         API ({API_BASE_URL}):{' '}
         <strong className={`status status--${apiStatus}`}>
@@ -34,6 +34,7 @@ function App() {
           {apiStatus === 'offline' && 'offline'}
         </strong>
       </p>
+      <DefectosList />
     </div>
   )
 }
