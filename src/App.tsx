@@ -1,41 +1,49 @@
-import { useEffect, useState } from 'react'
-import './App.css'
+import { useState } from 'react';
+import './App.css';
+import { VehicleList } from './components/VehicleList';
+import { InspectionFlow } from './components/InspectionFlow';
+import { getVehicleStatus, type InspectionType, type Vehicle } from './types/domain';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
-
-type PingResponse = {
-  status: string
-  service: string
-  timestamp: string
-}
+type Route =
+  | { view: 'list' }
+  | { view: 'flow'; vehicle: Vehicle; type: InspectionType; tripId?: string };
 
 function App() {
-  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking')
+  const [route, setRoute] = useState<Route>({ view: 'list' });
+  const [listKey, setListKey] = useState(0);
 
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/api/ping`)
-      .then((res) => {
-        if (!res.ok) throw new Error('bad response')
-        return res.json() as Promise<PingResponse>
-      })
-      .then(() => setApiStatus('online'))
-      .catch(() => setApiStatus('offline'))
-  }, [])
+  function handleSelectVehicle(vehicle: Vehicle) {
+    const status = getVehicleStatus(vehicle);
+    if (status === 'on-trip') {
+      // Product decision (CAM-11): a vehicle with an open trip cannot start a new
+      // pre-trip. The only valid action for the driver here is to close it out
+      // with the post-trip checklist.
+      if (vehicle.openTripId) {
+        setRoute({ view: 'flow', vehicle, type: 'post-trip', tripId: vehicle.openTripId });
+      }
+      return;
+    }
+    setRoute({ view: 'flow', vehicle, type: 'pre-trip' });
+  }
+
+  function handleFlowDone() {
+    setListKey((k) => k + 1);
+    setRoute({ view: 'list' });
+  }
 
   return (
-    <div className="app">
-      <h1>Mantenimiento de Flotas</h1>
-      <p>Mantenimiento preventivo e inspecciones de flota.</p>
-      <p>
-        API ({API_BASE_URL}):{' '}
-        <strong className={`status status--${apiStatus}`}>
-          {apiStatus === 'checking' && 'verificando...'}
-          {apiStatus === 'online' && 'online'}
-          {apiStatus === 'offline' && 'offline'}
-        </strong>
-      </p>
-    </div>
-  )
+    <main className="app">
+      {route.view === 'list' && <VehicleList key={listKey} onSelectVehicle={handleSelectVehicle} />}
+      {route.view === 'flow' && (
+        <InspectionFlow
+          vehicle={route.vehicle}
+          type={route.type}
+          tripId={route.tripId}
+          onDone={handleFlowDone}
+        />
+      )}
+    </main>
+  );
 }
 
-export default App
+export default App;

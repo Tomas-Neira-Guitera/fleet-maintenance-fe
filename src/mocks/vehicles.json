@@ -1,0 +1,50 @@
+[
+  {
+    "id": "v1",
+    "plate": "AC123DE",
+    "brand": "Mercedes-Benz",
+    "model": "Sprinter 415",
+    "accessories": [],
+    "openTripId": null
+  },
+  {
+    "id": "v2",
+    "plate": "AB456FG",
+    "brand": "Iveco",
+    "model": "Daily 70C17",
+    "accessories": ["faja", "traca"],
+    "openTripId": null
+  },
+  {
+    "id": "v3",
+    "plate": "AD789HI",
+    "brand": "Ford",
+    "model": "Cargo 1723",
+    "accessories": ["grua"],
+    "openTripId": "trip-seed-1"
+  },
+  {
+    "id": "v4",
+    "plate": "AE012JK",
+    "brand": "Volkswagen",
+    "model": "Delivery 9.170",
+    "accessories": [],
+    "openTripId": null
+  },
+  {
+    "id": "v5",
+    "plate": "AF345LM",
+    "brand": "Scania",
+    "model": "P310",
+    "accessories": ["rampa"],
+    "openTripId": null
+  },
+  {
+    "id": "v6",
+    "plate": "AG678NO",
+    "brand": "Mercedes-Benz",
+    "model": "Accelo 815",
+    "accessories": [],
+    "openTripId": "trip-seed-2"
+  }
+]
