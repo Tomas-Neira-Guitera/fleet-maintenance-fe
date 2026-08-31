@@ -1,37 +1,25 @@
-// Domain types shared across the driver DVIR (vehicle inspection) flow.
-
-export type AccessoryKey = 'faja' | 'traca' | 'grua' | 'rampa';
+// Tipos de dominio compartidos por el flujo de inspección DVIR del chofer.
 
 export interface Vehicle {
   id: string;
   plate: string;
   brand: string;
   model: string;
-  /** Extra equipment this vehicle carries; each one adds an extra checklist item. */
-  accessories: AccessoryKey[];
-  /** Id of the currently open trip for this vehicle, or null if none is open. */
-  openTripId: string | null;
+  status: VehicleStatus;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
 
-export function getVehicleStatus(vehicle: Pick<Vehicle, 'openTripId'>): VehicleStatus {
-  return vehicle.openTripId ? 'on-trip' : 'available';
-}
-
 export interface Trip {
   id: string;
   vehicleId: string;
-  driverName: string;
   status: 'open' | 'closed';
-  preTripInspectionId: string;
-  postTripInspectionId: string | null;
   startedAt: string;
   endedAt: string | null;
 }
 
 export type ChecklistItemType = 'check' | 'number';
-export type ChecklistSection = 'exterior' | 'interior' | 'accesorios' | 'posttrip';
+export type ChecklistSection = 'exterior' | 'interior' | 'posttrip';
 
 export interface ChecklistItemDef {
   id: string;
@@ -46,20 +34,21 @@ export type DefectSeverity = 'non-blocking' | 'blocking';
 export interface DefectDetail {
   severity: DefectSeverity;
   description: string;
-  photoDataUrl?: string;
-  photoFileName?: string;
+  photoUrl?: string;
 }
 
 export type CheckOutcome = 'ok' | 'defect';
 
-/** Live editable state for one checklist item while the driver fills the form. */
+/** Estado editable de un ítem del checklist mientras el chofer completa el formulario. */
 export interface ChecklistItemState {
-  outcome?: CheckOutcome; // 'check' items
-  numberValue?: string; // 'number' items
+  outcome?: CheckOutcome;
+  numberValue?: string;
   defect?: DefectDetail;
+  /** true mientras la foto del defecto se está subiendo al backend. */
+  uploading?: boolean;
 }
 
-/** Frozen answer for one checklist item, as sent to submitPreTrip/submitPostTrip. */
+/** Respuesta congelada de un ítem del checklist, usada en la UI (resumen) y para armar el envío. */
 export interface ChecklistAnswer {
   itemId: string;
   label: string;
@@ -72,28 +61,20 @@ export interface ChecklistAnswer {
 
 export type InspectionType = 'pre-trip' | 'post-trip';
 
-export interface InspectionSubmission {
+export interface Inspection {
+  id: string;
+  tripId: string;
   vehicleId: string;
-  driverName: string;
+  driverId: string;
   type: InspectionType;
   timestamp: string;
   odometerKm: number;
   answers: ChecklistAnswer[];
   notes?: string;
-}
-
-export interface Inspection extends InspectionSubmission {
-  id: string;
-  tripId: string;
   hasBlockingDefect: boolean;
 }
 
-export interface SubmitPreTripResult {
-  inspection: Inspection;
-  trip: Trip;
-}
-
-export interface SubmitPostTripResult {
+export interface SubmitInspectionResult {
   inspection: Inspection;
   trip: Trip;
 }

@@ -1,7 +1,5 @@
-// Fixed base checklist items — these are stable product decisions (CAM-11), not
-// configuration, so they're hardcoded here rather than mocked as data. Only the
-// *vehicle* and *trip* data are mocked (see src/mocks + src/services).
-import type { AccessoryKey, ChecklistItemDef } from '../types/domain';
+// Ítems fijos del checklist pre-viaje/post-viaje (CAM-11) — decisión de producto estable.
+import type { ChecklistItemDef } from '../types/domain';
 
 export const PRE_TRIP_EXTERIOR_ITEMS: ChecklistItemDef[] = [
   { id: 'ext-luces', label: 'Luces', type: 'check', section: 'exterior' },
@@ -16,16 +14,8 @@ export const PRE_TRIP_INTERIOR_BASE_ITEMS: ChecklistItemDef[] = [
   { id: 'int-testigos', label: 'Testigos de tablero', type: 'check', section: 'interior' },
 ];
 
-export const ACCESSORY_CHECKLIST_ITEMS: Record<AccessoryKey, ChecklistItemDef> = {
-  faja: { id: 'accessory-faja', label: 'Estado y funcionamiento de la faja', type: 'check', section: 'accesorios' },
-  traca: { id: 'accessory-traca', label: 'Estado y funcionamiento de la traca', type: 'check', section: 'accesorios' },
-  grua: { id: 'accessory-grua', label: 'Estado y funcionamiento de la grúa', type: 'check', section: 'accesorios' },
-  rampa: { id: 'accessory-rampa', label: 'Estado y funcionamiento de la rampa hidráulica', type: 'check', section: 'accesorios' },
-};
-
-export function getPreTripItems(accessories: AccessoryKey[]): ChecklistItemDef[] {
-  const accessoryItems = accessories.map((key) => ACCESSORY_CHECKLIST_ITEMS[key]);
-  return [...PRE_TRIP_EXTERIOR_ITEMS, ...PRE_TRIP_INTERIOR_BASE_ITEMS, ...accessoryItems];
+export function getPreTripItems(): ChecklistItemDef[] {
+  return [...PRE_TRIP_EXTERIOR_ITEMS, ...PRE_TRIP_INTERIOR_BASE_ITEMS];
 }
 
 export const POST_TRIP_ITEMS: ChecklistItemDef[] = [

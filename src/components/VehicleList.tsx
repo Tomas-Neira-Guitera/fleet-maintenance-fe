@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getVehicles } from '../services/vehiclesService';
-import { getVehicleStatus, type Vehicle } from '../types/domain';
+import type { Vehicle } from '../types/domain';
 import { CheckCircleIcon, LockClockIcon } from './icons';
 
 interface VehicleListProps {
@@ -38,8 +38,7 @@ export function VehicleList({ onSelectVehicle }: VehicleListProps) {
 
       <ul className="vehicle-list">
         {vehicles?.map((vehicle) => {
-          const status = getVehicleStatus(vehicle);
-          const isAvailable = status === 'available';
+          const isAvailable = vehicle.status === 'available';
           return (
             <li key={vehicle.id}>
               <button

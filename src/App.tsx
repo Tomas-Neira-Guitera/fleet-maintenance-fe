@@ -2,28 +2,18 @@ import { useState } from 'react';
 import './App.css';
 import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
-import { getVehicleStatus, type InspectionType, type Vehicle } from './types/domain';
+import type { InspectionType, Vehicle } from './types/domain';
 
-type Route =
-  | { view: 'list' }
-  | { view: 'flow'; vehicle: Vehicle; type: InspectionType; tripId?: string };
+type Route = { view: 'list' } | { view: 'flow'; vehicle: Vehicle; type: InspectionType };
 
 function App() {
   const [route, setRoute] = useState<Route>({ view: 'list' });
   const [listKey, setListKey] = useState(0);
 
   function handleSelectVehicle(vehicle: Vehicle) {
-    const status = getVehicleStatus(vehicle);
-    if (status === 'on-trip') {
-      // Product decision (CAM-11): a vehicle with an open trip cannot start a new
-      // pre-trip. The only valid action for the driver here is to close it out
-      // with the post-trip checklist.
-      if (vehicle.openTripId) {
-        setRoute({ view: 'flow', vehicle, type: 'post-trip', tripId: vehicle.openTripId });
-      }
-      return;
-    }
-    setRoute({ view: 'flow', vehicle, type: 'pre-trip' });
+    // Decisión de producto (CAM-11): un vehículo con viaje abierto solo puede cerrarlo (post-viaje).
+    const type: InspectionType = vehicle.status === 'on-trip' ? 'post-trip' : 'pre-trip';
+    setRoute({ view: 'flow', vehicle, type });
   }
 
   function handleFlowDone() {
@@ -35,12 +25,7 @@ function App() {
     <main className="app">
       {route.view === 'list' && <VehicleList key={listKey} onSelectVehicle={handleSelectVehicle} />}
       {route.view === 'flow' && (
-        <InspectionFlow
-          vehicle={route.vehicle}
-          type={route.type}
-          tripId={route.tripId}
-          onDone={handleFlowDone}
-        />
+        <InspectionFlow vehicle={route.vehicle} type={route.type} onDone={handleFlowDone} />
       )}
     </main>
   );

@@ -1,4 +1,5 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { uploadDefectPhoto } from '../services/photosService';
 import type { ChecklistItemDef, ChecklistItemState, DefectSeverity } from '../types/domain';
 import { AlertTriangleIcon, CameraIcon } from './icons';
 
@@ -14,12 +15,13 @@ function isDefectValid(state: ChecklistItemState): boolean {
   const defect = state.defect;
   if (!defect) return false;
   if (!defect.description.trim()) return false;
-  if (defect.severity === 'blocking' && !defect.photoDataUrl) return false;
+  if (defect.severity === 'blocking' && (!defect.photoUrl || state.uploading)) return false;
   return true;
 }
 
 export function ChecklistItemCard({ def, state, onChange, showValidation }: ChecklistItemCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   if (def.type === 'number') {
     const invalid = Boolean(showValidation && def.required && !state.numberValue?.trim());
@@ -69,22 +71,24 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
     onChange({ ...state, defect: { ...defect, description } });
   }
 
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !defect) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      onChange({
-        ...state,
-        defect: { ...defect, photoDataUrl: String(reader.result), photoFileName: file.name },
-      });
-    };
-    reader.readAsDataURL(file);
+    setPhotoError(null);
+    onChange({ ...state, uploading: true });
+    try {
+      const { photoUrl } = await uploadDefectPhoto(file);
+      onChange({ ...state, defect: { ...defect, photoUrl }, uploading: false });
+    } catch {
+      setPhotoError('No se pudo subir la foto. Probá de nuevo.');
+      onChange({ ...state, uploading: false });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   }
 
   function removePhoto() {
     if (!defect) return;
-    onChange({ ...state, defect: { ...defect, photoDataUrl: undefined, photoFileName: undefined } });
+    onChange({ ...state, defect: { ...defect, photoUrl: undefined } });
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -157,9 +161,11 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
             <span className="defect-panel__field-label">
               Foto {defect.severity === 'blocking' ? '(obligatoria)' : '(opcional)'}
             </span>
-            {defect.photoDataUrl ? (
+            {state.uploading ? (
+              <span className="muted">Subiendo…</span>
+            ) : defect.photoUrl ? (
               <div className="photo-preview">
-                <img src={defect.photoDataUrl} alt="Foto del defecto reportado" />
+                <img src={defect.photoUrl} alt="Foto del defecto reportado" />
                 <button type="button" className="photo-preview__remove" onClick={removePhoto}>
                   Quitar foto
                 </button>
@@ -170,6 +176,7 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
                 Adjuntar foto
               </button>
             )}
+            {photoError && <p className="field-error">{photoError}</p>}
             <input
               ref={fileInputRef}
               type="file"

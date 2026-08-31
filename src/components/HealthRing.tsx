@@ -1,5 +1,4 @@
-// The signature "health ring" — used here to summarize checklist outcomes before
-// submit. Ring color reflects the worst outcome present (verde/ámbar/rojo).
+// Pieza de marca: resume el estado del checklist antes de enviar (verde/ámbar/rojo).
 export type RingStatus = 'ok' | 'warn' | 'critical';
 
 interface HealthRingProps {

@@ -1,4 +1,4 @@
-// Inline stroke-based SVG icons — no emoji, no icon font dependency.
+// Íconos SVG inline con trazo, sin emojis ni dependencia de fuentes de íconos.
 import type { SVGProps } from 'react';
 
 type IconProps = SVGProps<SVGSVGElement>;
