@@ -1,0 +1,54 @@
+/* FleetGuard design tokens — "Cuidado preventivo" */
+:root {
+  --fg-bg: #F6F2EA;
+  --fg-ok: #6E9277;
+  --fg-warn: #E3A857;
+  --fg-critical: #C1604D;
+  --fg-text: #3E4A42;
+  --fg-white: #FFFFFF;
+  --fg-radius: 12px;
+  --fg-ok-bg: rgba(110, 146, 119, 0.12);
+  --fg-warn-bg: rgba(227, 168, 87, 0.16);
+  --fg-crit-bg: rgba(193, 96, 77, 0.12);
+  --fg-border-color: rgba(62, 74, 66, 0.14);
+  --fg-border: 1px solid var(--fg-border-color);
+
+  --fg-font-display: 'Space Grotesk', system-ui, sans-serif;
+  --fg-font-body: 'Inter', system-ui, sans-serif;
+  --fg-font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--fg-bg);
+  color: var(--fg-text);
+  font-family: var(--fg-font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+button, input, textarea {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
