@@ -2,9 +2,13 @@ import { useState } from 'react';
 import './App.css';
 import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
+import { DefectsList } from './components/DefectsList';
 import type { InspectionType, Vehicle } from './types/domain';
 
-type Route = { view: 'list' } | { view: 'flow'; vehicle: Vehicle; type: InspectionType };
+type Route =
+  | { view: 'list' }
+  | { view: 'defects' }
+  | { view: 'flow'; vehicle: Vehicle; type: InspectionType };
 
 function App() {
   const [route, setRoute] = useState<Route>({ view: 'list' });
@@ -23,7 +27,26 @@ function App() {
 
   return (
     <main className="app">
+      {route.view !== 'flow' && (
+        <nav className="top-nav">
+          <button
+            type="button"
+            className={`top-nav__tab${route.view === 'list' ? ' top-nav__tab--active' : ''}`}
+            onClick={() => setRoute({ view: 'list' })}
+          >
+            Flota
+          </button>
+          <button
+            type="button"
+            className={`top-nav__tab${route.view === 'defects' ? ' top-nav__tab--active' : ''}`}
+            onClick={() => setRoute({ view: 'defects' })}
+          >
+            Defectos
+          </button>
+        </nav>
+      )}
       {route.view === 'list' && <VehicleList key={listKey} onSelectVehicle={handleSelectVehicle} />}
+      {route.view === 'defects' && <DefectsList />}
       {route.view === 'flow' && (
         <InspectionFlow vehicle={route.vehicle} type={route.type} onDone={handleFlowDone} />
       )}

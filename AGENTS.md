@@ -21,11 +21,12 @@ desincronizan, y una copia desactualizada es peor que no tenerla.
 
 ## Estructura hoy
 
-Desde la migración a Spring Boot del backend y CAM-11 (2026-08-31):
+Desde la migración a Spring Boot del backend y CAM-11 (2026-08-31), más la
+pantalla de defectos agregada el mismo día sobre el contrato nuevo:
 
 ```
 src/
-├── App.tsx                            # orquesta el flujo: lista de vehículos ↔ inspección
+├── App.tsx                            # nav de tabs (Flota/Defectos) + flujo de inspección
 ├── main.tsx                           # entry point
 ├── App.css                            # estilos de todas las pantallas
 ├── index.css                          # solo importa styles/tokens.css
@@ -36,19 +37,21 @@ src/
 │   ├── apiClient.ts                   # URL base, identidad de chofer (stub) y manejo de errores
 │   ├── vehiclesService.ts
 │   ├── inspectionsService.ts
-│   └── photosService.ts
+│   ├── photosService.ts
+│   └── defectsService.ts
 └── components/
     ├── VehicleList.tsx
     ├── InspectionFlow.tsx
     ├── ChecklistItemCard.tsx
     ├── HealthRing.tsx
+    ├── DefectsList.tsx
     └── icons.tsx
 ```
 
-No hay pantalla de listado de defectos todavía — la vieja (`DefectosList.tsx`)
-se descartó en el merge del 2026-08-31 porque apuntaba al contrato viejo
-(`GET /api/defectos` en español). Hay que rehacerla contra `GET /api/defects`
-(ver `TIP - Backend/docs/API.md`) cuando se retome esa historia.
+`DefectsList.tsx` reemplaza a la vieja `DefectosList.tsx` (CAM-13, descartada
+en el merge del 2026-08-31 por apuntar a `GET /api/defectos` en español). La
+nueva consume `GET /api/defects` — probada de punta a punta generando un
+defecto real vía el flujo de inspección y viéndolo aparecer en la lista.
 
 ## Reglas
 

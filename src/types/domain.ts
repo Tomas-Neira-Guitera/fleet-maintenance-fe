@@ -78,3 +78,14 @@ export interface SubmitInspectionResult {
   inspection: Inspection;
   trip: Trip;
 }
+
+/** Defecto reportado en una inspección, tal como lo lista GET /api/defects. */
+export interface DefectSummary {
+  id: string;
+  severity: DefectSeverity;
+  description: string;
+  photoUrl?: string;
+  createdAt: string;
+  vehiclePlate: string;
+  status: 'open';
+}
