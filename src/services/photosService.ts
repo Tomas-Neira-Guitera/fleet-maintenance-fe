@@ -1,4 +1,4 @@
-import { API_BASE_URL, throwApiError } from './apiClient';
+import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 export interface UploadedPhoto {
   photoId: string;
@@ -11,6 +11,7 @@ export async function uploadDefectPhoto(file: File): Promise<UploadedPhoto> {
 
   const res = await fetch(`${API_BASE_URL}/api/photos`, {
     method: 'POST',
+    headers: authHeaders(),
     body: formData,
   });
   if (!res.ok) return throwApiError(res, 'No se pudo subir la foto');

@@ -1,5 +1,5 @@
 import type { ChecklistAnswer, InspectionType, SubmitInspectionResult } from '../types/domain';
-import { API_BASE_URL, driverHeaders, throwApiError } from './apiClient';
+import { API_BASE_URL, authHeaders, driverHeaders, throwApiError } from './apiClient';
 
 interface WireAnswer {
   itemId: string;
@@ -27,7 +27,7 @@ export async function submitInspection(
 ): Promise<SubmitInspectionResult> {
   const res = await fetch(`${API_BASE_URL}/api/inspections/${vehicleId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...driverHeaders() },
+    headers: { 'Content-Type': 'application/json', ...driverHeaders(), ...authHeaders() },
     body: JSON.stringify({ type, answers: toWireAnswers(answers), notes }),
   });
   if (!res.ok) return throwApiError(res, 'No se pudo enviar la inspección');

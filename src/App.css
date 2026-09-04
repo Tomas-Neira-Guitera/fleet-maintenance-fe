@@ -35,6 +35,18 @@
   color: var(--fg-white);
 }
 
+.top-nav__logout {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--fg-radius);
+  border: var(--fg-border);
+  background: transparent;
+  color: rgba(62, 74, 66, 0.65);
+  font-weight: 600;
+  font-size: 13px;
+}
+
 .screen__header {
   display: flex;
   flex-direction: column;
@@ -269,6 +281,31 @@
   font-size: 16px;
   color: var(--fg-text);
   background: var(--fg-white);
+}
+
+.text-input {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  border: var(--fg-border);
+  padding: 0 12px;
+  font-family: var(--fg-font-body);
+  font-size: 16px;
+  color: var(--fg-text);
+  background: var(--fg-white);
+}
+
+/* Login */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .field-error {

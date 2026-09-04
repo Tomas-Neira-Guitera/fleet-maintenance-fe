@@ -89,3 +89,11 @@ export interface DefectSummary {
   vehiclePlate: string;
   status: 'open';
 }
+
+export type Role = 'ADMIN' | 'CHOFER';
+
+/** Respuesta de POST /api/auth/login (CAM-43). */
+export interface LoginResult {
+  token: string;
+  role: Role;
+}
