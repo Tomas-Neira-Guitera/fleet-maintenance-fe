@@ -1,9 +1,79 @@
+/* Layout del dashboard de admin (CAM-20): header + fila de KPIs + grilla de 2 columnas. */
+
+.admin-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-dashboard__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-dashboard__title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 28px;
+  margin: 0;
+  color: var(--fg-text);
+}
+
+.admin-dashboard__greeting {
+  margin: 4px 0 0;
+  color: rgba(62, 74, 66, 0.7);
+}
+
+.admin-dashboard__refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: 50%;
+  color: var(--fg-text);
+  flex-shrink: 0;
+}
+
+.admin-dashboard__refresh:hover {
+  background: var(--fg-bg);
+}
+
+.admin-dashboard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-dashboard__grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.admin-dashboard__side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .admin-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Componente "Estado de la flota" del dashboard de admin (CAM-40). */
 
 .fleet-status {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 32px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -139,12 +209,164 @@
   color: var(--fg-critical);
 }
 
+/* Punto de color por fila -- mismo criterio de color que el badge de estado. */
+.fleet-status__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.fleet-status__dot--al_dia {
+  background: var(--fg-ok);
+}
+
+.fleet-status__dot--por_vencer {
+  background: var(--fg-warn);
+}
+
+.fleet-status__dot--vencido {
+  background: var(--fg-critical);
+}
+
+/* Tarjetas KPI del dashboard de admin (CAM-20). */
+
+.fleet-kpis__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.fleet-kpi {
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fleet-kpi__icon {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+}
+
+.fleet-kpi__value {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 28px;
+  color: var(--fg-text);
+}
+
+.fleet-kpi__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.fleet-kpi__sublabel {
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.fleet-kpi--ok .fleet-kpi__icon,
+.fleet-kpi--ok .fleet-kpi__value {
+  color: var(--fg-ok);
+}
+
+.fleet-kpi--warn .fleet-kpi__icon,
+.fleet-kpi--warn .fleet-kpi__value {
+  color: var(--fg-warn);
+}
+
+.fleet-kpi--crit .fleet-kpi__icon,
+.fleet-kpi--crit .fleet-kpi__value {
+  color: var(--fg-critical);
+}
+
+@media (max-width: 900px) {
+  .fleet-kpis__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Widget "Próximos vencimientos" del dashboard de admin (CAM-20). */
+
+.upcoming-maintenance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.upcoming-maintenance-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.upcoming-maintenance-card__title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 20px;
+  margin: 0;
+  color: var(--fg-text);
+}
+
+.upcoming-maintenance-card__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.upcoming-maintenance-card__group-title {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: rgba(62, 74, 66, 0.55);
+  margin: 0 0 8px;
+}
+
+.upcoming-maintenance-card__list {
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+}
+
+.upcoming-maintenance-card__item {
+  padding: 14px 16px;
+  border-bottom: var(--fg-border-color) 1px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.upcoming-maintenance-card__item:last-child {
+  border-bottom: none;
+}
+
+.upcoming-maintenance-card__top-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upcoming-maintenance-card__description {
+  margin: 0;
+  color: var(--fg-text);
+}
+
+.upcoming-maintenance-card__meta {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
 /* Widget "Defectos abiertos recientes" del dashboard de admin (CAM-37). */
 
 .recent-defects-card {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 0 24px 32px;
   display: flex;
   flex-direction: column;
   gap: 16px;

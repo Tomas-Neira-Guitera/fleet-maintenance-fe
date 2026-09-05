@@ -21,6 +21,7 @@ export function driverHeaders(): Record<string, string> {
 }
 
 const SESSION_STORAGE_KEY = 'fleetguard.session';
+const USERNAME_STORAGE_KEY = 'fleetguard.username';
 
 export function saveSession(session: LoginResult): void {
   localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
@@ -28,6 +29,16 @@ export function saveSession(session: LoginResult): void {
 
 export function clearSession(): void {
   localStorage.removeItem(SESSION_STORAGE_KEY);
+  localStorage.removeItem(USERNAME_STORAGE_KEY);
+}
+
+/** Nombre tipeado en el login -- no viene de `LoginResult` (el backend no lo devuelve), es solo para el saludo. */
+export function saveUsername(username: string): void {
+  localStorage.setItem(USERNAME_STORAGE_KEY, username);
+}
+
+export function getUsername(): string | null {
+  return localStorage.getItem(USERNAME_STORAGE_KEY);
 }
 
 export function getSession(): LoginResult | null {

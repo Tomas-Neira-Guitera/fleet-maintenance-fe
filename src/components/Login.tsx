@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { login } from '../services/authService';
-import { saveSession } from '../services/apiClient';
+import { saveSession, saveUsername } from '../services/apiClient';
 import type { Role } from '../types/domain';
 
 interface LoginProps {
-  onLogin: (role: Role) => void;
+  onLogin: (role: Role, username: string) => void;
 }
 
 export function Login({ onLogin }: LoginProps) {
@@ -21,7 +21,8 @@ export function Login({ onLogin }: LoginProps) {
     try {
       const result = await login(username, password);
       saveSession(result);
-      onLogin(result.role);
+      saveUsername(username);
+      onLogin(result.role, username);
     } catch {
       setError('Usuario o contraseña incorrectos.');
     } finally {
