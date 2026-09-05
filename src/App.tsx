@@ -5,6 +5,7 @@ import { InspectionFlow } from './components/InspectionFlow';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
 import { FleetStatusTable } from './components/dashboard/FleetStatusTable';
+import { RecentDefectsCard } from './components/dashboard/RecentDefectsCard';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -75,6 +76,11 @@ function App() {
               </button>
             </>
           )}
+          {role === 'ADMIN' && route.view === 'defects' && (
+            <button type="button" className="top-nav__back" onClick={() => setRoute({ view: 'admin' })}>
+              ← Volver
+            </button>
+          )}
           <button type="button" className="top-nav__logout" onClick={handleLogout}>
             Cerrar sesión
           </button>
@@ -85,7 +91,12 @@ function App() {
       {route.view === 'flow' && (
         <InspectionFlow vehicle={route.vehicle} type={route.type} onDone={handleFlowDone} />
       )}
-      {route.view === 'admin' && <FleetStatusTable />}
+      {route.view === 'admin' && (
+        <>
+          <FleetStatusTable />
+          <RecentDefectsCard onViewAll={() => setRoute({ view: 'defects' })} />
+        </>
+      )}
     </main>
   );
 }

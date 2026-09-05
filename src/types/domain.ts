@@ -88,6 +88,7 @@ export interface DefectSummary {
   createdAt: string;
   vehiclePlate: string;
   status: 'open';
+  reportedBy?: string | null;
 }
 
 export type Role = 'ADMIN' | 'CHOFER';
