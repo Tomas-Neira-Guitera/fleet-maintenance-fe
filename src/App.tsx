@@ -4,7 +4,7 @@ import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
-import { AdminPlaceholder } from './components/AdminPlaceholder';
+import { FleetStatusTable } from './components/dashboard/FleetStatusTable';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -85,7 +85,7 @@ function App() {
       {route.view === 'flow' && (
         <InspectionFlow vehicle={route.vehicle} type={route.type} onDone={handleFlowDone} />
       )}
-      {route.view === 'admin' && <AdminPlaceholder />}
+      {route.view === 'admin' && <FleetStatusTable />}
     </main>
   );
 }

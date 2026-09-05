@@ -1,0 +1,140 @@
+/* Componente "Estado de la flota" del dashboard de admin (CAM-40). */
+
+.fleet-status {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fleet-status__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.fleet-status__title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 20px;
+  margin: 0;
+  color: var(--fg-text);
+}
+
+.fleet-status__table-wrap {
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  overflow-x: auto;
+}
+
+.fleet-status__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.fleet-status__table thead th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(62, 74, 66, 0.55);
+  font-weight: 600;
+  padding: 14px 16px;
+  border-bottom: var(--fg-border);
+  white-space: nowrap;
+}
+
+.fleet-status__table tbody td {
+  padding: 12px 16px;
+  border-bottom: var(--fg-border-color) 1px solid;
+  vertical-align: middle;
+}
+
+.fleet-status__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.fleet-status__plate {
+  font-family: var(--fg-font-mono);
+  font-weight: 500;
+  color: var(--fg-text);
+  white-space: nowrap;
+}
+
+.fleet-status__vehicle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fleet-status__vehicle-name {
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.fleet-status__vehicle-type {
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+  text-transform: capitalize;
+}
+
+.fleet-status__maintenance {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+}
+
+.fleet-status__maintenance-name {
+  color: var(--fg-text);
+}
+
+.fleet-status__maintenance-detail {
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.fleet-status__km {
+  font-family: var(--fg-font-mono);
+  color: var(--fg-text);
+  white-space: nowrap;
+}
+
+/* Chip de estado -- al día / por vencer / vencido */
+.fleet-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.fleet-status-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.fleet-status-badge--al_dia {
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+}
+
+.fleet-status-badge--por_vencer {
+  background: var(--fg-warn-bg);
+  color: var(--fg-warn);
+}
+
+.fleet-status-badge--vencido {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+}
