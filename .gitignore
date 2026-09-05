@@ -26,3 +26,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+### Asistentes de IA (config/estado personal, no es parte del producto) ###
+### Vive ahora en el repo fleet-maintenance-ia ###
+AGENTS.md
+CLAUDE.md
