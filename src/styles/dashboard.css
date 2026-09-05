@@ -104,29 +104,6 @@
   white-space: nowrap;
 }
 
-/* Anillo compacto de salud en la fila */
-.fleet-status-ring {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fleet-status-ring svg {
-  position: absolute;
-  inset: 0;
-}
-
-.fleet-status-ring__value {
-  position: relative;
-  font-family: var(--fg-font-display);
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--fg-text);
-}
-
 /* Chip de estado -- al día / por vencer / vencido */
 .fleet-status-badge {
   display: inline-flex;

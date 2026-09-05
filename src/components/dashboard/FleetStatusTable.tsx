@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { getFleetStatus } from '../../services/fleetStatusService';
 import type { FleetStatusRow, NextMaintenanceSummary } from '../../types/domain';
 import { StatusBadge } from './StatusBadge';
-import { VehicleStatusRing } from './VehicleStatusRing';
 import '../../styles/dashboard.css';
 
 const numberFormatter = new Intl.NumberFormat('es-AR');
@@ -71,7 +70,6 @@ export function FleetStatusTable() {
           <table className="fleet-status__table">
             <thead>
               <tr>
-                <th aria-label="Salud" />
                 <th>Patente</th>
                 <th>Vehículo</th>
                 <th>Próximo mantenimiento</th>
@@ -82,9 +80,6 @@ export function FleetStatusTable() {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.vehicleId}>
-                  <td>
-                    <VehicleStatusRing score={row.healthScore} status={row.status} />
-                  </td>
                   <td className="fleet-status__plate">{row.plate}</td>
                   <td>
                     <div className="fleet-status__vehicle">
