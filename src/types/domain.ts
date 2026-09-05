@@ -78,3 +78,39 @@ export interface SubmitInspectionResult {
   inspection: Inspection;
   trip: Trip;
 }
+
+// --- Estado de flota / mantenimiento preventivo (CAM-40) ---
+// Ver claude/CAM-40-modelo-mantenimiento-preventivo.md y
+// claude/CAM-40-maintenance-api-contract.md en el proyecto de FleetGuard.
+
+export type MaintenanceRowStatus = 'al_dia' | 'por_vencer' | 'vencido';
+
+export interface NextMaintenanceSummary {
+  assignmentId: string;
+  name: string;
+  status: MaintenanceRowStatus;
+  dueDate: string | null;
+  dueKm: number | null;
+  remainingDays: number | null;
+  remainingKm: number | null;
+}
+
+/** Una fila del componente "Estado de la flota" -- GET /api/vehicles?view=fleet-status. */
+export interface FleetStatusRow {
+  vehicleId: string;
+  plate: string;
+  brand: string;
+  model: string;
+  vehicleType: string | null;
+  odometerKm: number;
+  healthScore: number;
+  status: MaintenanceRowStatus;
+  nextMaintenance: NextMaintenanceSummary | null;
+}
+
+export interface FleetStatusPage {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: FleetStatusRow[];
+}
