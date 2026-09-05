@@ -1,41 +1,12 @@
 import { useEffect, useState } from 'react';
 import { getFleetStatus } from '../../services/fleetStatusService';
-import type { FleetStatusRow, NextMaintenanceSummary } from '../../types/domain';
+import type { FleetStatusRow } from '../../types/domain';
+import { describeNextMaintenance, numberFormatter } from '../../utils/maintenanceFormat';
 import { StatusBadge } from './StatusBadge';
 import '../../styles/dashboard.css';
 
-const numberFormatter = new Intl.NumberFormat('es-AR');
-
 function formatKm(km: number): string {
   return `${numberFormatter.format(km)} km`;
-}
-
-function formatDate(iso: string): string {
-  const [year, month, day] = iso.split('-');
-  return `${day}/${month}/${year}`;
-}
-
-/** Arma la segunda línea de la celda "Próximo mantenimiento" -- ej. "vence en 3 días · 23/08/2026". */
-function describeNextMaintenance(next: NextMaintenanceSummary): string {
-  const parts: string[] = [];
-
-  if (next.remainingKm != null) {
-    parts.push(
-      next.remainingKm >= 0
-        ? `en ${numberFormatter.format(next.remainingKm)} km`
-        : `vencida hace ${numberFormatter.format(Math.abs(next.remainingKm))} km`,
-    );
-  }
-  if (next.remainingDays != null) {
-    parts.push(
-      next.remainingDays >= 0
-        ? `vence en ${next.remainingDays} día${next.remainingDays === 1 ? '' : 's'}`
-        : `vencida hace ${Math.abs(next.remainingDays)} día${Math.abs(next.remainingDays) === 1 ? '' : 's'}`,
-    );
-  }
-
-  const dueDate = next.dueDate ? formatDate(next.dueDate) : null;
-  return [parts.join(' · '), dueDate].filter(Boolean).join(' · ');
 }
 
 export function FleetStatusTable() {
@@ -70,6 +41,7 @@ export function FleetStatusTable() {
           <table className="fleet-status__table">
             <thead>
               <tr>
+                <th aria-hidden="true"></th>
                 <th>Patente</th>
                 <th>Vehículo</th>
                 <th>Próximo mantenimiento</th>
@@ -80,6 +52,9 @@ export function FleetStatusTable() {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.vehicleId}>
+                  <td>
+                    <span className={`fleet-status__dot fleet-status__dot--${row.status}`} aria-hidden="true" />
+                  </td>
                   <td className="fleet-status__plate">{row.plate}</td>
                   <td>
                     <div className="fleet-status__vehicle">

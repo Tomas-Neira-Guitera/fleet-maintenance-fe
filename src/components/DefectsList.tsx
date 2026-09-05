@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getDefects } from '../services/defectsService';
 import type { DefectSummary } from '../types/domain';
 import { CameraIcon } from './icons';
+import { SeverityBadge } from './SeverityBadge';
 
 export function DefectsList() {
   const [defects, setDefects] = useState<DefectSummary[] | null>(null);
@@ -54,9 +55,7 @@ export function DefectsList() {
                 )}
               </span>
             </div>
-            <span className={`severity-tag severity-tag--${defect.severity}`}>
-              {defect.severity === 'blocking' ? 'Bloqueante' : 'No bloqueante'}
-            </span>
+            <SeverityBadge severity={defect.severity} />
           </li>
         ))}
       </ul>

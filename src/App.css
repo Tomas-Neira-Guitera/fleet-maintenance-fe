@@ -47,6 +47,18 @@
   font-size: 13px;
 }
 
+.top-nav__back {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--fg-radius);
+  border: var(--fg-border);
+  background: transparent;
+  color: rgba(62, 74, 66, 0.65);
+  font-weight: 600;
+  font-size: 13px;
+}
+
 .screen__header {
   display: flex;
   flex-direction: column;
@@ -573,6 +585,8 @@
   border-radius: 999px;
   white-space: nowrap;
   flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .severity-tag--non-blocking {
