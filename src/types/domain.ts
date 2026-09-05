@@ -79,6 +79,25 @@ export interface SubmitInspectionResult {
   trip: Trip;
 }
 
+/** Defecto reportado en una inspección, tal como lo lista GET /api/defects. */
+export interface DefectSummary {
+  id: string;
+  severity: DefectSeverity;
+  description: string;
+  photoUrl?: string;
+  createdAt: string;
+  vehiclePlate: string;
+  status: 'open';
+}
+
+export type Role = 'ADMIN' | 'CHOFER';
+
+/** Respuesta de POST /api/auth/login (CAM-43). */
+export interface LoginResult {
+  token: string;
+  role: Role;
+}
+
 // --- Estado de flota / mantenimiento preventivo (CAM-40) ---
 // Ver claude/CAM-40-modelo-mantenimiento-preventivo.md y
 // claude/CAM-40-maintenance-api-contract.md en el proyecto de FleetGuard.

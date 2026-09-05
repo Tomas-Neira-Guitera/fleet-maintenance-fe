@@ -1,5 +1,5 @@
 import type { FleetStatusPage } from '../types/domain';
-import { API_BASE_URL, throwApiError } from './apiClient';
+import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 interface GetFleetStatusOptions {
   page?: number;
@@ -14,7 +14,7 @@ export async function getFleetStatus(options: GetFleetStatusOptions = {}): Promi
   if (options.pageSize) params.set('pageSize', String(options.pageSize));
   if (options.status) params.set('status', options.status);
 
-  const res = await fetch(`${API_BASE_URL}/api/vehicles?${params.toString()}`);
+  const res = await fetch(`${API_BASE_URL}/api/vehicles?${params.toString()}`, { headers: authHeaders() });
   if (!res.ok) return throwApiError(res, 'No se pudo obtener el estado de la flota');
   return res.json() as Promise<FleetStatusPage>;
 }

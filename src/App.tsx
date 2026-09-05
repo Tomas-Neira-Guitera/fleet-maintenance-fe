@@ -2,26 +2,37 @@ import { useState } from 'react';
 import './App.css';
 import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
+import { DefectsList } from './components/DefectsList';
+import { Login } from './components/Login';
 import { FleetStatusTable } from './components/dashboard/FleetStatusTable';
-import type { InspectionType, Vehicle } from './types/domain';
+import { clearSession, getSession } from './services/apiClient';
+import type { InspectionType, Role, Vehicle } from './types/domain';
 
-type Route = { view: 'list' } | { view: 'flow'; vehicle: Vehicle; type: InspectionType };
+type Route =
+  | { view: 'list' }
+  | { view: 'defects' }
+  | { view: 'flow'; vehicle: Vehicle; type: InspectionType }
+  | { view: 'admin' };
 
-// Sin login/routing real todavía (como CURRENT_DRIVER en apiClient.ts): el dashboard de
-// admin (CAM-40) se distingue por path mientras no exista un router ni roles reales.
-const IS_ADMIN_DASHBOARD = window.location.pathname.startsWith('/admin');
-
-function App() {
-  if (IS_ADMIN_DASHBOARD) {
-    return <FleetStatusTable />;
-  }
-
-  return <DriverApp />;
+function initialRoute(role: Role | null): Route {
+  return role === 'ADMIN' ? { view: 'admin' } : { view: 'list' };
 }
 
-function DriverApp() {
-  const [route, setRoute] = useState<Route>({ view: 'list' });
+function App() {
+  const [role, setRole] = useState<Role | null>(() => getSession()?.role ?? null);
+  const [route, setRoute] = useState<Route>(() => initialRoute(getSession()?.role ?? null));
   const [listKey, setListKey] = useState(0);
+
+  function handleLogin(loggedRole: Role) {
+    setRole(loggedRole);
+    setRoute(initialRoute(loggedRole));
+  }
+
+  function handleLogout() {
+    clearSession();
+    setRole(null);
+    setRoute({ view: 'list' });
+  }
 
   function handleSelectVehicle(vehicle: Vehicle) {
     // Decisión de producto (CAM-11): un vehículo con viaje abierto solo puede cerrarlo (post-viaje).
@@ -34,12 +45,47 @@ function DriverApp() {
     setRoute({ view: 'list' });
   }
 
+  if (!role) {
+    return (
+      <main className="app">
+        <Login onLogin={handleLogin} />
+      </main>
+    );
+  }
+
   return (
     <main className="app">
+      {route.view !== 'flow' && (
+        <nav className="top-nav">
+          {role === 'CHOFER' && (
+            <>
+              <button
+                type="button"
+                className={`top-nav__tab${route.view === 'list' ? ' top-nav__tab--active' : ''}`}
+                onClick={() => setRoute({ view: 'list' })}
+              >
+                Flota
+              </button>
+              <button
+                type="button"
+                className={`top-nav__tab${route.view === 'defects' ? ' top-nav__tab--active' : ''}`}
+                onClick={() => setRoute({ view: 'defects' })}
+              >
+                Defectos
+              </button>
+            </>
+          )}
+          <button type="button" className="top-nav__logout" onClick={handleLogout}>
+            Cerrar sesión
+          </button>
+        </nav>
+      )}
       {route.view === 'list' && <VehicleList key={listKey} onSelectVehicle={handleSelectVehicle} />}
+      {route.view === 'defects' && <DefectsList />}
       {route.view === 'flow' && (
         <InspectionFlow vehicle={route.vehicle} type={route.type} onDone={handleFlowDone} />
       )}
+      {route.view === 'admin' && <FleetStatusTable />}
     </main>
   );
 }
