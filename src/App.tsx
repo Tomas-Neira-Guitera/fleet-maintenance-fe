@@ -4,8 +4,7 @@ import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
-import { FleetStatusTable } from './components/dashboard/FleetStatusTable';
-import { RecentDefectsCard } from './components/dashboard/RecentDefectsCard';
+import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -24,7 +23,7 @@ function App() {
   const [route, setRoute] = useState<Route>(() => initialRoute(getSession()?.role ?? null));
   const [listKey, setListKey] = useState(0);
 
-  function handleLogin(loggedRole: Role) {
+  function handleLogin(loggedRole: Role, _username: string) {
     setRole(loggedRole);
     setRoute(initialRoute(loggedRole));
   }
@@ -91,12 +90,7 @@ function App() {
       {route.view === 'flow' && (
         <InspectionFlow vehicle={route.vehicle} type={route.type} onDone={handleFlowDone} />
       )}
-      {route.view === 'admin' && (
-        <>
-          <FleetStatusTable />
-          <RecentDefectsCard onViewAll={() => setRoute({ view: 'defects' })} />
-        </>
-      )}
+      {route.view === 'admin' && <AdminDashboard onViewDefects={() => setRoute({ view: 'defects' })} />}
     </main>
   );
 }

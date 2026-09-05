@@ -97,3 +97,22 @@ export function TruckIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function WrenchIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M14.7 6.3a4 4 0 0 0-5.6 4.7L3 17l4 4 6-6.1a4 4 0 0 0 4.7-5.6l-2.8 2.8-2-2Z" />
+    </svg>
+  );
+}
+
+export function RefreshIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 12a9 9 0 0 1 15.3-6.4L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-15.3 6.4L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
+  );
+}
