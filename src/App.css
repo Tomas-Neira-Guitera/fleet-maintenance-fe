@@ -1,8 +1,12 @@
 .app {
-  max-width: 480px;
-  margin: 0 auto;
   min-height: 100svh;
   background: var(--fg-bg);
+}
+
+/* Contenedor angosto mobile-first (login + flujo de chofer). */
+.mobile-shell {
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .screen {
@@ -16,6 +20,10 @@
   display: flex;
   gap: 8px;
   padding: 16px 16px 0;
+}
+
+.top-nav--chofer {
+  justify-content: flex-end;
 }
 
 .top-nav__tab {
@@ -49,6 +57,10 @@
 
 .top-nav__back {
   flex: 0 0 auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-height: 40px;
   padding: 0 12px;
   border-radius: var(--fg-radius);
@@ -127,6 +139,15 @@
   opacity: 0.65;
 }
 
+.vehicle-card--blocked {
+  border-color: var(--fg-critical);
+  background: var(--fg-crit-bg);
+}
+
+.vehicle-card--blocked .vehicle-card__model {
+  color: rgba(62, 74, 66, 0.75);
+}
+
 .vehicle-card__info {
   display: flex;
   flex-direction: column;
@@ -169,6 +190,11 @@
 .status-pill--warn {
   background: var(--fg-warn-bg);
   color: var(--fg-warn);
+}
+
+.status-pill--crit {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
 }
 
 .status-pill__icon {

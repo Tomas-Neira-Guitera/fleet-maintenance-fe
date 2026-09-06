@@ -5,17 +5,20 @@ import { InspectionFlow } from './components/InspectionFlow';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
+import { AdminShell, type AdminTab } from './components/dashboard/AdminShell';
+import { VehiclesSection } from './components/dashboard/VehiclesSection';
+import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
 type Route =
   | { view: 'list' }
-  | { view: 'defects' }
   | { view: 'flow'; vehicle: Vehicle; type: InspectionType }
-  | { view: 'admin' };
+  | { view: 'admin'; tab: AdminTab }
+  | { view: 'admin-defects' };
 
 function initialRoute(role: Role | null): Route {
-  return role === 'ADMIN' ? { view: 'admin' } : { view: 'list' };
+  return role === 'ADMIN' ? { view: 'admin', tab: 'resumen' } : { view: 'list' };
 }
 
 function App() {
@@ -45,52 +48,54 @@ function App() {
     setRoute({ view: 'list' });
   }
 
+  function handleFlowBack() {
+    setRoute({ view: 'list' });
+  }
+
   if (!role) {
     return (
-      <main className="app">
+      <main className="app mobile-shell">
         <Login onLogin={handleLogin} />
       </main>
     );
   }
 
+  if (role === 'ADMIN') {
+    const activeTab = route.view === 'admin' ? route.tab : 'resumen';
+    return (
+      <main className="app">
+        <AdminShell
+          activeTab={activeTab}
+          onSelectTab={(tab) => setRoute({ view: 'admin', tab })}
+          onLogout={handleLogout}
+        >
+          {route.view === 'admin-defects' ? (
+            <DefectsList onBack={() => setRoute({ view: 'admin', tab: 'resumen' })} />
+          ) : activeTab === 'vehiculos' ? (
+            <VehiclesSection />
+          ) : activeTab === 'planes' ? (
+            <MaintenancePlansSection />
+          ) : (
+            <AdminDashboard onViewDefects={() => setRoute({ view: 'admin-defects' })} />
+          )}
+        </AdminShell>
+      </main>
+    );
+  }
+
   return (
-    <main className="app">
+    <main className="app mobile-shell">
       {route.view !== 'flow' && (
-        <nav className="top-nav">
-          {role === 'CHOFER' && (
-            <>
-              <button
-                type="button"
-                className={`top-nav__tab${route.view === 'list' ? ' top-nav__tab--active' : ''}`}
-                onClick={() => setRoute({ view: 'list' })}
-              >
-                Flota
-              </button>
-              <button
-                type="button"
-                className={`top-nav__tab${route.view === 'defects' ? ' top-nav__tab--active' : ''}`}
-                onClick={() => setRoute({ view: 'defects' })}
-              >
-                Defectos
-              </button>
-            </>
-          )}
-          {role === 'ADMIN' && route.view === 'defects' && (
-            <button type="button" className="top-nav__back" onClick={() => setRoute({ view: 'admin' })}>
-              ← Volver
-            </button>
-          )}
+        <nav className="top-nav top-nav--chofer">
           <button type="button" className="top-nav__logout" onClick={handleLogout}>
             Cerrar sesión
           </button>
         </nav>
       )}
       {route.view === 'list' && <VehicleList key={listKey} onSelectVehicle={handleSelectVehicle} />}
-      {route.view === 'defects' && <DefectsList />}
       {route.view === 'flow' && (
-        <InspectionFlow vehicle={route.vehicle} type={route.type} onDone={handleFlowDone} />
+        <InspectionFlow vehicle={route.vehicle} type={route.type} onDone={handleFlowDone} onBack={handleFlowBack} />
       )}
-      {route.view === 'admin' && <AdminDashboard onViewDefects={() => setRoute({ view: 'defects' })} />}
     </main>
   );
 }

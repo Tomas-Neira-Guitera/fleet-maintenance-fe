@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { getUsername } from '../../services/apiClient';
-import { RefreshIcon } from '../icons';
 import { FleetKpiCards } from './FleetKpiCards';
 import { FleetStatusTable } from './FleetStatusTable';
 import { RecentDefectsCard } from './RecentDefectsCard';
@@ -23,8 +21,6 @@ function capitalize(text: string): string {
 }
 
 export function AdminDashboard({ onViewDefects }: AdminDashboardProps) {
-  // Cambiar refreshKey remonta los widgets de abajo, que vuelven a pedir sus datos solos.
-  const [refreshKey, setRefreshKey] = useState(0);
   const username = getUsername();
 
   return (
@@ -37,17 +33,9 @@ export function AdminDashboard({ onViewDefects }: AdminDashboardProps) {
             Así está tu flota hoy — {dateFormatter.format(new Date())}
           </p>
         </div>
-        <button
-          type="button"
-          className="admin-dashboard__refresh"
-          onClick={() => setRefreshKey((key) => key + 1)}
-          aria-label="Refrescar datos"
-        >
-          <RefreshIcon width={18} height={18} />
-        </button>
       </header>
 
-      <div className="admin-dashboard__body" key={refreshKey}>
+      <div className="admin-dashboard__body">
         <FleetKpiCards />
         <div className="admin-dashboard__grid">
           <FleetStatusTable />

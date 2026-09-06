@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { getDefects } from '../services/defectsService';
 import type { DefectSummary } from '../types/domain';
-import { CameraIcon } from './icons';
+import { ArrowLeftIcon, CameraIcon } from './icons';
 import { SeverityBadge } from './SeverityBadge';
 
-export function DefectsList() {
+interface DefectsListProps {
+  onBack?: () => void;
+}
+
+export function DefectsList({ onBack }: DefectsListProps) {
   const [defects, setDefects] = useState<DefectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +29,12 @@ export function DefectsList() {
   return (
     <div className="screen">
       <header className="screen__header">
+        {onBack && (
+          <button type="button" className="top-nav__back" onClick={onBack}>
+            <ArrowLeftIcon width={16} height={16} />
+            Volver
+          </button>
+        )}
         <h1 className="screen__title">Defectos</h1>
         <p className="screen__subtitle">Reportados en inspecciones, para priorizar mantenimiento</p>
       </header>
