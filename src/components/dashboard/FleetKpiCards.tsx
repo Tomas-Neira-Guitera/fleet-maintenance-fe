@@ -49,26 +49,34 @@ export function FleetKpiCards() {
       {counts && (
         <div className="fleet-kpis__grid">
           <div className="fleet-kpi fleet-kpi--ok">
-            <TruckIcon className="fleet-kpi__icon" />
-            <span className="fleet-kpi__value">{counts.alDia}</span>
+            <div className="fleet-kpi__top">
+              <TruckIcon className="fleet-kpi__icon" />
+              <span className="fleet-kpi__value">{counts.alDia}</span>
+            </div>
             <span className="fleet-kpi__label">Vehículos al día</span>
             <span className="fleet-kpi__sublabel">Sin pendientes de mantenimiento</span>
           </div>
           <div className="fleet-kpi fleet-kpi--warn">
-            <AlertTriangleIcon className="fleet-kpi__icon" />
-            <span className="fleet-kpi__value">{counts.porVencer}</span>
+            <div className="fleet-kpi__top">
+              <AlertTriangleIcon className="fleet-kpi__icon" />
+              <span className="fleet-kpi__value">{counts.porVencer}</span>
+            </div>
             <span className="fleet-kpi__label">Por vencer</span>
             <span className="fleet-kpi__sublabel">Requieren atención pronto</span>
           </div>
           <div className="fleet-kpi fleet-kpi--crit">
-            <AlertOctagonIcon className="fleet-kpi__icon" />
-            <span className="fleet-kpi__value">{counts.vencido}</span>
+            <div className="fleet-kpi__top">
+              <AlertOctagonIcon className="fleet-kpi__icon" />
+              <span className="fleet-kpi__value">{counts.vencido}</span>
+            </div>
             <span className="fleet-kpi__label">Vencidos</span>
             <span className="fleet-kpi__sublabel">Mantenimiento fuera de fecha</span>
           </div>
           <div className="fleet-kpi fleet-kpi--crit">
-            <WrenchIcon className="fleet-kpi__icon" />
-            <span className="fleet-kpi__value">{counts.defectosBloqueantes + counts.defectosNoBloqueantes}</span>
+            <div className="fleet-kpi__top">
+              <WrenchIcon className="fleet-kpi__icon" />
+              <span className="fleet-kpi__value">{counts.defectosBloqueantes + counts.defectosNoBloqueantes}</span>
+            </div>
             <span className="fleet-kpi__label">Defectos abiertos</span>
             <span className="fleet-kpi__sublabel">
               {counts.defectosBloqueantes} bloqueantes · {counts.defectosNoBloqueantes} no bloqueantes

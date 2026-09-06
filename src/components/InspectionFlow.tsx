@@ -18,6 +18,7 @@ interface InspectionFlowProps {
   vehicle: Vehicle;
   type: InspectionType;
   onDone: () => void;
+  onBack: () => void;
 }
 
 type FlowStep = 'checklist' | 'summary' | 'success';
@@ -47,7 +48,7 @@ function isItemValid(def: ChecklistItemDef, state: ChecklistItemState): boolean 
   return true;
 }
 
-export function InspectionFlow({ vehicle, type, onDone }: InspectionFlowProps) {
+export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlowProps) {
   const items = useMemo(() => (type === 'pre-trip' ? getPreTripItems() : POST_TRIP_ITEMS), [type]);
   const checkItems = useMemo(() => items.filter((i) => i.type === 'check'), [items]);
 
@@ -265,6 +266,9 @@ export function InspectionFlow({ vehicle, type, onDone }: InspectionFlowProps) {
       )}
 
       <div className="screen__actions">
+        <button type="button" className="secondary-btn" onClick={onBack}>
+          Volver
+        </button>
         <button type="button" className="primary-btn" onClick={handleContinue}>
           Continuar
         </button>
