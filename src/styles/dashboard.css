@@ -419,22 +419,29 @@
   background: var(--fg-white);
   border: var(--fg-border);
   border-radius: var(--fg-radius);
-  padding: 16px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+}
+
+.fleet-kpi__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .fleet-kpi__icon {
-  width: 20px;
-  height: 20px;
-  margin-bottom: 4px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .fleet-kpi__value {
   font-family: var(--fg-font-display);
   font-weight: 600;
-  font-size: 28px;
+  font-size: 22px;
+  line-height: 1;
   color: var(--fg-text);
 }
 
@@ -445,7 +452,7 @@
 }
 
 .fleet-kpi__sublabel {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(62, 74, 66, 0.6);
 }
 
