@@ -576,6 +576,21 @@
   color: var(--fg-text);
 }
 
+/* Botón "Planificar" (CAM-51) al lado del chip de gravedad. */
+.defect-summary-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.defect-summary-item__schedule-btn {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .defect-summary-item__info {
   display: flex;
   flex-direction: column;

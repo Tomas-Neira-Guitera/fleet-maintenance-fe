@@ -3,6 +3,7 @@ import { getFleetStatus } from '../../services/fleetStatusService';
 import type { FleetStatusRow } from '../../types/domain';
 import { describeNextMaintenance, numberFormatter } from '../../utils/maintenanceFormat';
 import { StatusBadge } from './StatusBadge';
+import { VehicleMaintenanceModal } from './VehicleMaintenanceModal';
 import '../../styles/dashboard.css';
 
 function formatKm(km: number): string {
@@ -12,6 +13,7 @@ function formatKm(km: number): string {
 export function FleetStatusTable() {
   const [rows, setRows] = useState<FleetStatusRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRow, setSelectedRow] = useState<FleetStatusRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +53,12 @@ export function FleetStatusTable() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.vehicleId}>
+                <tr
+                  key={row.vehicleId}
+                  className="fleet-status__row"
+                  onClick={() => setSelectedRow(row)}
+                  title="Ver mantenimientos de este vehículo"
+                >
                   <td>
                     <span className={`fleet-status__dot fleet-status__dot--${row.status}`} aria-hidden="true" />
                   </td>
@@ -86,6 +93,15 @@ export function FleetStatusTable() {
           </table>
           {rows.length === 0 && <p className="muted">No hay vehículos en la flota todavía.</p>}
         </div>
+      )}
+
+      {selectedRow && (
+        <VehicleMaintenanceModal
+          vehicleId={selectedRow.vehicleId}
+          plate={selectedRow.plate}
+          vehicleLabel={`${selectedRow.brand} ${selectedRow.model}`}
+          onClose={() => setSelectedRow(null)}
+        />
       )}
     </section>
   );

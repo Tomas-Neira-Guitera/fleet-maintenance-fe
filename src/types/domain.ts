@@ -86,6 +86,7 @@ export interface DefectSummary {
   description: string;
   photoUrl?: string;
   createdAt: string;
+  vehicleId: string;
   vehiclePlate: string;
   status: 'open';
   reportedBy?: string | null;
@@ -133,4 +134,42 @@ export interface FleetStatusPage {
   pageSize: number;
   total: number;
   items: FleetStatusRow[];
+}
+
+export type IntervalType = 'km' | 'time' | 'both';
+
+/** Un plan asignado a un vehículo puntual -- GET /api/vehicles/{id}/maintenance-assignments (CAM-40). */
+export interface MaintenanceAssignment {
+  id: string;
+  vehicleId: string;
+  maintenancePlanId: string;
+  planName: string;
+  intervalType: IntervalType;
+  lastDoneKm: number | null;
+  lastDoneDate: string | null;
+  nextDueKm: number | null;
+  nextDueDate: string | null;
+  status: MaintenanceRowStatus;
+  active: boolean;
+}
+
+// --- Programación de mantenimientos y arreglos (CAM-42, CAM-50, CAM-51) ---
+// Ver claude/CAM-42-programacion-mantenimientos.md en el proyecto de FleetGuard.
+
+export type ScheduleSourceType = 'assignment' | 'defect' | 'manual';
+export type ScheduleStatus = 'scheduled' | 'done' | 'cancelled';
+
+/** Cuándo se planea hacer un mantenimiento o resolver un defecto -- distinto de
+ * nextDue* (calculado) y de MaintenanceCompletion (historial de cuándo ya se hizo). */
+export interface ScheduledMaintenance {
+  id: string;
+  vehicleId: string;
+  plate: string | null;
+  sourceType: ScheduleSourceType;
+  assignmentId: string | null;
+  defectId: string | null;
+  title: string;
+  scheduledAt: string;
+  status: ScheduleStatus;
+  notes: string | null;
 }

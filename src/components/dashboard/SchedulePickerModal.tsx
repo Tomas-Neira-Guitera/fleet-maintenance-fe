@@ -1,0 +1,234 @@
+import { useEffect, useState } from 'react';
+import { createSchedule, getSchedule } from '../../services/scheduleService';
+import { getVehicles } from '../../services/vehiclesService';
+import type { ScheduledMaintenance, ScheduleSourceType, Vehicle } from '../../types/domain';
+import { ApiError } from '../../services/apiClient';
+import { CloseIcon } from '../icons';
+import '../../styles/dashboard.css';
+
+interface SchedulePickerModalSourceProps {
+  mode?: 'source';
+  sourceType: Exclude<ScheduleSourceType, 'manual'>;
+  sourceId: string;
+  title: string;
+  initialDate?: Date;
+  onClose: () => void;
+  onScheduled: (schedule: ScheduledMaintenance) => void;
+}
+
+interface SchedulePickerModalManualProps {
+  mode: 'manual';
+  initialDate?: Date;
+  onClose: () => void;
+  onScheduled: (schedule: ScheduledMaintenance) => void;
+}
+
+type SchedulePickerModalProps = SchedulePickerModalSourceProps | SchedulePickerModalManualProps;
+
+const previewTimeFormatter = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+/** Sugiere mañana 09:00 hora local como punto de partida -- el usuario lo ajusta si hace falta. */
+function defaultSuggestion(initialDate?: Date): string {
+  const d = initialDate ? new Date(initialDate) : new Date();
+  if (!initialDate) d.setDate(d.getDate() + 1);
+  d.setHours(9, 0, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toIsoDate(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
+ * Modal compartido para "planificar" un mantenimiento (CAM-50, origen assignment), el
+ * arreglo de un defecto (CAM-51, origen defect), o una programación suelta desde el
+ * calendario (origen manual, sin plan ni defecto) -- mismo endpoint genérico de
+ * creación, ver CAM-42-programacion-mantenimientos.md.
+ */
+export function SchedulePickerModal(props: SchedulePickerModalProps) {
+  const manual = props.mode === 'manual';
+  const [value, setValue] = useState(defaultSuggestion(props.initialDate));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
+  const [manualVehicleId, setManualVehicleId] = useState('');
+  const [manualTitle, setManualTitle] = useState('');
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (!manual) return;
+    let cancelled = false;
+    getVehicles()
+      .then((data) => {
+        if (!cancelled) setVehicles(data);
+      })
+      .catch(() => {
+        if (!cancelled) setVehicles([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [manual]);
+
+  const [preview, setPreview] = useState<ScheduledMaintenance[] | null>(null);
+
+  // Preview de "qué otra cosa hay planificada para este día" -- no filtra por vehículo:
+  // lo que importa es la capacidad del taller ese día, no si es el mismo vehículo.
+  useEffect(() => {
+    if (!value) {
+      setPreview(null);
+      return;
+    }
+    const day = new Date(value);
+    if (Number.isNaN(day.getTime())) {
+      setPreview(null);
+      return;
+    }
+    let cancelled = false;
+    const from = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const to = new Date(from);
+    to.setDate(to.getDate() + 1);
+    getSchedule({ from: toIsoDate(from), to: toIsoDate(to) })
+      .then((data) => {
+        if (!cancelled) setPreview(data);
+      })
+      .catch(() => {
+        if (!cancelled) setPreview(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [value]);
+
+  const visiblePreview = preview ?? [];
+
+  async function handleConfirm() {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const scheduledAt = new Date(value).toISOString();
+      const schedule =
+        props.mode === 'manual'
+          ? await createSchedule({
+              sourceType: 'manual',
+              vehicleId: manualVehicleId,
+              title: manualTitle.trim(),
+              scheduledAt,
+              notes: notes.trim() || undefined,
+            })
+          : await createSchedule({
+              sourceType: props.sourceType,
+              sourceId: props.sourceId,
+              scheduledAt,
+              notes: notes.trim() || undefined,
+            });
+      props.onScheduled(schedule);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo programar. Intentá de nuevo.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const canConfirm = manual ? Boolean(manualVehicleId && manualTitle.trim() && value) : Boolean(value);
+
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true">
+      <div className="modal modal--narrow">
+        <header className="modal__header">
+          <h2 className="modal__title">Planificar</h2>
+          <button type="button" className="modal__close" onClick={props.onClose} aria-label="Cerrar">
+            <CloseIcon width={18} height={18} />
+          </button>
+        </header>
+
+        <div className="modal__body">
+          {props.mode !== 'manual' && <p className="schedule-picker__subject">{props.title}</p>}
+
+          {manual && (
+            <>
+              <label className="schedule-picker__field">
+                Vehículo
+                <select
+                  className="schedule-picker__input"
+                  value={manualVehicleId}
+                  onChange={(e) => setManualVehicleId(e.target.value)}
+                  disabled={!vehicles}
+                >
+                  <option value="">{vehicles ? 'Elegí un vehículo' : 'Cargando…'}</option>
+                  {vehicles?.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.plate} · {v.brand} {v.model}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="schedule-picker__field">
+                Descripción
+                <input
+                  type="text"
+                  className="schedule-picker__input"
+                  value={manualTitle}
+                  onChange={(e) => setManualTitle(e.target.value)}
+                  placeholder="Ej: Revisión de frenos"
+                />
+              </label>
+            </>
+          )}
+
+          <label className="schedule-picker__field">
+            Fecha y hora
+            <input
+              type="datetime-local"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="schedule-picker__input"
+            />
+          </label>
+
+          <label className="schedule-picker__field">
+            Notas (opcional)
+            <textarea
+              className="schedule-picker__input schedule-picker__textarea"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+            />
+          </label>
+
+          {value && (
+            <div className="schedule-picker__preview">
+              <p className="schedule-picker__preview-title">Ya programado para ese día</p>
+              {visiblePreview.length === 0 && <p className="muted">No hay nada más programado ese día.</p>}
+              {visiblePreview.length > 0 && (
+                <ul className="schedule-picker__preview-list">
+                  {visiblePreview.map((s) => (
+                    <li key={s.id} className="schedule-picker__preview-item">
+                      <span>{previewTimeFormatter.format(new Date(s.scheduledAt))}</span>
+                      <span className="schedule-picker__preview-item-title">{s.title}</span>
+                      {s.plate && <span className="schedule-picker__preview-item-plate">{s.plate}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {error && <p className="error-banner">{error}</p>}
+        </div>
+
+        <footer className="modal__footer">
+          <button type="button" className="secondary-btn" onClick={props.onClose} disabled={submitting}>
+            Cancelar
+          </button>
+          <button type="button" className="primary-btn" onClick={handleConfirm} disabled={submitting || !canConfirm}>
+            {submitting ? 'Programando…' : 'Confirmar'}
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
