@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getFleetStatus } from '../../services/fleetStatusService';
 import type { FleetStatusRow } from '../../types/domain';
 import { describeNextMaintenance, numberFormatter } from '../../utils/maintenanceFormat';
@@ -10,22 +10,34 @@ function formatKm(km: number): string {
   return `${numberFormatter.format(km)} km`;
 }
 
-export function FleetStatusTable() {
+interface FleetStatusTableProps {
+  /** Avisa al dashboard que asignar/desasignar un plan puede haber cambiado
+   * los indicadores agregados (KPIs, próximos vencimientos), para que esos
+   * widgets hermanos también se refresquen. */
+  onFleetChanged?: () => void;
+}
+
+export function FleetStatusTable({ onFleetChanged }: FleetStatusTableProps) {
   const [rows, setRows] = useState<FleetStatusRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedRow, setSelectedRow] = useState<FleetStatusRow | null>(null);
+  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    let cancelled = false;
+  function loadFleetStatus() {
     getFleetStatus()
       .then((page) => {
-        if (!cancelled) setRows(page.items);
+        if (mountedRef.current) setRows(page.items);
       })
       .catch(() => {
-        if (!cancelled) setError('No se pudo cargar el estado de la flota. Intentá de nuevo.');
+        if (mountedRef.current) setError('No se pudo cargar el estado de la flota. Intentá de nuevo.');
       });
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+    loadFleetStatus();
     return () => {
-      cancelled = true;
+      mountedRef.current = false;
     };
   }, []);
 
@@ -101,6 +113,10 @@ export function FleetStatusTable() {
           plate={selectedRow.plate}
           vehicleLabel={`${selectedRow.brand} ${selectedRow.model}`}
           onClose={() => setSelectedRow(null)}
+          onChanged={() => {
+            loadFleetStatus();
+            onFleetChanged?.();
+          }}
         />
       )}
     </section>

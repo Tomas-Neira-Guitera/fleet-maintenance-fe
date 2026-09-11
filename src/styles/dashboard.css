@@ -271,6 +271,82 @@
   color: var(--fg-text);
 }
 
+/* Sección "Vehículos" (CAM-16): página propia (no una card de dashboard), reusa
+   el resto de "Estado de la flota" -- mismo padding/max-width que .admin-dashboard. */
+
+.vehicles-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
+}
+
+.vehicles-section .fleet-status__title {
+  font-size: 28px;
+}
+
+.vehicles-section__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.vehicles-section__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.7);
+  cursor: pointer;
+}
+
+.vehicles-section__new-btn {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+.vehicles-section__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vehicles-section__action-btn {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.vehicles-section__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.vehicles-section__status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.vehicles-section__status--active {
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+}
+
+.vehicles-section__status--inactive {
+  background: var(--fg-bg);
+  color: rgba(62, 74, 66, 0.55);
+}
+
 .fleet-status__table-wrap {
   background: var(--fg-white);
   border: var(--fg-border);
@@ -736,6 +812,12 @@
   border: var(--fg-border);
   border-radius: var(--fg-radius);
   padding: 12px 14px;
+  background: var(--fg-white);
+  transition: background-color 0.7s ease;
+}
+
+.vehicle-maintenance-list__item--just-completed {
+  background: var(--fg-ok-bg);
 }
 
 .vehicle-maintenance-list__info {
@@ -762,12 +844,65 @@
   color: rgba(62, 74, 66, 0.6);
 }
 
+.vehicle-maintenance-list__detail--muted {
+  color: rgba(62, 74, 66, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vehicle-maintenance-list__done-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--fg-ok);
+  flex-shrink: 0;
+}
+
 .vehicle-maintenance-list__schedule-btn {
   min-height: 36px;
   padding: 0 14px;
   font-size: 13px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* Toolbar de "+ Asignar plan" y acciones por asignación (CAM-16). */
+
+.vehicle-maintenance-list__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.vehicle-maintenance-list__toolbar--spread {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vehicle-maintenance-list__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.vehicle-maintenance-list__unassign-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--fg-critical);
+  cursor: pointer;
+}
+
+.vehicle-maintenance-list__unassign-btn:hover {
+  text-decoration: underline;
+}
+
+.vehicle-maintenance-list__unassign-btn:disabled {
+  color: rgba(62, 74, 66, 0.4);
+  cursor: default;
+  text-decoration: none;
 }
 
 /* Campo de fecha/hora del picker de programación (CAM-50/CAM-51). */
@@ -801,6 +936,23 @@
   padding: 10px 12px;
   resize: vertical;
   font-family: inherit;
+}
+
+/* Toggle "elegir existente" / "crear nuevo" dentro de AssignPlanModal (CAM-16). */
+
+.assign-plan-modal__switch {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-ok);
+  cursor: pointer;
+}
+
+.assign-plan-modal__switch:hover {
+  text-decoration: underline;
 }
 
 /* Preview de "ya programado para este vehículo" dentro del modal de Planificar (CAM-42 mejoras). */

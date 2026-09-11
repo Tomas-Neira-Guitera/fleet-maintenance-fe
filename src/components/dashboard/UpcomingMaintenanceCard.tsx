@@ -21,7 +21,12 @@ const BUCKETS = [
   { label: '15-30 días', min: 15, max: 30 },
 ];
 
-export function UpcomingMaintenanceCard() {
+interface UpcomingMaintenanceCardProps {
+  /** Cambiar este valor fuerza un refetch (ej. después de asignar/desasignar un plan). */
+  refreshKey?: number;
+}
+
+export function UpcomingMaintenanceCard({ refreshKey }: UpcomingMaintenanceCardProps = {}) {
   const [rows, setRows] = useState<FleetStatusRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +42,7 @@ export function UpcomingMaintenanceCard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   const bucketedGroups = rows
     ? BUCKETS.map((bucket) => ({
