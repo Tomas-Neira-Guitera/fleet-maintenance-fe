@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { getDefects } from '../services/defectsService';
-import type { DefectSummary } from '../types/domain';
+import type { DefectSummary, ScheduledMaintenance } from '../types/domain';
 import { ArrowLeftIcon, CameraIcon } from './icons';
 import { SeverityBadge } from './SeverityBadge';
+import { SchedulePickerModal } from './dashboard/SchedulePickerModal';
 
 interface DefectsListProps {
   onBack?: () => void;
@@ -11,6 +12,8 @@ interface DefectsListProps {
 export function DefectsList({ onBack }: DefectsListProps) {
   const [defects, setDefects] = useState<DefectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [scheduling, setScheduling] = useState<DefectSummary | null>(null);
+  const [scheduledIds, setScheduledIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -65,10 +68,33 @@ export function DefectsList({ onBack }: DefectsListProps) {
                 )}
               </span>
             </div>
-            <SeverityBadge severity={defect.severity} />
+            <div className="defect-summary-item__actions">
+              <SeverityBadge severity={defect.severity} />
+              <button
+                type="button"
+                className="secondary-btn defect-summary-item__schedule-btn"
+                onClick={() => setScheduling(defect)}
+                disabled={scheduledIds.has(defect.id)}
+              >
+                {scheduledIds.has(defect.id) ? 'Programado' : 'Planificar'}
+              </button>
+            </div>
           </li>
         ))}
       </ul>
+
+      {scheduling && (
+        <SchedulePickerModal
+          sourceType="defect"
+          sourceId={scheduling.id}
+          title={scheduling.description}
+          onClose={() => setScheduling(null)}
+          onScheduled={(schedule: ScheduledMaintenance) => {
+            setScheduledIds((prev) => new Set(prev).add(schedule.defectId ?? scheduling.id));
+            setScheduling(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { FleetKpiCards } from './FleetKpiCards';
 import { FleetStatusTable } from './FleetStatusTable';
 import { RecentDefectsCard } from './RecentDefectsCard';
 import { UpcomingMaintenanceCard } from './UpcomingMaintenanceCard';
+import { WeeklyScheduleCard } from './WeeklyScheduleCard';
 import '../../styles/dashboard.css';
 
 interface AdminDashboardProps {
@@ -37,6 +38,7 @@ export function AdminDashboard({ onViewDefects }: AdminDashboardProps) {
 
       <div className="admin-dashboard__body">
         <FleetKpiCards />
+        <WeeklyScheduleCard />
         <div className="admin-dashboard__grid">
           <FleetStatusTable />
           <div className="admin-dashboard__side">

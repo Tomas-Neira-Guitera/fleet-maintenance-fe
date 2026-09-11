@@ -615,3 +615,537 @@
   font-size: 12px;
   color: rgba(62, 74, 66, 0.6);
 }
+
+/* Fila clickeable de "Estado de la flota" -- abre el modal de mantenimientos (CAM-50). */
+.fleet-status__row {
+  cursor: pointer;
+}
+
+.fleet-status__row:hover {
+  background: var(--fg-bg);
+}
+
+/* Modal genérico (CAM-50 / CAM-42): overlay + tarjeta centrada. */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(62, 74, 66, 0.35);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal {
+  background: var(--fg-white);
+  border-radius: var(--fg-radius);
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal--narrow {
+  max-width: 400px;
+}
+
+.modal--wide {
+  max-width: 760px;
+}
+
+.modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 0;
+}
+
+.modal__title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 18px;
+  margin: 0;
+  color: var(--fg-text);
+}
+
+.modal__subtitle {
+  margin: 2px 0 0;
+  font-family: var(--fg-font-mono);
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.65);
+}
+
+.modal__close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(62, 74, 66, 0.65);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modal__close:hover {
+  background: var(--fg-bg);
+}
+
+.modal__body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal__footer {
+  display: flex;
+  gap: 12px;
+  padding: 0 20px 20px;
+}
+
+.modal__footer .primary-btn,
+.modal__footer .secondary-btn {
+  min-height: 44px;
+  font-size: 14px;
+}
+
+/* Lista de mantenimientos dentro del modal de "Estado de la flota" (CAM-50). */
+
+.vehicle-maintenance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vehicle-maintenance-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 12px 14px;
+}
+
+.vehicle-maintenance-list__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vehicle-maintenance-list__top-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vehicle-maintenance-list__name {
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.vehicle-maintenance-list__detail {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.vehicle-maintenance-list__schedule-btn {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Campo de fecha/hora del picker de programación (CAM-50/CAM-51). */
+
+.schedule-picker__subject {
+  margin: 0;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.schedule-picker__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.7);
+}
+
+.schedule-picker__input {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--fg-radius);
+  border: var(--fg-border);
+  font-size: 14px;
+  color: var(--fg-text);
+  background: var(--fg-white);
+}
+
+.schedule-picker__textarea {
+  min-height: 60px;
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* Preview de "ya programado para este vehículo" dentro del modal de Planificar (CAM-42 mejoras). */
+.schedule-picker__preview {
+  border-top: var(--fg-border-color) 1px solid;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-picker__preview-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+.schedule-picker__preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.schedule-picker__preview-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--fg-text);
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--fg-bg);
+}
+
+.schedule-picker__preview-item-plate {
+  margin-left: auto;
+  font-family: var(--fg-font-mono);
+  font-size: 11px;
+  color: rgba(62, 74, 66, 0.6);
+  white-space: nowrap;
+}
+
+.schedule-picker__preview-item span:first-child {
+  font-family: var(--fg-font-mono);
+  color: rgba(62, 74, 66, 0.65);
+  white-space: nowrap;
+}
+
+.schedule-picker__preview-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Calendario semanal del Resumen (CAM-42). */
+
+.weekly-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.weekly-schedule__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.weekly-schedule__title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 20px;
+  margin: 0;
+  color: var(--fg-text);
+}
+
+.weekly-schedule__nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weekly-schedule__nav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weekly-schedule__range {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(62, 74, 66, 0.75);
+  text-transform: capitalize;
+  min-width: 140px;
+  text-align: center;
+}
+
+.weekly-schedule__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.weekly-schedule__day {
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 120px;
+}
+
+.weekly-schedule__day--today {
+  border-color: var(--fg-text);
+}
+
+.weekly-schedule__day-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  position: relative;
+}
+
+/* Botón de "agendar" que aparece al pasar el cursor sobre un día (CAM-42 mejoras). */
+.weekly-schedule__day-add {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: var(--fg-text);
+  color: var(--fg-white);
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.weekly-schedule__day:hover .weekly-schedule__day-add,
+.weekly-schedule__day-add:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .weekly-schedule__day-add {
+    opacity: 1;
+  }
+}
+
+.weekly-schedule__day-label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+.weekly-schedule__day-number {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--fg-text);
+}
+
+.weekly-schedule__day-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.weekly-schedule__empty {
+  color: rgba(62, 74, 66, 0.35);
+  font-size: 12px;
+}
+
+.weekly-schedule__item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--fg-bg);
+  font-size: 11px;
+}
+
+.weekly-schedule__item--assignment {
+  border-left: 3px solid var(--fg-ok);
+}
+
+.weekly-schedule__item--defect {
+  border-left: 3px solid var(--fg-critical);
+}
+
+.weekly-schedule__item--manual {
+  border-left: 3px solid var(--fg-warn);
+}
+
+.weekly-schedule__item-time {
+  font-family: var(--fg-font-mono);
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.weekly-schedule__item-title {
+  color: var(--fg-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekly-schedule__item-plate {
+  font-family: var(--fg-font-mono);
+  color: rgba(62, 74, 66, 0.6);
+}
+
+@media (max-width: 900px) {
+  .weekly-schedule__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Modal de vista mensual del calendario (CAM-42 mejoras). */
+
+.month-schedule__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.month-schedule__title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--fg-text);
+  text-transform: capitalize;
+  min-width: 160px;
+  text-align: center;
+}
+
+.month-schedule__weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.month-schedule__weekday {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: rgba(62, 74, 66, 0.55);
+  text-align: center;
+}
+
+.month-schedule__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.month-schedule__day {
+  min-height: 76px;
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.month-schedule__day:hover {
+  background: var(--fg-bg);
+}
+
+.month-schedule__day--outside {
+  opacity: 0.4;
+}
+
+.month-schedule__day--today {
+  border-color: var(--fg-text);
+}
+
+.month-schedule__day-number {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--fg-text);
+}
+
+.month-schedule__day-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.month-schedule__day-item {
+  font-size: 10px;
+  color: var(--fg-text);
+  background: var(--fg-bg);
+  border-radius: 4px;
+  padding: 1px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.month-schedule__day-more {
+  font-size: 10px;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+@media (max-width: 900px) {
+  .month-schedule__day {
+    min-height: 56px;
+  }
+
+  .month-schedule__day-items {
+    display: none;
+  }
+}
