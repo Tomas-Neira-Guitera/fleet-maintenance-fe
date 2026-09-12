@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getUsername } from '../../services/apiClient';
+import { LayoutGridIcon } from '../icons';
 import { FleetKpiCards } from './FleetKpiCards';
 import { FleetStatusTable } from './FleetStatusTable';
 import { RecentDefectsCard } from './RecentDefectsCard';
@@ -32,7 +33,12 @@ export function AdminDashboard({ onViewDefects }: AdminDashboardProps) {
     <div className="admin-dashboard">
       <header className="admin-dashboard__header">
         <div>
-          <h1 className="admin-dashboard__title">Flota</h1>
+          <h1 className="admin-dashboard__title">
+            <span className="page-title__icon" aria-hidden="true">
+              <LayoutGridIcon width={18} height={18} />
+            </span>
+            Flota
+          </h1>
           <p className="admin-dashboard__greeting">
             {username && `Bienvenido, ${capitalize(username)}. `}
             Así está tu flota hoy — {dateFormatter.format(new Date())}

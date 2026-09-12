@@ -195,11 +195,29 @@
 }
 
 .admin-dashboard__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--fg-font-display);
   font-weight: 600;
   font-size: 28px;
   margin: 0;
   color: var(--fg-text);
+}
+
+/* Insignia de ícono junto al título de página (Flota/Vehículos/Planes de
+   Mantenimiento) -- mismo ícono que ya usa cada uno en el menú lateral
+   (AdminShell), para que el título "pegue" con el resto sin gritar. */
+.page-title__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+  flex-shrink: 0;
 }
 
 .admin-dashboard__greeting {
@@ -281,6 +299,9 @@
 }
 
 .vehicles-section .fleet-status__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 28px;
 }
 
@@ -290,13 +311,52 @@
   gap: 16px;
 }
 
-.vehicles-section__toggle {
+/* Variante de .error-banner (App.css) con ícono, para errores puntuales de una
+   acción (ej. VEHICLE_ON_TRIP al dar de baja) en vez del texto crudo solo. */
+.error-banner--icon {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.error-banner--icon svg {
+  flex-shrink: 0;
+}
+
+/* Chip de filtro "Ver desactivados"/"Ver dados de baja" (Planes y Vehículos
+   comparten esta clase): más chico y con menos peso que "+ Nuevo ..." a
+   propósito -- es un filtro de vista, no una acción. */
+.vehicles-section__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--fg-border-color);
+  background: var(--fg-white);
   font-size: 13px;
+  font-weight: 500;
   color: rgba(62, 74, 66, 0.7);
   cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.vehicles-section__toggle:hover {
+  border-color: rgba(62, 74, 66, 0.32);
+}
+
+.vehicles-section__toggle input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--fg-text);
+  cursor: pointer;
+}
+
+.vehicles-section__toggle:has(input:checked) {
+  background: var(--fg-bg);
+  border-color: rgba(62, 74, 66, 0.32);
+  color: var(--fg-text);
 }
 
 .vehicles-section__new-btn {
@@ -756,6 +816,11 @@
   color: rgba(62, 74, 66, 0.65);
 }
 
+/* Nombre del plan destacado en el título de PlanVehiclesModal, en vez de comillas «». */
+.plan-vehicles-modal__plan-name {
+  color: var(--fg-ok);
+}
+
 .modal__close {
   width: 32px;
   height: 32px;
@@ -818,6 +883,14 @@
 
 .vehicle-maintenance-list__item--just-completed {
   background: var(--fg-ok-bg);
+}
+
+.vehicle-maintenance-list__item--clickable {
+  cursor: pointer;
+}
+
+.vehicle-maintenance-list__item--clickable:hover {
+  background: var(--fg-bg);
 }
 
 .vehicle-maintenance-list__info {
@@ -903,6 +976,67 @@
   color: rgba(62, 74, 66, 0.4);
   cursor: default;
   text-decoration: none;
+}
+
+/* Botones de acción con color (catálogo de planes CAM-25, y Vehículos): dar
+   de baja/reactivar, activar/desactivar y eliminar como botones con ícono, en
+   vez de links de texto. Mismo radio de esquina que el resto de los botones
+   del sitio (no el radio "pill" de 999px, que acá queda reservado para badges
+   de estado como "Activo"). Sin alto/padding propios a propósito: combinar
+   siempre con la clase de tamaño del contexto (`vehicle-maintenance-list__schedule-btn`
+   o `vehicles-section__action-btn`) para que quede parejo con sus botones
+   vecinos ("Editar", "Cargar km"). */
+
+.vehicle-maintenance-list__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--fg-radius);
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.vehicle-maintenance-list__icon-btn svg {
+  flex-shrink: 0;
+}
+
+.vehicle-maintenance-list__icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.vehicle-maintenance-list__icon-btn--warn {
+  background: var(--fg-warn-bg);
+  color: var(--fg-warn);
+  border-color: rgba(227, 168, 87, 0.35);
+}
+
+.vehicle-maintenance-list__icon-btn--warn:hover:not(:disabled) {
+  background: rgba(227, 168, 87, 0.3);
+}
+
+.vehicle-maintenance-list__icon-btn--ok {
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+  border-color: rgba(110, 146, 119, 0.35);
+}
+
+.vehicle-maintenance-list__icon-btn--ok:hover:not(:disabled) {
+  background: rgba(110, 146, 119, 0.3);
+}
+
+.vehicle-maintenance-list__icon-btn--danger {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+  border-color: rgba(193, 96, 77, 0.35);
+}
+
+.vehicle-maintenance-list__icon-btn--danger:hover:not(:disabled) {
+  background: rgba(193, 96, 77, 0.3);
 }
 
 /* Campo de fecha/hora del picker de programación (CAM-50/CAM-51). */

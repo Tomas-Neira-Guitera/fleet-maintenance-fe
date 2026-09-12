@@ -4,6 +4,7 @@ import { deactivateVehicle, getVehicles, updateVehicle } from '../../services/ve
 import type { OdometerResult } from '../../services/vehiclesService';
 import type { Vehicle } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
+import { AlertTriangleIcon, PowerIcon, TruckIcon } from '../icons';
 import { UpdateOdometerModal } from './UpdateOdometerModal';
 import { VehicleFormModal } from './VehicleFormModal';
 import '../../styles/dashboard.css';
@@ -70,16 +71,25 @@ export function VehiclesSection() {
       }
       load(!showInactive);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo actualizar el vehículo. Intentá de nuevo.');
+      if (err instanceof ApiError && err.errorCode === 'VEHICLE_ON_TRIP') {
+        setError('No se puede dar de baja: tiene un viaje abierto. Cerrá el viaje (post-trip) y volvé a intentarlo.');
+      } else {
+        setError(err instanceof ApiError ? err.message : 'No se pudo actualizar el vehículo. Intentá de nuevo.');
+      }
     } finally {
       setPendingId(null);
     }
   }
 
   return (
-    <section className="vehicles-section">
+    <section className="fleet-status vehicles-section">
       <header className="fleet-status__header">
-        <h1 className="fleet-status__title">Vehículos</h1>
+        <h1 className="fleet-status__title">
+          <span className="page-title__icon" aria-hidden="true">
+            <TruckIcon width={18} height={18} />
+          </span>
+          Vehículos
+        </h1>
         <div className="vehicles-section__header-actions">
           <label className="vehicles-section__toggle">
             <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
@@ -91,7 +101,12 @@ export function VehiclesSection() {
         </div>
       </header>
 
-      {error && <p className="error-banner">{error}</p>}
+      {error && (
+        <p className="error-banner error-banner--icon">
+          <AlertTriangleIcon width={16} height={16} />
+          {error}
+        </p>
+      )}
       {!vehicles && !error && <p className="muted">Cargando flota…</p>}
 
       {vehicles && (
@@ -131,29 +146,34 @@ export function VehiclesSection() {
                   </td>
                   <td>
                     <div className="vehicles-section__actions">
+                      {v.active !== false && (
+                        <>
+                          <button
+                            type="button"
+                            className="secondary-btn vehicles-section__action-btn"
+                            onClick={() => setFormTarget(v)}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary-btn vehicles-section__action-btn"
+                            onClick={() => setOdometerTarget(v)}
+                          >
+                            Cargar km
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
-                        className="secondary-btn vehicles-section__action-btn"
-                        onClick={() => setFormTarget(v)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary-btn vehicles-section__action-btn"
-                        onClick={() => setOdometerTarget(v)}
-                      >
-                        Cargar km
-                      </button>
-                      <button
-                        type="button"
-                        className={
-                          v.active === false ? 'assign-plan-modal__switch' : 'vehicle-maintenance-list__unassign-btn'
-                        }
+                        className={`vehicle-maintenance-list__icon-btn vehicles-section__action-btn ${
+                          v.active === false ? 'vehicle-maintenance-list__icon-btn--ok' : 'vehicle-maintenance-list__icon-btn--warn'
+                        }`}
                         onClick={() => handleToggleActive(v)}
                         disabled={pendingId === v.id}
                       >
-                        {pendingId === v.id ? '…' : v.active === false ? 'Reactivar' : 'Dar de baja'}
+                        <PowerIcon width={14} height={14} />
+                        {v.active === false ? 'Reactivar' : 'Dar de baja'}
                       </button>
                     </div>
                   </td>
