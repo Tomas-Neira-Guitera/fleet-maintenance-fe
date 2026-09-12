@@ -1304,10 +1304,42 @@
   border-left: 3px solid var(--fg-warn);
 }
 
+.weekly-schedule__item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
 .weekly-schedule__item-time {
   font-family: var(--fg-font-mono);
   font-weight: 600;
   color: var(--fg-text);
+}
+
+/* Cancelar una programación (CAM-42): discreto por defecto, en rojo al hover. */
+.weekly-schedule__item-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 4px;
+  padding: 0;
+  background: none;
+  color: rgba(62, 74, 66, 0.35);
+}
+
+.weekly-schedule__item-cancel:hover:not(:disabled) {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+}
+
+.weekly-schedule__item-cancel:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .weekly-schedule__item-title {
