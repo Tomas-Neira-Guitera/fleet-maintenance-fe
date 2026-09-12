@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ApiError } from '../../services/apiClient';
-import { createMaintenanceAssignment, getVehicleMaintenanceAssignments } from '../../services/maintenanceAssignmentsService';
+import {
+  createMaintenanceAssignment,
+  deleteMaintenanceAssignment,
+  getVehicleMaintenanceAssignments,
+} from '../../services/maintenanceAssignmentsService';
 import { getVehicles } from '../../services/vehiclesService';
-import type { MaintenancePlan, Vehicle } from '../../types/domain';
+import type { MaintenanceAssignment, MaintenancePlan, Vehicle } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
 import { CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
@@ -10,6 +13,12 @@ import '../../styles/dashboard.css';
 interface PlanVehiclesModalProps {
   plan: MaintenancePlan;
   onClose: () => void;
+}
+
+interface VehicleRow {
+  vehicle: Vehicle;
+  /** Asignación activa de este plan en este vehículo, si existe. */
+  assignment: MaintenanceAssignment | null;
 }
 
 function describeInterval(plan: Pick<MaintenancePlan, 'intervalType' | 'intervalKm' | 'intervalDays'>): string {
@@ -20,36 +29,34 @@ function describeInterval(plan: Pick<MaintenancePlan, 'intervalType' | 'interval
 }
 
 /**
- * Vehículos a los que se le puede asignar un plan del catálogo (CAM-25):
- * reverso de AssignPlanModal -- ahí se elige un plan para un vehículo, acá se
- * elige un vehículo para un plan. Un vehículo es elegible si está activo y no
- * tiene ya una asignación activa de este plan (createMaintenanceAssignment
- * devuelve 409 DUPLICATE_ACTIVE_ASSIGNMENT en ese caso, ver CAM-40 contract).
+ * Vehículos y su relación con un plan del catálogo (CAM-25): reverso de
+ * AssignPlanModal -- ahí se elige un plan para un vehículo, acá se elige un
+ * vehículo para un plan. Muestra TODOS los vehículos activos, no solo los
+ * elegibles: a los que ya tienen el plan asignado se les puede desasignar
+ * desde acá mismo, en vez de tener que ir al flujo por vehículo para eso.
  */
 export function PlanVehiclesModal({ plan, onClose }: PlanVehiclesModalProps) {
-  const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
+  const [rows, setRows] = useState<VehicleRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [assigningId, setAssigningId] = useState<string | null>(null);
-  const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set());
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     getVehicles(true)
       .then((allVehicles) =>
         Promise.all(
-          allVehicles.map((v) =>
-            getVehicleMaintenanceAssignments(v.id)
+          allVehicles.map((vehicle) =>
+            getVehicleMaintenanceAssignments(vehicle.id)
               .then((assignments) => {
-                const alreadyAssigned = assignments.some((a) => a.active && a.maintenancePlanId === plan.id);
-                return [v, alreadyAssigned] as const;
+                const assignment = assignments.find((a) => a.active && a.maintenancePlanId === plan.id) ?? null;
+                return { vehicle, assignment };
               })
-              .catch(() => [v, true] as const),
+              .catch(() => ({ vehicle, assignment: null })),
           ),
         ),
       )
-      .then((pairs) => {
-        if (cancelled) return;
-        setVehicles(pairs.filter(([, alreadyAssigned]) => !alreadyAssigned).map(([v]) => v));
+      .then((result) => {
+        if (!cancelled) setRows(result);
       })
       .catch(() => {
         if (!cancelled) setError('No se pudieron cargar los vehículos.');
@@ -60,19 +67,29 @@ export function PlanVehiclesModal({ plan, onClose }: PlanVehiclesModalProps) {
   }, [plan.id]);
 
   async function handleAssign(vehicleId: string) {
-    setAssigningId(vehicleId);
+    setPendingId(vehicleId);
     setError(null);
     try {
-      await createMaintenanceAssignment(vehicleId, plan.id);
-      setAssignedIds((prev) => new Set(prev).add(vehicleId));
-    } catch (err) {
-      if (err instanceof ApiError && err.errorCode === 'DUPLICATE_ACTIVE_ASSIGNMENT') {
-        setAssignedIds((prev) => new Set(prev).add(vehicleId));
-      } else {
-        setError(err instanceof ApiError ? err.message : 'No se pudo asignar el plan. Intentá de nuevo.');
-      }
+      const assignment = await createMaintenanceAssignment(vehicleId, plan.id);
+      setRows((prev) => prev?.map((r) => (r.vehicle.id === vehicleId ? { ...r, assignment } : r)) ?? prev);
+    } catch {
+      setError('No se pudo asignar el plan. Intentá de nuevo.');
     } finally {
-      setAssigningId(null);
+      setPendingId(null);
+    }
+  }
+
+  async function handleUnassign(vehicleId: string, assignment: MaintenanceAssignment, plate: string) {
+    if (!window.confirm(`¿Desasignar "${plan.name}" de ${plate}?`)) return;
+    setPendingId(vehicleId);
+    setError(null);
+    try {
+      await deleteMaintenanceAssignment(vehicleId, assignment.id);
+      setRows((prev) => prev?.map((r) => (r.vehicle.id === vehicleId ? { ...r, assignment: null } : r)) ?? prev);
+    } catch {
+      setError('No se pudo desasignar el plan. Intentá de nuevo.');
+    } finally {
+      setPendingId(null);
     }
   }
 
@@ -93,12 +110,10 @@ export function PlanVehiclesModal({ plan, onClose }: PlanVehiclesModalProps) {
 
         <div className="modal__body">
           {error && <p className="error-banner">{error}</p>}
-          {!vehicles && !error && <p className="muted">Cargando vehículos…</p>}
-          {vehicles && vehicles.length === 0 && (
-            <p className="muted">Todos los vehículos activos ya tienen este plan asignado, o no hay vehículos activos en la flota.</p>
-          )}
+          {!rows && !error && <p className="muted">Cargando vehículos…</p>}
+          {rows && rows.length === 0 && <p className="muted">No hay vehículos activos en la flota.</p>}
 
-          {vehicles && vehicles.length > 0 && (
+          {rows && rows.length > 0 && (
             <div className="fleet-status__table-wrap">
               <table className="fleet-status__table">
                 <thead>
@@ -109,7 +124,7 @@ export function PlanVehiclesModal({ plan, onClose }: PlanVehiclesModalProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {vehicles.map((v) => (
+                  {rows.map(({ vehicle: v, assignment }) => (
                     <tr key={v.id}>
                       <td className="fleet-status__plate">{v.plate}</td>
                       <td>
@@ -117,19 +132,27 @@ export function PlanVehiclesModal({ plan, onClose }: PlanVehiclesModalProps) {
                           <span className="fleet-status__vehicle-name">
                             {v.brand} {v.model}
                           </span>
+                          {assignment && <span className="fleet-status__vehicle-type">Ya asignado</span>}
                         </div>
                       </td>
                       <td>
-                        {assignedIds.has(v.id) ? (
-                          <span className="vehicles-section__status vehicles-section__status--active">Asignado ✓</span>
+                        {assignment ? (
+                          <button
+                            type="button"
+                            className="vehicle-maintenance-list__icon-btn vehicle-maintenance-list__schedule-btn vehicle-maintenance-list__icon-btn--danger"
+                            onClick={() => handleUnassign(v.id, assignment, v.plate)}
+                            disabled={pendingId === v.id}
+                          >
+                            {pendingId === v.id ? 'Quitando…' : 'Desasignar'}
+                          </button>
                         ) : (
                           <button
                             type="button"
                             className="secondary-btn vehicle-maintenance-list__schedule-btn"
                             onClick={() => handleAssign(v.id)}
-                            disabled={assigningId === v.id}
+                            disabled={pendingId === v.id}
                           >
-                            {assigningId === v.id ? 'Asignando…' : 'Asignar'}
+                            {pendingId === v.id ? 'Asignando…' : 'Asignar'}
                           </button>
                         )}
                       </td>
