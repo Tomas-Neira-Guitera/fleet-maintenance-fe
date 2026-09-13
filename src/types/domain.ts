@@ -6,6 +6,11 @@ export interface Vehicle {
   brand: string;
   model: string;
   status: VehicleStatus;
+  vehicleType?: string | null;
+  year?: number | null;
+  chassisNumber?: string | null;
+  odometerKm?: number;
+  active?: boolean;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
@@ -138,6 +143,17 @@ export interface FleetStatusPage {
 
 export type IntervalType = 'km' | 'time' | 'both';
 
+/** Un plan del catálogo -- GET/POST /api/maintenance-plans (CAM-47). */
+export interface MaintenancePlan {
+  id: string;
+  name: string;
+  category: string | null;
+  intervalType: IntervalType;
+  intervalKm: number | null;
+  intervalDays: number | null;
+  active: boolean;
+}
+
 /** Un plan asignado a un vehículo puntual -- GET /api/vehicles/{id}/maintenance-assignments (CAM-40). */
 export interface MaintenanceAssignment {
   id: string;
@@ -151,6 +167,25 @@ export interface MaintenanceAssignment {
   nextDueDate: string | null;
   status: MaintenanceRowStatus;
   active: boolean;
+}
+
+/** Subconjunto de MaintenanceAssignment que devuelve un completion para refrescar el chip de estado. */
+export interface AssignmentSummary {
+  id: string;
+  nextDueKm: number | null;
+  nextDueDate: string | null;
+  status: MaintenanceRowStatus;
+}
+
+/** Respuesta de POST .../maintenance-assignments/{id}/completions -- registrar que se hizo el mantenimiento. */
+export interface CompletionResult {
+  id: string;
+  assignmentId: string;
+  completedAt: string;
+  completedKm: number | null;
+  workOrderId: string | null;
+  notes: string | null;
+  updatedAssignment: AssignmentSummary;
 }
 
 // --- Programación de mantenimientos y arreglos (CAM-42, CAM-50, CAM-51) ---

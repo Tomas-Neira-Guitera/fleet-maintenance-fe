@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getSchedule } from '../../services/scheduleService';
+import { ApiError } from '../../services/apiClient';
+import { getSchedule, updateSchedule } from '../../services/scheduleService';
 import type { ScheduledMaintenance } from '../../types/domain';
-import { ChevronRightIcon, LayoutGridIcon } from '../icons';
+import { ChevronRightIcon, LayoutGridIcon, TrashIcon } from '../icons';
 import { MonthScheduleModal } from './MonthScheduleModal';
 import { SchedulePickerModal } from './SchedulePickerModal';
 import '../../styles/dashboard.css';
@@ -44,6 +45,7 @@ export function WeeklyScheduleCard() {
   const [error, setError] = useState<string | null>(null);
   const [showMonth, setShowMonth] = useState(false);
   const [schedulingDay, setSchedulingDay] = useState<Date | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
@@ -83,6 +85,21 @@ export function WeeklyScheduleCard() {
     getSchedule({ from: toIsoDate(weekStart), to: toIsoDate(addDays(weekStart, 7)) })
       .then(setItems)
       .catch(() => setError('No se pudo cargar el calendario de mantenimientos.'));
+  }
+
+  async function handleCancel(item: ScheduledMaintenance) {
+    const time = timeFormatter.format(new Date(item.scheduledAt));
+    if (!window.confirm(`¿Cancelar "${item.title}" programado para las ${time}?`)) return;
+    setCancellingId(item.id);
+    setError(null);
+    try {
+      await updateSchedule(item.id, { status: 'cancelled' });
+      refreshWeek();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo cancelar la programación. Intentá de nuevo.');
+    } finally {
+      setCancellingId(null);
+    }
   }
 
   return (
@@ -146,7 +163,19 @@ export function WeeklyScheduleCard() {
                   {dayItems.length === 0 && <span className="weekly-schedule__empty">—</span>}
                   {dayItems.map((item) => (
                     <div key={item.id} className={`weekly-schedule__item weekly-schedule__item--${item.sourceType}`}>
-                      <span className="weekly-schedule__item-time">{timeFormatter.format(new Date(item.scheduledAt))}</span>
+                      <div className="weekly-schedule__item-top">
+                        <span className="weekly-schedule__item-time">{timeFormatter.format(new Date(item.scheduledAt))}</span>
+                        <button
+                          type="button"
+                          className="weekly-schedule__item-cancel"
+                          onClick={() => handleCancel(item)}
+                          disabled={cancellingId === item.id}
+                          aria-label="Cancelar programación"
+                          title="Cancelar programación"
+                        >
+                          <TrashIcon width={11} height={11} />
+                        </button>
+                      </div>
                       <span className="weekly-schedule__item-title">{item.title}</span>
                       {item.plate && <span className="weekly-schedule__item-plate">{item.plate}</span>}
                     </div>

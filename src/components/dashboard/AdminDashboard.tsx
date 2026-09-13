@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { getUsername } from '../../services/apiClient';
+import { LayoutGridIcon } from '../icons';
 import { FleetKpiCards } from './FleetKpiCards';
 import { FleetStatusTable } from './FleetStatusTable';
 import { RecentDefectsCard } from './RecentDefectsCard';
@@ -23,12 +25,20 @@ function capitalize(text: string): string {
 
 export function AdminDashboard({ onViewDefects }: AdminDashboardProps) {
   const username = getUsername();
+  // Asignar/desasignar un plan desde el modal de FleetStatusTable cambia los
+  // indicadores agregados -- bumpear esto fuerza a los widgets hermanos a refetchear.
+  const [fleetVersion, setFleetVersion] = useState(0);
 
   return (
     <div className="admin-dashboard">
       <header className="admin-dashboard__header">
         <div>
-          <h1 className="admin-dashboard__title">Flota</h1>
+          <h1 className="admin-dashboard__title">
+            <span className="page-title__icon" aria-hidden="true">
+              <LayoutGridIcon width={18} height={18} />
+            </span>
+            Flota
+          </h1>
           <p className="admin-dashboard__greeting">
             {username && `Bienvenido, ${capitalize(username)}. `}
             Así está tu flota hoy — {dateFormatter.format(new Date())}
@@ -37,12 +47,12 @@ export function AdminDashboard({ onViewDefects }: AdminDashboardProps) {
       </header>
 
       <div className="admin-dashboard__body">
-        <FleetKpiCards />
+        <FleetKpiCards refreshKey={fleetVersion} />
         <WeeklyScheduleCard />
         <div className="admin-dashboard__grid">
-          <FleetStatusTable />
+          <FleetStatusTable onFleetChanged={() => setFleetVersion((v) => v + 1)} />
           <div className="admin-dashboard__side">
-            <UpcomingMaintenanceCard />
+            <UpcomingMaintenanceCard refreshKey={fleetVersion} />
             <RecentDefectsCard onViewAll={onViewDefects} />
           </div>
         </div>

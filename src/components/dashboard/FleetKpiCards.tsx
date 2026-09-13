@@ -15,7 +15,12 @@ interface KpiCounts {
   defectosNoBloqueantes: number;
 }
 
-export function FleetKpiCards() {
+interface FleetKpiCardsProps {
+  /** Cambiar este valor fuerza un refetch (ej. después de asignar/desasignar un plan). */
+  refreshKey?: number;
+}
+
+export function FleetKpiCards({ refreshKey }: FleetKpiCardsProps = {}) {
   const [counts, setCounts] = useState<KpiCounts | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +44,7 @@ export function FleetKpiCards() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   return (
     <section className="fleet-kpis">
