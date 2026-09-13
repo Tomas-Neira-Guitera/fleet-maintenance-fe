@@ -55,7 +55,6 @@ export function FleetStatusTable({ onFleetChanged }: FleetStatusTableProps) {
           <table className="fleet-status__table">
             <thead>
               <tr>
-                <th aria-hidden="true"></th>
                 <th>Patente</th>
                 <th>Vehículo</th>
                 <th>Próximo mantenimiento</th>
@@ -71,9 +70,6 @@ export function FleetStatusTable({ onFleetChanged }: FleetStatusTableProps) {
                   onClick={() => setSelectedRow(row)}
                   title="Ver mantenimientos de este vehículo"
                 >
-                  <td>
-                    <span className={`fleet-status__dot fleet-status__dot--${row.status}`} aria-hidden="true" />
-                  </td>
                   <td className="fleet-status__plate">{row.plate}</td>
                   <td>
                     <div className="fleet-status__vehicle">

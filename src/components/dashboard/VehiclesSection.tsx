@@ -4,7 +4,7 @@ import { deactivateVehicle, getVehicles, updateVehicle } from '../../services/ve
 import type { OdometerResult } from '../../services/vehiclesService';
 import type { Vehicle } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
-import { AlertTriangleIcon, PowerIcon, TruckIcon } from '../icons';
+import { AlertTriangleIcon, PowerIcon } from '../icons';
 import { UpdateOdometerModal } from './UpdateOdometerModal';
 import { VehicleFormModal } from './VehicleFormModal';
 import '../../styles/dashboard.css';
@@ -84,12 +84,7 @@ export function VehiclesSection() {
   return (
     <section className="fleet-status vehicles-section">
       <header className="fleet-status__header">
-        <h1 className="fleet-status__title">
-          <span className="page-title__icon" aria-hidden="true">
-            <TruckIcon width={18} height={18} />
-          </span>
-          Vehículos
-        </h1>
+        <h1 className="fleet-status__title">Vehículos</h1>
         <div className="vehicles-section__header-actions">
           <label className="vehicles-section__toggle">
             <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />

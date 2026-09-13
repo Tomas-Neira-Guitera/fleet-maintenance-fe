@@ -1,13 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  deleteMaintenanceAssignment,
-  getVehicleMaintenanceAssignments,
-  hasMaintenanceCompletions,
-} from '../../services/maintenanceAssignmentsService';
+import { getVehicleMaintenanceAssignments, hasMaintenanceCompletions } from '../../services/maintenanceAssignmentsService';
 import type { CompletionResult, MaintenanceAssignment, ScheduledMaintenance } from '../../types/domain';
 import { formatDate } from '../../utils/maintenanceFormat';
 import { CheckCircleIcon, CloseIcon } from '../icons';
-import { AssignPlanModal } from './AssignPlanModal';
 import { CompleteMaintenanceModal } from './CompleteMaintenanceModal';
 import { StatusBadge } from './StatusBadge';
 import { SchedulePickerModal } from './SchedulePickerModal';
@@ -53,8 +48,6 @@ export function VehicleMaintenanceModal({
   const [error, setError] = useState<string | null>(null);
   const [scheduling, setScheduling] = useState<MaintenanceAssignment | null>(null);
   const [scheduledIds, setScheduledIds] = useState<Set<string>>(new Set());
-  const [assigning, setAssigning] = useState(false);
-  const [removingId, setRemovingId] = useState<string | null>(null);
   const [completing, setCompleting] = useState<MaintenanceAssignment | null>(null);
   const [justCompletedIds, setJustCompletedIds] = useState<Set<string>>(new Set());
   /** Asignaciones con al menos un completion real -- lastDoneKm/lastDoneDate
@@ -101,12 +94,6 @@ export function VehicleMaintenanceModal({
     void schedule;
   }
 
-  function handleAssigned(assignment: MaintenanceAssignment) {
-    setAssignments((prev) => (prev ? [...prev, assignment] : [assignment]));
-    setAssigning(false);
-    onChanged?.();
-  }
-
   function handleCompleted(result: CompletionResult) {
     setAssignments((prev) =>
       prev?.map((a) =>
@@ -140,20 +127,6 @@ export function VehicleMaintenanceModal({
     }, 1500);
   }
 
-  async function handleUnassign(assignment: MaintenanceAssignment) {
-    if (!window.confirm(`¿Desasignar "${assignment.planName}" de este vehículo?`)) return;
-    setRemovingId(assignment.id);
-    try {
-      await deleteMaintenanceAssignment(vehicleId, assignment.id);
-      setAssignments((prev) => prev?.filter((a) => a.id !== assignment.id) ?? prev);
-      onChanged?.();
-    } catch {
-      setError('No se pudo desasignar el plan. Intentá de nuevo.');
-    } finally {
-      setRemovingId(null);
-    }
-  }
-
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal">
@@ -170,14 +143,6 @@ export function VehicleMaintenanceModal({
         <div className="modal__body">
           {error && <p className="error-banner">{error}</p>}
           {!assignments && !error && <p className="muted">Cargando mantenimientos…</p>}
-
-          {assignments && (
-            <div className="vehicle-maintenance-list__toolbar">
-              <button type="button" className="secondary-btn" onClick={() => setAssigning(true)}>
-                + Asignar plan
-              </button>
-            </div>
-          )}
 
           {assignments && assignments.length === 0 && (
             <p className="muted">Este vehículo no tiene mantenimientos asignados.</p>
@@ -225,14 +190,6 @@ export function VehicleMaintenanceModal({
                     >
                       {scheduledIds.has(a.id) ? 'Programado' : 'Planificar'}
                     </button>
-                    <button
-                      type="button"
-                      className="vehicle-maintenance-list__unassign-btn"
-                      onClick={() => handleUnassign(a)}
-                      disabled={removingId === a.id}
-                    >
-                      {removingId === a.id ? 'Quitando…' : 'Desasignar'}
-                    </button>
                   </div>
                 </li>
               ))}
@@ -249,10 +206,6 @@ export function VehicleMaintenanceModal({
           onClose={() => setScheduling(null)}
           onScheduled={(schedule) => handleScheduled(scheduling, schedule)}
         />
-      )}
-
-      {assigning && (
-        <AssignPlanModal vehicleId={vehicleId} onClose={() => setAssigning(false)} onAssigned={handleAssigned} />
       )}
 
       {completing && (

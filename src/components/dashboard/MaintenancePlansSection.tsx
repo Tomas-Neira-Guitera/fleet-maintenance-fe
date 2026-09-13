@@ -3,7 +3,7 @@ import { ApiError } from '../../services/apiClient';
 import { deleteMaintenancePlan, getMaintenancePlans, updateMaintenancePlan } from '../../services/maintenancePlansService';
 import type { MaintenancePlan } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
-import { PowerIcon, TrashIcon, WrenchIcon } from '../icons';
+import { PowerIcon, TrashIcon } from '../icons';
 import { MaintenancePlanFormModal } from './MaintenancePlanFormModal';
 import { PlanVehiclesModal } from './PlanVehiclesModal';
 import '../../styles/dashboard.css';
@@ -84,12 +84,7 @@ export function MaintenancePlansSection() {
   return (
     <section className="fleet-status vehicles-section">
       <header className="fleet-status__header">
-        <h1 className="fleet-status__title">
-          <span className="page-title__icon" aria-hidden="true">
-            <WrenchIcon width={18} height={18} />
-          </span>
-          Planes de Mantenimiento
-        </h1>
+        <h1 className="fleet-status__title">Planes de Mantenimiento</h1>
         <div className="vehicles-section__header-actions">
           <label className="vehicles-section__toggle">
             <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />

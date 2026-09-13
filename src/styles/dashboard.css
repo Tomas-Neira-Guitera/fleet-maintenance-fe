@@ -205,26 +205,6 @@
   color: var(--fg-text);
 }
 
-/* Insignia de ícono junto al título de página (Flota/Vehículos/Planes de
-   Mantenimiento) -- mismo ícono que ya usa cada uno en el menú lateral
-   (AdminShell), para que el título "pegue" con el resto sin gritar. */
-.page-title__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  background: var(--fg-ok-bg);
-  color: var(--fg-ok);
-  flex-shrink: 0;
-}
-
-.admin-dashboard__greeting {
-  margin: 4px 0 0;
-  color: rgba(62, 74, 66, 0.7);
-}
-
 .admin-dashboard__refresh {
   display: inline-flex;
   align-items: center;
@@ -521,26 +501,6 @@
 .fleet-status-badge--vencido {
   background: var(--fg-crit-bg);
   color: var(--fg-critical);
-}
-
-/* Punto de color por fila -- mismo criterio de color que el badge de estado. */
-.fleet-status__dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.fleet-status__dot--al_dia {
-  background: var(--fg-ok);
-}
-
-.fleet-status__dot--por_vencer {
-  background: var(--fg-warn);
-}
-
-.fleet-status__dot--vencido {
-  background: var(--fg-critical);
 }
 
 /* Tarjetas KPI del dashboard de admin (CAM-20). */
@@ -939,17 +899,7 @@
   flex-shrink: 0;
 }
 
-/* Toolbar de "+ Asignar plan" y acciones por asignación (CAM-16). */
-
-.vehicle-maintenance-list__toolbar {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.vehicle-maintenance-list__toolbar--spread {
-  justify-content: space-between;
-  align-items: center;
-}
+/* Acciones por asignación (CAM-16). */
 
 .vehicle-maintenance-list__actions {
   display: flex;
@@ -957,25 +907,6 @@
   align-items: flex-end;
   gap: 6px;
   flex-shrink: 0;
-}
-
-.vehicle-maintenance-list__unassign-btn {
-  border: none;
-  background: none;
-  padding: 0;
-  font-size: 12px;
-  color: var(--fg-critical);
-  cursor: pointer;
-}
-
-.vehicle-maintenance-list__unassign-btn:hover {
-  text-decoration: underline;
-}
-
-.vehicle-maintenance-list__unassign-btn:disabled {
-  color: rgba(62, 74, 66, 0.4);
-  cursor: default;
-  text-decoration: none;
 }
 
 /* Botones de acción con color (catálogo de planes CAM-25, y Vehículos): dar
