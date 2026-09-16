@@ -32,6 +32,13 @@ function toIsoDate(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+interface WeeklyScheduleCardProps {
+  /** Cambiar este valor fuerza un refetch -- ej. después de planificar un
+   * mantenimiento desde "Estado de la flota" o desde un defecto, orígenes
+   * que no tocan `weekStart` y por eso no dispararían el fetch por sí solos. */
+  refreshKey?: number;
+}
+
 /**
  * Calendario semanal del Resumen (CAM-42): lista los mantenimientos y arreglos
  * programados (CAM-50/CAM-51) agrupados por día. Consume GET /api/maintenance-schedule
@@ -39,7 +46,7 @@ function toIsoDate(date: Date): string {
  * vista de mes completo, y pasar el cursor sobre un día ofrece agendar una programación
  * suelta (origen manual) directo en ese día.
  */
-export function WeeklyScheduleCard() {
+export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {}) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [items, setItems] = useState<ScheduledMaintenance[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +70,7 @@ export function WeeklyScheduleCard() {
     return () => {
       cancelled = true;
     };
-  }, [weekStart]);
+  }, [weekStart, refreshKey]);
 
   const itemsByDay = useMemo(() => {
     const map = new Map<string, ScheduledMaintenance[]>();
