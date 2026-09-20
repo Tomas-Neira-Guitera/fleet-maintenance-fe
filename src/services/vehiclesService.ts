@@ -1,5 +1,19 @@
-import type { Vehicle } from '../types/domain';
+import type { Vehicle, VehicleHistory } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
+
+/** GET /api/vehicles/{id} -- detalle de un vehículo, también dado de baja (CAM-22). */
+export async function getVehicle(id: string): Promise<Vehicle> {
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, { headers: authHeaders() });
+  if (!res.ok) return throwApiError(res, 'No se pudo obtener el vehículo');
+  return res.json() as Promise<Vehicle>;
+}
+
+/** GET /api/vehicles/{id}/history -- inspecciones, defectos y mantenimientos del vehículo (CAM-22). */
+export async function getVehicleHistory(id: string): Promise<VehicleHistory> {
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}/history`, { headers: authHeaders() });
+  if (!res.ok) return throwApiError(res, 'No se pudo obtener el historial del vehículo');
+  return res.json() as Promise<VehicleHistory>;
+}
 
 export async function getVehicles(active = true): Promise<Vehicle[]> {
   const res = await fetch(`${API_BASE_URL}/api/vehicles?active=${active}`, { headers: authHeaders() });

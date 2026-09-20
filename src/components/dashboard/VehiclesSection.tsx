@@ -18,7 +18,7 @@ function formatKm(km: number): string {
  * planes de mantenimiento (CAM-16) vive en la pestaña "Planes de
  * Mantenimiento" -- esta pantalla ya no la gestiona.
  */
-export function VehiclesSection() {
+export function VehiclesSection({ onOpenVehicle }: { onOpenVehicle: (vehicleId: string) => void }) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
@@ -120,7 +120,12 @@ export function VehiclesSection() {
             </thead>
             <tbody>
               {vehicles.map((v) => (
-                <tr key={v.id}>
+                <tr
+                  key={v.id}
+                  className="fleet-status__row"
+                  onClick={() => onOpenVehicle(v.id)}
+                  title="Ver detalle e historial"
+                >
                   <td className="fleet-status__plate">{v.plate}</td>
                   <td>
                     <div className="fleet-status__vehicle">
@@ -140,7 +145,7 @@ export function VehiclesSection() {
                     </span>
                   </td>
                   <td>
-                    <div className="vehicles-section__actions">
+                    <div className="vehicles-section__actions" onClick={(e) => e.stopPropagation()}>
                       {v.active !== false && (
                         <>
                           <button

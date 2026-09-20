@@ -97,6 +97,34 @@ export interface DefectSummary {
   reportedBy?: string | null;
 }
 
+/** Item de `inspections` en GET /api/vehicles/{id}/history (CAM-22). */
+export interface InspectionHistoryItem {
+  id: string;
+  type: InspectionType;
+  timestamp: string;
+  driverName?: string | null;
+  odometerKm?: number | null;
+  notes?: string | null;
+  hasBlockingDefect: boolean;
+}
+
+/** Item de `maintenance` en GET /api/vehicles/{id}/history: un "marcar como hecho" de un plan (CAM-22). */
+export interface MaintenanceHistoryItem {
+  id: string;
+  planName: string;
+  completedAt: string;
+  completedKm?: number | null;
+  workOrderId?: string | null;
+  notes?: string | null;
+}
+
+/** Respuesta de GET /api/vehicles/{id}/history (CAM-22). */
+export interface VehicleHistory {
+  inspections: InspectionHistoryItem[];
+  defects: DefectSummary[];
+  maintenance: MaintenanceHistoryItem[];
+}
+
 export type Role = 'ADMIN' | 'CHOFER';
 
 /** Respuesta de POST /api/auth/login (CAM-43). */
