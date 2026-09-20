@@ -1522,3 +1522,18 @@
     padding: 20px 16px 32px;
   }
 }
+
+/* La patente es el punto de entrada por teclado al detalle (CAM-22). */
+.vehicles-section__plate-link {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.vehicles-section__plate-link:hover,
+.vehicles-section__plate-link:focus-visible {
+  text-decoration: underline;
+}

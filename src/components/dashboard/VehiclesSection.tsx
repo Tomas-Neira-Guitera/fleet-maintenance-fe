@@ -126,7 +126,18 @@ export function VehiclesSection({ onOpenVehicle }: { onOpenVehicle: (vehicleId: 
                   onClick={() => onOpenVehicle(v.id)}
                   title="Ver detalle e historial"
                 >
-                  <td className="fleet-status__plate">{v.plate}</td>
+                  <td className="fleet-status__plate">
+                    <button
+                      type="button"
+                      className="vehicles-section__plate-link"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenVehicle(v.id);
+                      }}
+                    >
+                      {v.plate}
+                    </button>
+                  </td>
                   <td>
                     <div className="fleet-status__vehicle">
                       <span className="fleet-status__vehicle-name">
