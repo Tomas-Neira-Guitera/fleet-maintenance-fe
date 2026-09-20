@@ -1398,3 +1398,305 @@
     display: none;
   }
 }
+
+/* Sección "Órdenes de trabajo" (CAM-14/CAM-62/CAM-63). */
+
+.work-orders__filter {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--fg-radius);
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-size: 13px;
+}
+
+.work-orders__row {
+  cursor: pointer;
+}
+
+.work-orders__row:hover {
+  background: var(--fg-bg);
+}
+
+.work-orders__execution {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-text);
+}
+
+.work-orders__execution svg {
+  flex-shrink: 0;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+/* Chip de estado de una OT -- mismo lenguaje visual que .fleet-status-badge. */
+.work-order-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.work-order-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.work-order-badge--asignada {
+  background: var(--fg-bg);
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.work-order-badge--en_proceso {
+  background: var(--fg-warn-bg);
+  color: var(--fg-warn);
+}
+
+.work-order-badge--finalizada {
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+}
+
+.work-order-badge--cancelada {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+}
+
+/* Toggle "personal propio" / "taller externo" (CAM-62), crear y detalle de OT. */
+.wo-execution-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.wo-execution-toggle__btn {
+  flex: 1;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--fg-radius);
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.wo-execution-toggle__btn:hover {
+  border-color: rgba(62, 74, 66, 0.32);
+}
+
+.wo-execution-toggle__btn--active {
+  background: var(--fg-text);
+  border-color: var(--fg-text);
+  color: var(--fg-white);
+}
+
+.wo-detail__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wo-detail__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: var(--fg-border-color) 1px solid;
+}
+
+.wo-detail__section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+.wo-detail__readonly-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--fg-text);
+  font-size: 14px;
+}
+
+/* Lista de gastos de una OT (CAM-63). */
+
+.wo-expense-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wo-expense-list__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-bg);
+  font-size: 13px;
+}
+
+.wo-expense-list__category {
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.wo-expense-list__description {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(62, 74, 66, 0.75);
+}
+
+.wo-expense-list__amount {
+  flex-shrink: 0;
+  font-family: var(--fg-font-mono);
+  color: var(--fg-text);
+}
+
+.wo-expense-list__delete {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+}
+
+.wo-expense-form {
+  display: grid;
+  grid-template-columns: 140px 1fr 100px auto;
+  gap: 8px;
+}
+
+.wo-expense-form__category,
+.wo-expense-form__description,
+.wo-expense-form__amount {
+  min-height: 40px;
+}
+
+/* Galería de fotos de una OT (CAM-14). */
+
+.wo-photo-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wo-photo-gallery__item {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: var(--fg-radius);
+  overflow: hidden;
+  border: var(--fg-border);
+}
+
+.wo-photo-gallery__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wo-photo-gallery__remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(62, 74, 66, 0.75);
+  color: var(--fg-white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Historial combinado defectos + OTs por vehículo (CAM-15). */
+
+.wo-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wo-history-list__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 12px 14px;
+  background: var(--fg-white);
+}
+
+.wo-history-list__icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wo-history-list__icon--defect {
+  background: var(--fg-warn-bg);
+  color: var(--fg-warn);
+}
+
+.wo-history-list__icon--work-order {
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+}
+
+.wo-history-list__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wo-history-list__title {
+  color: var(--fg-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wo-history-list__meta {
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+@media (max-width: 640px) {
+  .wo-expense-form {
+    grid-template-columns: 1fr;
+  }
+}

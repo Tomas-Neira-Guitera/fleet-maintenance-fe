@@ -185,3 +185,51 @@ export function PowerIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ClipboardListIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <path d="M9 12h6" />
+      <path d="M9 16h6" />
+      <path d="M9 8h1" />
+    </svg>
+  );
+}
+
+export function CoinsIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="9" cy="9" r="6" />
+      <path d="M18.09 10.37A6 6 0 1 1 10.35 18" />
+      <path d="M9 7v4" />
+      <path d="M7 9h4" />
+    </svg>
+  );
+}
+
+export function BuildingIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="4" y="2" width="16" height="20" rx="1" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6h1" />
+      <path d="M15 6h1" />
+      <path d="M8 10h1" />
+      <path d="M15 10h1" />
+      <path d="M8 14h1" />
+      <path d="M15 14h1" />
+    </svg>
+  );
+}
+
+export function HistoryIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 3v5h5" />
+      <path d="M3.05 13a9 9 0 1 0 2.13-8.36L3 8" />
+      <path d="M12 7v5l4 2" />
+    </svg>
+  );
+}

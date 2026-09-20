@@ -4,8 +4,9 @@ import { deactivateVehicle, getVehicles, updateVehicle } from '../../services/ve
 import type { OdometerResult } from '../../services/vehiclesService';
 import type { Vehicle } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
-import { AlertTriangleIcon, PowerIcon } from '../icons';
+import { AlertTriangleIcon, HistoryIcon, PowerIcon } from '../icons';
 import { UpdateOdometerModal } from './UpdateOdometerModal';
+import { VehicleHistoryModal } from './VehicleHistoryModal';
 import { VehicleFormModal } from './VehicleFormModal';
 import '../../styles/dashboard.css';
 
@@ -24,6 +25,7 @@ export function VehiclesSection() {
   const [showInactive, setShowInactive] = useState(false);
   const [formTarget, setFormTarget] = useState<'new' | Vehicle | null>(null);
   const [odometerTarget, setOdometerTarget] = useState<Vehicle | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<Vehicle | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
@@ -157,6 +159,14 @@ export function VehiclesSection() {
                           >
                             Cargar km
                           </button>
+                          <button
+                            type="button"
+                            className="secondary-btn vehicles-section__action-btn"
+                            onClick={() => setHistoryTarget(v)}
+                          >
+                            <HistoryIcon width={14} height={14} />
+                            Historial
+                          </button>
                         </>
                       )}
                       <button
@@ -199,6 +209,8 @@ export function VehiclesSection() {
           onUpdated={handleOdometerUpdated}
         />
       )}
+
+      {historyTarget && <VehicleHistoryModal vehicle={historyTarget} onClose={() => setHistoryTarget(null)} />}
     </section>
   );
 }

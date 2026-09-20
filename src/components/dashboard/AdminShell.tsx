@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { CloseIcon, LayoutGridIcon, LogOutIcon, MenuIcon, TruckIcon, WrenchIcon } from '../icons';
+import { ClipboardListIcon, CloseIcon, LayoutGridIcon, LogOutIcon, MenuIcon, TruckIcon, WrenchIcon } from '../icons';
 import '../../styles/dashboard.css';
 
-export type AdminTab = 'resumen' | 'vehiculos' | 'planes';
+export type AdminTab = 'resumen' | 'vehiculos' | 'planes' | 'ordenes-trabajo';
 
 interface AdminShellProps {
   activeTab: AdminTab;
@@ -15,6 +15,7 @@ const TABS: { id: AdminTab; label: string; icon: ReactNode }[] = [
   { id: 'resumen', label: 'Resumen', icon: <LayoutGridIcon /> },
   { id: 'vehiculos', label: 'Vehículos', icon: <TruckIcon /> },
   { id: 'planes', label: 'Planes de Mantenimiento', icon: <WrenchIcon /> },
+  { id: 'ordenes-trabajo', label: 'Órdenes de trabajo', icon: <ClipboardListIcon /> },
 ];
 
 export function AdminShell({ activeTab, onSelectTab, onLogout, children }: AdminShellProps) {

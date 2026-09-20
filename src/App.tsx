@@ -8,6 +8,7 @@ import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { AdminShell, type AdminTab } from './components/dashboard/AdminShell';
 import { VehiclesSection } from './components/dashboard/VehiclesSection';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
+import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -75,6 +76,8 @@ function App() {
             <VehiclesSection />
           ) : activeTab === 'planes' ? (
             <MaintenancePlansSection />
+          ) : activeTab === 'ordenes-trabajo' ? (
+            <WorkOrdersSection />
           ) : (
             <AdminDashboard onViewDefects={() => setRoute({ view: 'admin-defects' })} />
           )}
