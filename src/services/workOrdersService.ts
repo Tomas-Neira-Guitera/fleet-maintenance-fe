@@ -25,7 +25,8 @@ export async function getWorkOrders(options: GetWorkOrdersOptions = {}): Promise
 
   const res = await fetch(`${API_BASE_URL}/api/work-orders${qs ? `?${qs}` : ''}`, { headers: authHeaders() });
   if (!res.ok) return throwApiError(res, 'No se pudieron obtener las órdenes de trabajo');
-  return res.json() as Promise<WorkOrder[]>;
+  const data = (await res.json()) as { items: WorkOrder[] };
+  return data.items;
 }
 
 /** GET /api/work-orders/{id} -- detalle completo, con gastos y fotos. */
