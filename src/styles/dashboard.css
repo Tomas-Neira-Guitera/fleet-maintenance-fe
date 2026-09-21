@@ -1700,3 +1700,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Historial por vehículo como sección fija debajo del listado (CAM-15) --
+   mismo molde que .vehicles-section, con menos aire arriba para que se lea
+   como continuación de la página, no como una tarjeta nueva y separada. */
+.vehicles-section--history {
+  padding-top: 8px;
+}
