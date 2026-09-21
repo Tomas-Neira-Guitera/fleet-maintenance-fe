@@ -13,8 +13,9 @@ interface VehicleMaintenanceModalProps {
   plate: string;
   vehicleLabel: string;
   onClose: () => void;
-  /** Avisa al padre que asignar/desasignar puede haber cambiado el próximo
-   * vencimiento del vehículo, para que refresque su propia lista/tabla. */
+  /** Avisa al padre que algo relevante para sus widgets hermanos cambió --
+   * asignar/desasignar un plan (próximo vencimiento) o planificar un
+   * mantenimiento (aparece en el calendario semanal del Resumen). */
   onChanged?: () => void;
 }
 
@@ -91,6 +92,7 @@ export function VehicleMaintenanceModal({
   function handleScheduled(assignment: MaintenanceAssignment, schedule: ScheduledMaintenance) {
     setScheduledIds((prev) => new Set(prev).add(assignment.id));
     setScheduling(null);
+    onChanged?.();
     void schedule;
   }
 
