@@ -97,7 +97,7 @@ export interface DefectSummary {
   reportedBy?: string | null;
 }
 
-export type Role = 'ADMIN' | 'CHOFER' | 'TECNICO';
+export type Role = 'ADMIN' | 'CHOFER';
 
 /** Respuesta de POST /api/auth/login (CAM-43). */
 export interface LoginResult {
