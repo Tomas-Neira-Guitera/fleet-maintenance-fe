@@ -22,8 +22,7 @@
   padding: 16px 16px 0;
 }
 
-.top-nav--chofer,
-.top-nav--tecnico {
+.top-nav--chofer {
   justify-content: flex-end;
 }
 
