@@ -9,6 +9,7 @@ import { AdminShell, type AdminTab } from './components/dashboard/AdminShell';
 import { VehiclesSection } from './components/dashboard/VehiclesSection';
 import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
+import { TechnicianShell } from './components/technician/TechnicianShell';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -86,6 +87,14 @@ function App() {
             <AdminDashboard onViewDefects={() => setRoute({ view: 'admin-defects' })} />
           )}
         </AdminShell>
+      </main>
+    );
+  }
+
+  if (role === 'TECNICO') {
+    return (
+      <main className="app mobile-shell">
+        <TechnicianShell onLogout={handleLogout} />
       </main>
     );
   }

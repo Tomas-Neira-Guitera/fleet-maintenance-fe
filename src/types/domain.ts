@@ -125,7 +125,7 @@ export interface VehicleHistory {
   maintenance: MaintenanceHistoryItem[];
 }
 
-export type Role = 'ADMIN' | 'CHOFER';
+export type Role = 'ADMIN' | 'CHOFER' | 'TECNICO';
 
 /** Respuesta de POST /api/auth/login (CAM-43). */
 export interface LoginResult {
