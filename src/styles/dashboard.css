@@ -1466,6 +1466,20 @@
   align-items: start;
 }
 
+/*
+ * Cada columna apila sus propias tarjetas de forma independiente (flex, no
+ * grid): agrupadas por relación de contenido -- inspecciones+defectos,
+ * mantenimientos+OTs -- para que una tarjeta larga (ej. muchos mantenimientos)
+ * no deje un hueco vacío debajo de las cortas de al lado, que es lo que pasa
+ * si las 4 conviven sueltas en un mismo grid de filas.
+ */
+.vehicle-detail__column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
 .vehicle-detail__card {
   background: var(--fg-white);
   border: var(--fg-border);
@@ -1479,6 +1493,18 @@
   font-size: 16px;
   margin: 0 0 8px;
   color: var(--fg-text);
+}
+
+/* Cuenta rápida de lo urgente escondido detrás del "Ver más" -- ej. "1 bloqueante". */
+.vehicle-detail__card-title-flag {
+  font-family: var(--fg-font-body);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--fg-critical);
+}
+
+.vehicle-detail__card-title-flag--warn {
+  color: var(--fg-warn);
 }
 
 .vehicle-detail__list {
@@ -1498,6 +1524,46 @@
 
 .vehicle-detail__item:first-child {
   border-top: 0;
+}
+
+.vehicle-detail__item--clickable {
+  cursor: pointer;
+}
+
+.vehicle-detail__item--clickable:hover {
+  background: var(--fg-bg);
+}
+
+.vehicle-detail__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 4px 0;
+  border: none;
+  border-top: var(--fg-border);
+  background: none;
+  border-radius: var(--fg-radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(62, 74, 66, 0.65);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.vehicle-detail__toggle:hover {
+  color: var(--fg-text);
+}
+
+.vehicle-detail__toggle-icon {
+  flex-shrink: 0;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+
+.vehicle-detail__toggle-icon--expanded {
+  transform: rotate(-90deg);
 }
 
 .vehicle-detail__item-main {
