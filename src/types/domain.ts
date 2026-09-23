@@ -35,6 +35,7 @@ export interface ChecklistItemDef {
 }
 
 export type DefectSeverity = 'non-blocking' | 'blocking';
+export type DefectStatus = 'open' | 'resuelto';
 
 export interface DefectDetail {
   severity: DefectSeverity;
@@ -93,7 +94,7 @@ export interface DefectSummary {
   createdAt: string;
   vehicleId: string;
   vehiclePlate: string;
-  status: 'open';
+  status: DefectStatus;
   reportedBy?: string | null;
 }
 
@@ -235,4 +236,50 @@ export interface ScheduledMaintenance {
   scheduledAt: string;
   status: ScheduleStatus;
   notes: string | null;
+}
+
+// --- Órdenes de trabajo (CAM-14/CAM-15/CAM-62/CAM-63) ---
+// Ver claude/CAM-14-ordenes-de-trabajo.md en el proyecto de FleetGuard.
+
+export type WorkOrderSourceType = 'scheduled_maintenance' | 'defect' | 'manual';
+export type WorkOrderExecutionType = 'interno' | 'externo';
+export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'finalizada' | 'cancelada';
+export type WorkOrderExpenseCategory = 'repuesto' | 'mano_de_obra' | 'otro';
+
+export interface WorkOrderExpense {
+  id: string;
+  category: WorkOrderExpenseCategory;
+  description: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface WorkOrderPhoto {
+  id: string;
+  photoUrl: string;
+  createdAt: string;
+}
+
+/** Una orden de trabajo -- GET/POST/PATCH /api/work-orders. */
+export interface WorkOrder {
+  id: string;
+  vehicleId: string;
+  plate: string | null;
+  sourceType: WorkOrderSourceType;
+  scheduledMaintenanceId: string | null;
+  defectId: string | null;
+  assignmentId: string | null;
+  title: string;
+  description: string | null;
+  executionType: WorkOrderExecutionType;
+  externalProvider: string | null;
+  assignee: string | null;
+  status: WorkOrderStatus;
+  closingDescription: string | null;
+  expenses: WorkOrderExpense[];
+  totalExpenses: number;
+  photos: WorkOrderPhoto[];
+  createdAt: string;
+  updatedAt: string;
+  finalizedAt: string | null;
 }

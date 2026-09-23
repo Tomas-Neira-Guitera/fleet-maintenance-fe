@@ -74,7 +74,7 @@ export function DefectsList({ onBack }: DefectsListProps) {
                 type="button"
                 className="secondary-btn defect-summary-item__schedule-btn"
                 onClick={() => setScheduling(defect)}
-                disabled={scheduledIds.has(defect.id)}
+                disabled={scheduledIds.has(defect.id) || defect.status === 'resuelto'}
               >
                 {scheduledIds.has(defect.id) ? 'Programado' : 'Planificar'}
               </button>

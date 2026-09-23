@@ -10,6 +10,7 @@ import { VehiclesSection } from './components/dashboard/VehiclesSection';
 import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
 import { TechnicianShell } from './components/technician/TechnicianShell';
+import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -83,6 +84,8 @@ function App() {
             <VehiclesSection onOpenVehicle={(vehicleId) => setRoute({ view: 'admin-vehicle', vehicleId })} />
           ) : activeTab === 'planes' ? (
             <MaintenancePlansSection />
+          ) : activeTab === 'ordenes-trabajo' ? (
+            <WorkOrdersSection />
           ) : (
             <AdminDashboard onViewDefects={() => setRoute({ view: 'admin-defects' })} />
           )}
