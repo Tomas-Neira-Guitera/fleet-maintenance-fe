@@ -5,6 +5,7 @@ import { createWorkOrder } from '../../services/workOrdersService';
 import type { ScheduledMaintenance, ScheduleSourceType, Vehicle, WorkOrderExecutionType } from '../../types/domain';
 import { ApiError } from '../../services/apiClient';
 import { CloseIcon } from '../icons';
+import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import '../../styles/dashboard.css';
 
 interface SchedulePickerModalSourceProps {
@@ -70,6 +71,7 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
   const [executionType, setExecutionType] = useState<WorkOrderExecutionType>('interno');
   const [externalProvider, setExternalProvider] = useState('');
   const [assignee, setAssignee] = useState('');
+  const [technicianId, setTechnicianId] = useState('');
 
   /** Si la programación ya se creó pero la OT falló, guardamos acá para no duplicarla en un reintento. */
   const [createdSchedule, setCreatedSchedule] = useState<ScheduledMaintenance | null>(null);
@@ -151,7 +153,8 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
         sourceId: schedule.id,
         executionType,
         externalProvider: executionType === 'externo' ? externalProvider.trim() : undefined,
-        assignee: assignee.trim() || undefined,
+        assignee: executionType === 'externo' ? assignee.trim() || undefined : undefined,
+        technicianId: executionType === 'interno' ? technicianId || undefined : undefined,
         description: notes.trim() || undefined,
       });
 
@@ -274,16 +277,13 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
             </label>
           )}
 
-          <label className="schedule-picker__field">
-            Responsable (opcional)
-            <input
-              type="text"
-              className="schedule-picker__input"
-              value={assignee}
-              onChange={(e) => setAssignee(e.target.value)}
-              placeholder="Ej: Carlos (taller propio)"
-            />
-          </label>
+          <WorkOrderResponsibleField
+            executionType={executionType}
+            technicianId={technicianId}
+            onTechnicianChange={setTechnicianId}
+            assignee={assignee}
+            onAssigneeChange={setAssignee}
+          />
 
           {value && (
             <div className="schedule-picker__preview">

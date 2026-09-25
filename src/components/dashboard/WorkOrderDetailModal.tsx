@@ -7,11 +7,14 @@ import {
   deleteWorkOrderExpense,
   deleteWorkOrderPhoto,
   updateWorkOrder,
+  type UpdateWorkOrderInput,
 } from '../../services/workOrdersService';
 import type { WorkOrder, WorkOrderExecutionType, WorkOrderExpenseCategory } from '../../types/domain';
 import { currencyFormatter } from '../../utils/maintenanceFormat';
+import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { BuildingIcon, CameraIcon, CloseIcon, TrashIcon, WrenchIcon } from '../icons';
 import { FinalizeWorkOrderModal } from './FinalizeWorkOrderModal';
+import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import '../../styles/dashboard.css';
 
@@ -43,6 +46,7 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
   const [finalizing, setFinalizing] = useState(false);
 
   const [assignee, setAssignee] = useState(wo.assignee ?? '');
+  const [technicianId, setTechnicianId] = useState(wo.technicianId ?? '');
   const [executionType, setExecutionType] = useState<WorkOrderExecutionType>(wo.executionType);
   const [externalProvider, setExternalProvider] = useState(wo.externalProvider ?? '');
   const [description, setDescription] = useState(wo.description ?? '');
@@ -56,6 +60,7 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const isOpen = wo.status === 'asignada' || wo.status === 'en_proceso';
+  const responsible = workOrderResponsible(wo);
 
   function apply(updated: WorkOrder) {
     setWo(updated);
@@ -87,24 +92,41 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
     }
   }
 
+  // Solo cuenta lo que se manda según el tipo de ejecución (el técnico en internas, el contacto
+  // y el proveedor en externas), para que el botón Guardar no quede prendido por campos ocultos.
   const editDirty =
-    assignee !== (wo.assignee ?? '') ||
     executionType !== wo.executionType ||
-    externalProvider !== (wo.externalProvider ?? '') ||
-    description !== (wo.description ?? '');
+    description !== (wo.description ?? '') ||
+    (executionType === 'interno'
+      ? technicianId !== (wo.technicianId ?? '')
+      : assignee !== (wo.assignee ?? '') || externalProvider !== (wo.externalProvider ?? ''));
+
+  /** Vuelve a cargar el formulario con lo que guardó el servidor, que puede haber limpiado
+   *  campos por su cuenta (ej. desasignar al técnico al pasar la OT a externa, CAM-60). */
+  function syncForm(saved: WorkOrder) {
+    setAssignee(saved.assignee ?? '');
+    setTechnicianId(saved.technicianId ?? '');
+    setExecutionType(saved.executionType);
+    setExternalProvider(saved.externalProvider ?? '');
+    setDescription(saved.description ?? '');
+  }
 
   async function handleSaveEdits() {
     setPending(true);
     setError(null);
+    // Solo lo que cambió: reenviar un técnico que dejó de serlo daría 422 al editar otro campo.
+    const changes: UpdateWorkOrderInput = {};
+    if (executionType !== wo.executionType) changes.executionType = executionType;
+    if (executionType === 'interno' && technicianId !== (wo.technicianId ?? '')) changes.technicianId = technicianId;
+    if (executionType === 'externo') {
+      if (externalProvider !== (wo.externalProvider ?? '')) changes.externalProvider = externalProvider.trim();
+      if (assignee !== (wo.assignee ?? '')) changes.assignee = assignee.trim();
+    }
+    if (description !== (wo.description ?? '')) changes.description = description.trim();
     try {
-      apply(
-        await updateWorkOrder(wo.id, {
-          assignee: assignee.trim() || undefined,
-          executionType,
-          externalProvider: executionType === 'externo' ? externalProvider.trim() : undefined,
-          description: description.trim() || undefined,
-        }),
-      );
+      const saved = await updateWorkOrder(wo.id, changes);
+      apply(saved);
+      syncForm(saved);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudieron guardar los cambios. Intentá de nuevo.');
     } finally {
@@ -241,15 +263,13 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
                   />
                 </label>
               )}
-              <label className="schedule-picker__field">
-                Responsable
-                <input
-                  type="text"
-                  className="schedule-picker__input"
-                  value={assignee}
-                  onChange={(e) => setAssignee(e.target.value)}
-                />
-              </label>
+              <WorkOrderResponsibleField
+                executionType={executionType}
+                technicianId={technicianId}
+                onTechnicianChange={setTechnicianId}
+                assignee={assignee}
+                onAssigneeChange={setAssignee}
+              />
               <label className="schedule-picker__field">
                 Descripción
                 <textarea
@@ -274,7 +294,7 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
                   <BuildingIcon width={14} height={14} />
                 )}
                 {wo.executionType === 'interno' ? 'Personal propio' : wo.externalProvider}
-                {wo.assignee ? ` · ${wo.assignee}` : ''}
+                {responsible ? ` · ${responsible}` : ''}
               </p>
               {wo.description && <p className="wo-detail__readonly-row">{wo.description}</p>}
               {wo.closingDescription && (

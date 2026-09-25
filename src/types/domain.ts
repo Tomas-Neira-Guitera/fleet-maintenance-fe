@@ -128,6 +128,13 @@ export interface VehicleHistory {
 
 export type Role = 'ADMIN' | 'CHOFER' | 'TECNICO';
 
+/** Ítem de GET /api/users (CAM-60) -- listado de solo lectura. */
+export interface UserSummary {
+  id: string;
+  username: string;
+  role: Role;
+}
+
 /** Respuesta de POST /api/auth/login (CAM-43). */
 export interface LoginResult {
   token: string;
@@ -274,6 +281,9 @@ export interface WorkOrder {
   executionType: WorkOrderExecutionType;
   externalProvider: string | null;
   assignee: string | null;
+  /** Usuario TECNICO a cargo (CAM-60), solo en OTs internas. */
+  technicianId: string | null;
+  technicianUsername: string | null;
   status: WorkOrderStatus;
   closingDescription: string | null;
   expenses: WorkOrderExpense[];

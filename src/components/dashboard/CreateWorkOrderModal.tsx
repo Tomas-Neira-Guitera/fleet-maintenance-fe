@@ -4,6 +4,7 @@ import { getVehicles } from '../../services/vehiclesService';
 import { createWorkOrder } from '../../services/workOrdersService';
 import type { Vehicle, WorkOrder, WorkOrderExecutionType, WorkOrderSourceType } from '../../types/domain';
 import { CloseIcon } from '../icons';
+import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import '../../styles/dashboard.css';
 
 interface CreateWorkOrderModalSourceProps {
@@ -40,6 +41,7 @@ export function CreateWorkOrderModal(props: CreateWorkOrderModalProps) {
   const [executionType, setExecutionType] = useState<WorkOrderExecutionType>('interno');
   const [externalProvider, setExternalProvider] = useState('');
   const [assignee, setAssignee] = useState('');
+  const [technicianId, setTechnicianId] = useState('');
   const [description, setDescription] = useState('');
 
   useEffect(() => {
@@ -69,7 +71,8 @@ export function CreateWorkOrderModal(props: CreateWorkOrderModalProps) {
               title: manualTitle.trim(),
               executionType,
               externalProvider: executionType === 'externo' ? externalProvider.trim() : undefined,
-              assignee: assignee.trim() || undefined,
+              assignee: executionType === 'externo' ? assignee.trim() || undefined : undefined,
+              technicianId: executionType === 'interno' ? technicianId || undefined : undefined,
               description: description.trim() || undefined,
             })
           : await createWorkOrder({
@@ -77,7 +80,8 @@ export function CreateWorkOrderModal(props: CreateWorkOrderModalProps) {
               sourceId: props.sourceId,
               executionType,
               externalProvider: executionType === 'externo' ? externalProvider.trim() : undefined,
-              assignee: assignee.trim() || undefined,
+              assignee: executionType === 'externo' ? assignee.trim() || undefined : undefined,
+              technicianId: executionType === 'interno' ? technicianId || undefined : undefined,
               description: description.trim() || undefined,
             });
       props.onCreated(workOrder);
@@ -172,16 +176,13 @@ export function CreateWorkOrderModal(props: CreateWorkOrderModalProps) {
             </label>
           )}
 
-          <label className="schedule-picker__field">
-            Responsable (opcional)
-            <input
-              type="text"
-              className="schedule-picker__input"
-              value={assignee}
-              onChange={(e) => setAssignee(e.target.value)}
-              placeholder="Ej: Carlos (taller propio)"
-            />
-          </label>
+          <WorkOrderResponsibleField
+            executionType={executionType}
+            technicianId={technicianId}
+            onTechnicianChange={setTechnicianId}
+            assignee={assignee}
+            onAssigneeChange={setAssignee}
+          />
 
           <label className="schedule-picker__field">
             Descripción (opcional)

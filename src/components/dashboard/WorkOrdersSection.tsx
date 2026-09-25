@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { getUsers } from '../../services/usersService';
 import { getVehicles } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
-import type { Vehicle, WorkOrder, WorkOrderStatus } from '../../types/domain';
+import type { UserSummary, Vehicle, WorkOrder, WorkOrderStatus } from '../../types/domain';
 import { currencyFormatter } from '../../utils/maintenanceFormat';
+import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { BuildingIcon, WrenchIcon } from '../icons';
 import { CreateWorkOrderModal } from './CreateWorkOrderModal';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
@@ -31,6 +33,8 @@ export function WorkOrdersSection() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<WorkOrderStatus | ''>('');
   const [vehicleFilter, setVehicleFilter] = useState('');
+  const [technicians, setTechnicians] = useState<UserSummary[] | null>(null);
+  const [technicianFilter, setTechnicianFilter] = useState('');
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<WorkOrder | null>(null);
   const mountedRef = useRef(true);
@@ -39,6 +43,7 @@ export function WorkOrdersSection() {
     getWorkOrders({
       status: statusFilter || undefined,
       vehicleId: vehicleFilter || undefined,
+      technicianId: technicianFilter || undefined,
     })
       .then((data) => {
         if (mountedRef.current) setWorkOrders(data);
@@ -55,7 +60,7 @@ export function WorkOrdersSection() {
       mountedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, vehicleFilter]);
+  }, [statusFilter, vehicleFilter, technicianFilter]);
 
   useEffect(() => {
     getVehicles()
@@ -64,6 +69,13 @@ export function WorkOrdersSection() {
       })
       .catch(() => {
         if (mountedRef.current) setVehicles([]);
+      });
+    getUsers('TECNICO')
+      .then((data) => {
+        if (mountedRef.current) setTechnicians(data);
+      })
+      .catch(() => {
+        if (mountedRef.current) setTechnicians([]);
       });
   }, []);
 
@@ -103,6 +115,19 @@ export function WorkOrdersSection() {
             {vehicles?.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.plate}
+              </option>
+            ))}
+          </select>
+          <select
+            className="work-orders__filter"
+            value={technicianFilter}
+            onChange={(e) => setTechnicianFilter(e.target.value)}
+            disabled={!technicians}
+          >
+            <option value="">Todos los técnicos</option>
+            {technicians?.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.username}
               </option>
             ))}
           </select>
@@ -148,7 +173,7 @@ export function WorkOrdersSection() {
                       {wo.executionType === 'interno' ? 'Interno' : wo.externalProvider ?? 'Externo'}
                     </span>
                   </td>
-                  <td>{wo.assignee ?? '—'}</td>
+                  <td>{workOrderResponsible(wo) ?? '—'}</td>
                   <td className="fleet-status__km">{currencyFormatter.format(wo.totalExpenses)}</td>
                   <td className="fleet-status__km">{formatDateTime(wo.createdAt)}</td>
                 </tr>

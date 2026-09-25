@@ -4,6 +4,7 @@ import { getVehicle, getVehicleHistory } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
 import type { DefectSummary, Vehicle, VehicleHistory, WorkOrder, WorkOrderStatus } from '../../types/domain';
 import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
+import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
@@ -23,10 +24,11 @@ function formatKm(km: number | null | undefined): string {
   return km == null ? '—' : `${numberFormatter.format(km)} km`;
 }
 
-/** Bloqueantes primero, más reciente primero dentro de cada grupo -- mismo criterio que
- *  DefectService.listDefects() en el listado general de defectos. */
+/** Abiertos antes que resueltos; dentro de eso, bloqueantes primero y más reciente primero
+ *  -- mismo criterio que DefectService.listDefects() en el listado general de defectos. */
 function sortDefects(defects: DefectSummary[]): DefectSummary[] {
   return [...defects].sort((a, b) => {
+    if (a.status !== b.status) return a.status === 'open' ? -1 : 1;
     if (a.severity !== b.severity) return a.severity === 'blocking' ? -1 : 1;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
@@ -90,17 +92,17 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [history, setHistory] = useState<VehicleHistory | null>(null);
   const [workOrders, setWorkOrders] = useState<WorkOrder[] | null>(null);
+  const [workOrdersError, setWorkOrdersError] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getVehicle(vehicleId), getVehicleHistory(vehicleId), getWorkOrders({ vehicleId })])
-      .then(([v, h, wo]) => {
+    Promise.all([getVehicle(vehicleId), getVehicleHistory(vehicleId)])
+      .then(([v, h]) => {
         if (cancelled) return;
         setVehicle(v);
         setHistory(h);
-        setWorkOrders(wo);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -110,18 +112,36 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
             : 'No se pudo cargar el vehículo. Intentá de nuevo.',
         );
       });
+    // Aparte: si fallan las OTs, la ficha y el historial se siguen viendo.
+    getWorkOrders({ vehicleId })
+      .then((wo) => {
+        if (!cancelled) setWorkOrders(wo);
+      })
+      .catch(() => {
+        if (!cancelled) setWorkOrdersError(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [vehicleId]);
 
   function handleWorkOrderUpdated(updated: WorkOrder) {
+    const justFinalized =
+      updated.status === 'finalizada' && workOrders?.find((wo) => wo.id === updated.id)?.status !== 'finalizada';
     setSelectedWorkOrder(updated);
     setWorkOrders((prev) => prev?.map((wo) => (wo.id === updated.id ? updated : wo)) ?? prev);
+    // Finalizar cierra el origen (defecto resuelto o mantenimiento registrado): refrescar el historial.
+    if (justFinalized) {
+      getVehicleHistory(vehicleId)
+        .then(setHistory)
+        .catch(() => {
+          // El historial viejo sigue siendo válido para mostrar; no vale la pena un error en pantalla.
+        });
+    }
   }
 
   const inactive = vehicle?.active === false;
-  const blockingDefects = history?.defects.filter((d) => d.severity === 'blocking').length ?? 0;
+  const blockingDefects = history?.defects.filter((d) => d.status === 'open' && d.severity === 'blocking').length ?? 0;
   const openWorkOrders = workOrders?.filter((wo) => wo.status === 'asignada' || wo.status === 'en_proceso').length ?? 0;
 
   return (
@@ -212,7 +232,10 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
               <h2 className="vehicle-detail__card-title">
                 Defectos ({history.defects.length})
                 {blockingDefects > 0 && (
-                  <span className="vehicle-detail__card-title-flag"> · {blockingDefects} bloqueante{blockingDefects > 1 ? 's' : ''}</span>
+                  <span className="vehicle-detail__card-title-flag">
+                    {' '}
+                    · {blockingDefects} bloqueante{blockingDefects > 1 ? 's' : ''} abierto{blockingDefects > 1 ? 's' : ''}
+                  </span>
                 )}
               </h2>
               {history.defects.length === 0 ? (
@@ -221,12 +244,16 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                 <CollapsibleList
                   items={sortDefects(history.defects)}
                   renderItem={(d) => (
-                    <li key={d.id} className="vehicle-detail__item">
+                    <li
+                      key={d.id}
+                      className={`vehicle-detail__item${d.status === 'resuelto' ? ' vehicle-detail__item--resolved' : ''}`}
+                    >
                       <div className="vehicle-detail__item-main">
                         <span className="vehicle-detail__item-label">{d.description}</span>
                         <span className="vehicle-detail__item-meta">
                           {formatDateTime(d.createdAt)}
                           {d.reportedBy ? ` · ${d.reportedBy}` : ''}
+                          {d.status === 'resuelto' ? ' · Resuelto' : ''}
                         </span>
                       </div>
                       <SeverityBadge severity={d.severity} />
@@ -272,7 +299,9 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                   </span>
                 )}
               </h2>
-              {!workOrders ? (
+              {workOrdersError ? (
+                <p className="muted">No se pudieron cargar las órdenes de trabajo.</p>
+              ) : !workOrders ? (
                 <p className="muted">Cargando órdenes de trabajo…</p>
               ) : workOrders.length === 0 ? (
                 <p className="muted">Sin órdenes de trabajo todavía.</p>
@@ -283,13 +312,21 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                     <li
                       key={wo.id}
                       className="vehicle-detail__item vehicle-detail__item--clickable"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setSelectedWorkOrder(wo)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedWorkOrder(wo);
+                        }
+                      }}
                     >
                       <div className="vehicle-detail__item-main">
                         <span className="vehicle-detail__item-label">{wo.title}</span>
                         <span className="vehicle-detail__item-meta">
                           {formatDateTime(wo.createdAt)}
-                          {wo.assignee ? ` · ${wo.assignee}` : ''}
+                          {workOrderResponsible(wo) ? ` · ${workOrderResponsible(wo)}` : ''}
                         </span>
                       </div>
                       <WorkOrderStatusBadge status={wo.status} />

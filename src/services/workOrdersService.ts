@@ -13,6 +13,7 @@ export interface GetWorkOrdersOptions {
   vehicleId?: string;
   status?: WorkOrderStatus;
   executionType?: WorkOrderExecutionType;
+  technicianId?: string;
 }
 
 /** GET /api/work-orders -- listado, con filtros opcionales (CAM-63). */
@@ -21,6 +22,7 @@ export async function getWorkOrders(options: GetWorkOrdersOptions = {}): Promise
   if (options.vehicleId) params.set('vehicleId', options.vehicleId);
   if (options.status) params.set('status', options.status);
   if (options.executionType) params.set('executionType', options.executionType);
+  if (options.technicianId) params.set('technicianId', options.technicianId);
   const qs = params.toString();
 
   const res = await fetch(`${API_BASE_URL}/api/work-orders${qs ? `?${qs}` : ''}`, { headers: authHeaders() });
@@ -42,6 +44,7 @@ interface CreateWorkOrderFromSource {
   executionType: WorkOrderExecutionType;
   externalProvider?: string;
   assignee?: string;
+  technicianId?: string;
   description?: string;
 }
 
@@ -52,6 +55,7 @@ interface CreateWorkOrderManual {
   executionType: WorkOrderExecutionType;
   externalProvider?: string;
   assignee?: string;
+  technicianId?: string;
   description?: string;
 }
 
@@ -73,6 +77,8 @@ export interface UpdateWorkOrderInput {
   closingDescription?: string;
   completedKm?: number;
   assignee?: string;
+  /** "" desasigna al técnico (CAM-60). */
+  technicianId?: string;
   executionType?: WorkOrderExecutionType;
   externalProvider?: string;
   description?: string;
