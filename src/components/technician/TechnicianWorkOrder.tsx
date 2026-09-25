@@ -4,6 +4,7 @@ import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../../services/photosSe
 import { addWorkOrderPhoto, deleteWorkOrderPhoto, updateWorkOrder } from '../../services/workOrdersService';
 import type { WorkOrder, WorkOrderSourceType } from '../../types/domain';
 import { CameraIcon, ClipboardListIcon, ShieldCheckIcon, WrenchIcon } from '../icons';
+import { PhotoViewer } from '../PhotoViewer';
 
 /** Qué se cierra al finalizar, para la pantalla de éxito. Una OT manual no tiene origen que cerrar. */
 const CLOSED_SOURCE_LABEL: Record<WorkOrderSourceType, string | null> = {
@@ -40,6 +41,7 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
   const [removingPhotoId, setRemovingPhotoId] = useState<string | null>(null);
   const [finalized, setFinalized] = useState(false);
   const [defectPhotoFailed, setDefectPhotoFailed] = useState(false);
+  const [viewingDefectPhoto, setViewingDefectPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mismo criterio que FinalizeWorkOrderModal: el km solo se pide si la OT cierra un plan de mantenimiento.
@@ -170,7 +172,11 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
             {wo.defect.photoUrl && defectPhotoFailed ? (
               <p className="technician-wo__hint">No se pudo cargar la foto del defecto.</p>
             ) : wo.defect.photoUrl ? (
-              <a href={wo.defect.photoUrl} target="_blank" rel="noreferrer" className="technician-wo__photo-link">
+              <button
+                type="button"
+                className="technician-wo__photo-link"
+                onClick={() => setViewingDefectPhoto(true)}
+              >
                 <img
                   src={wo.defect.photoUrl}
                   alt="Foto del defecto que sacó el chofer"
@@ -178,11 +184,18 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
                   onError={() => setDefectPhotoFailed(true)}
                 />
                 <span className="technician-wo__hint">Tocá la foto para verla completa</span>
-              </a>
+              </button>
             ) : (
               <p className="technician-wo__hint">El chofer no adjuntó foto.</p>
             )}
           </div>
+          {viewingDefectPhoto && wo.defect.photoUrl && (
+            <PhotoViewer
+              src={wo.defect.photoUrl}
+              alt="Foto del defecto que sacó el chofer"
+              onClose={() => setViewingDefectPhoto(false)}
+            />
+          )}
         </section>
       )}
 

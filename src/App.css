@@ -56,20 +56,40 @@
   font-size: 13px;
 }
 
+/* Botón "Volver" (detalle de vehículo, listado de defectos): blanco con borde para que se
+   distinga del fondo, mismo estilo que las acciones del encabezado del vehículo. */
 .top-nav__back {
   flex: 0 0 auto;
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 0 12px;
+  min-height: 38px;
+  padding: 0 14px 0 12px;
   border-radius: var(--fg-radius);
   border: var(--fg-border);
-  background: transparent;
-  color: rgba(62, 74, 66, 0.65);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-family: inherit;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(62, 74, 66, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.top-nav__back svg {
+  transition: transform 0.15s ease;
+}
+
+/* En hover sigue blanco (el fondo de la página es beige): se marca con borde y sombra. */
+.top-nav__back:hover {
+  border-color: rgba(62, 74, 66, 0.35);
+  box-shadow: 0 2px 6px rgba(62, 74, 66, 0.1);
+}
+
+.top-nav__back:hover svg {
+  transform: translateX(-2px);
 }
 
 .screen__header {
@@ -516,7 +536,49 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  text-decoration: none;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: zoom-in;
+}
+
+/* Visor de fotos a pantalla completa (CAM-53) */
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(20, 24, 21, 0.92);
+  cursor: zoom-out;
+}
+
+.photo-viewer__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: default;
+}
+
+.photo-viewer__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--fg-white);
+  cursor: pointer;
 }
 
 .technician-wo__photo {

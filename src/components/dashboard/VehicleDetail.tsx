@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactElement } from 'react';
 import { ApiError } from '../../services/apiClient';
-import { getVehicle, getVehicleHistory } from '../../services/vehiclesService';
+import { deactivateVehicle, getVehicle, getVehicleHistory, updateVehicle } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
 import type { DefectSummary, Vehicle, VehicleHistory, WorkOrder, WorkOrderStatus } from '../../types/domain';
 import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
-import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon } from '../icons';
+import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
+import { VehicleFormModal } from './VehicleFormModal';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import '../../styles/dashboard.css';
@@ -95,6 +96,9 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
   const [workOrdersError, setWorkOrdersError] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [togglingActive, setTogglingActive] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,6 +144,42 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
     }
   }
 
+  /** Vuelve a pedir la ficha después de editar o de dar de baja/reactivar (el estado y la situación
+   *  los calcula el servidor). */
+  async function reloadVehicle() {
+    try {
+      setVehicle(await getVehicle(vehicleId));
+    } catch {
+      setActionError('Se guardó el cambio, pero no se pudo actualizar la ficha. Volvé a abrir el vehículo.');
+    }
+  }
+
+  async function handleToggleActive() {
+    if (!vehicle) return;
+    const reactivating = vehicle.active === false;
+    if (!reactivating && !window.confirm(`¿Dar de baja "${vehicle.plate}"? Se puede reactivar después.`)) return;
+
+    setTogglingActive(true);
+    setActionError(null);
+    try {
+      if (reactivating) {
+        await updateVehicle(vehicle.id, { active: true });
+      } else {
+        await deactivateVehicle(vehicle.id);
+      }
+      // Se espera la ficha nueva: si no, el botón se rehabilita un instante con el estado viejo.
+      await reloadVehicle();
+    } catch (err) {
+      if (err instanceof ApiError && err.errorCode === 'VEHICLE_ON_TRIP') {
+        setActionError('No se puede dar de baja: tiene un viaje abierto. Cerrá el viaje (post-trip) y volvé a intentarlo.');
+      } else {
+        setActionError(err instanceof ApiError ? err.message : 'No se pudo actualizar el vehículo. Intentá de nuevo.');
+      }
+    } finally {
+      setTogglingActive(false);
+    }
+  }
+
   const inactive = vehicle?.active === false;
   const blockingDefects = history?.defects.filter((d) => d.status === 'open' && d.severity === 'blocking').length ?? 0;
   const openWorkOrders = workOrders?.filter((wo) => wo.status === 'asignada' || wo.status === 'en_proceso').length ?? 0;
@@ -163,15 +203,49 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         <>
           <header className="vehicle-detail__header">
             <div>
-              <span className="vehicle-detail__plate">{vehicle.plate}</span>
+              {/* Identidad del vehículo junta: patente + estado arriba, nombre abajo. */}
+              <div className="vehicle-detail__eyebrow">
+                <span className="vehicle-detail__plate">{vehicle.plate}</span>
+                <span className={`vehicles-section__status vehicles-section__status--${inactive ? 'inactive' : 'active'}`}>
+                  {inactive ? 'Dado de baja' : 'Activo'}
+                </span>
+              </div>
               <h1 className="vehicle-detail__title">
                 {vehicle.brand} {vehicle.model}
               </h1>
             </div>
-            <span className={`vehicles-section__status vehicles-section__status--${inactive ? 'inactive' : 'active'}`}>
-              {inactive ? 'Dado de baja' : 'Activo'}
-            </span>
+            {/* Mismo estilo neutro para las dos acciones; "Dar de baja" solo se tiñe al pasar el
+                mouse (y pide confirmación), así no compite visualmente con el resto de la ficha. */}
+            <div className="vehicle-detail__header-actions">
+              {!inactive && (
+                <button
+                  type="button"
+                  className="vehicle-detail__action-btn"
+                  onClick={() => setEditing(true)}
+                  disabled={togglingActive}
+                >
+                  <PencilIcon width={14} height={14} />
+                  Editar
+                </button>
+              )}
+              <button
+                type="button"
+                className={`vehicle-detail__action-btn ${inactive ? 'vehicle-detail__action-btn--ok' : 'vehicle-detail__action-btn--danger'}`}
+                onClick={handleToggleActive}
+                disabled={togglingActive}
+              >
+                <PowerIcon width={14} height={14} />
+                {inactive ? 'Reactivar' : 'Dar de baja'}
+              </button>
+            </div>
           </header>
+
+          {actionError && (
+            <p className="error-banner error-banner--icon">
+              <AlertTriangleIcon width={16} height={16} />
+              {actionError}
+            </p>
+          )}
 
           <dl className="vehicle-detail__facts">
             <div>
@@ -337,6 +411,18 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
             </section>
           </div>
         </div>
+      )}
+
+      {editing && vehicle && (
+        <VehicleFormModal
+          vehicle={vehicle}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            setActionError(null);
+            void reloadVehicle();
+          }}
+        />
       )}
 
       {selectedWorkOrder && (

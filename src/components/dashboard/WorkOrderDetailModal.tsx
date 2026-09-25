@@ -16,6 +16,7 @@ import { BuildingIcon, CameraIcon, CloseIcon, TrashIcon, WrenchIcon } from '../i
 import { FinalizeWorkOrderModal } from './FinalizeWorkOrderModal';
 import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
+import { PhotoViewer } from '../PhotoViewer';
 import '../../styles/dashboard.css';
 
 const EXPENSE_CATEGORY_LABEL: Record<WorkOrderExpenseCategory, string> = {
@@ -58,6 +59,7 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
 
   const isOpen = wo.status === 'asignada' || wo.status === 'en_proceso';
   const responsible = workOrderResponsible(wo);
@@ -377,9 +379,14 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
               <div className="wo-photo-gallery">
                 {wo.photos.map((photo) => (
                   <div key={photo.id} className="wo-photo-gallery__item">
-                    <a href={photo.photoUrl} target="_blank" rel="noreferrer">
+                    <button
+                      type="button"
+                      className="wo-photo-gallery__open"
+                      onClick={() => setViewingPhotoUrl(photo.photoUrl)}
+                      aria-label="Ver foto completa"
+                    >
                       <img src={photo.photoUrl} alt="Foto de la orden de trabajo" />
-                    </a>
+                    </button>
                     {isOpen && (
                       <button
                         type="button"
@@ -445,6 +452,14 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
           )}
         </footer>
       </div>
+
+      {viewingPhotoUrl && (
+        <PhotoViewer
+          src={viewingPhotoUrl}
+          alt="Foto de la orden de trabajo"
+          onClose={() => setViewingPhotoUrl(null)}
+        />
+      )}
 
       {finalizing && (
         <FinalizeWorkOrderModal

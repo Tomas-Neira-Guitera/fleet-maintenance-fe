@@ -4,6 +4,7 @@ import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../../services/photosSe
 import { addWorkOrderPhoto, deleteWorkOrderPhoto, updateWorkOrder } from '../../services/workOrdersService';
 import type { WorkOrder } from '../../types/domain';
 import { CameraIcon, CloseIcon, TrashIcon } from '../icons';
+import { PhotoViewer } from '../PhotoViewer';
 import '../../styles/dashboard.css';
 
 interface FinalizeWorkOrderModalProps {
@@ -25,6 +26,7 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const needsKm = wo.assignmentId != null;
@@ -122,9 +124,14 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
               <div className="wo-photo-gallery">
                 {wo.photos.map((photo) => (
                   <div key={photo.id} className="wo-photo-gallery__item">
-                    <a href={photo.photoUrl} target="_blank" rel="noreferrer">
+                    <button
+                      type="button"
+                      className="wo-photo-gallery__open"
+                      onClick={() => setViewingPhotoUrl(photo.photoUrl)}
+                      aria-label="Ver foto completa"
+                    >
                       <img src={photo.photoUrl} alt="Foto del trabajo realizado" />
-                    </a>
+                    </button>
                     <button
                       type="button"
                       className="wo-photo-gallery__remove"
@@ -168,6 +175,13 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
           </button>
         </footer>
       </div>
+      {viewingPhotoUrl && (
+        <PhotoViewer
+          src={viewingPhotoUrl}
+          alt="Foto del trabajo realizado"
+          onClose={() => setViewingPhotoUrl(null)}
+        />
+      )}
     </div>
   );
 }

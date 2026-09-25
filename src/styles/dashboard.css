@@ -20,6 +20,15 @@
   align-items: center;
   justify-content: center;
   color: var(--fg-text);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(62, 74, 66, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Mismo hover que el botón "Volver": sigue blanco, se marcan borde y sombra. */
+.admin-shell__menu-toggle:hover {
+  border-color: rgba(62, 74, 66, 0.35);
+  box-shadow: 0 2px 6px rgba(62, 74, 66, 0.1);
 }
 
 .admin-shell__overlay {
@@ -77,6 +86,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-shell__drawer-close:hover {
+  background: rgba(62, 74, 66, 0.08);
+  color: var(--fg-text);
 }
 
 .admin-shell__nav {
@@ -100,12 +116,25 @@
   font-weight: 600;
   font-size: 14px;
   color: rgba(62, 74, 66, 0.7);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .admin-shell__nav-item svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+/* Hover: verde claro de la paleta y el ícono se corre apenas (mismo gesto que "Volver"). */
+.admin-shell__nav-item:not(.admin-shell__nav-item--active):hover {
+  background: var(--fg-ok-bg);
+  color: var(--fg-text);
+}
+
+.admin-shell__nav-item:not(.admin-shell__nav-item--active):hover svg {
+  transform: translateX(2px);
 }
 
 .admin-shell__nav-item--active {
@@ -122,16 +151,31 @@
   padding: 0 12px;
   border-radius: var(--fg-radius);
   border: var(--fg-border);
-  background: transparent;
+  background: var(--fg-white);
   font-weight: 600;
   font-size: 14px;
   color: rgba(62, 74, 66, 0.7);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(62, 74, 66, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 }
 
 .admin-shell__logout svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+/* Igual que "Volver": sigue blanco, se marcan borde y sombra; el ícono sale hacia afuera. */
+.admin-shell__logout:hover {
+  border-color: rgba(62, 74, 66, 0.35);
+  box-shadow: 0 2px 6px rgba(62, 74, 66, 0.1);
+  color: var(--fg-text);
+}
+
+.admin-shell__logout:hover svg {
+  transform: translateX(2px);
 }
 
 /* Placeholder de secciones todavía sin construir (Vehículos, Planes de Mantenimiento). */
@@ -346,18 +390,33 @@
   font-size: 14px;
 }
 
-.vehicles-section__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .vehicles-section__action-btn {
   min-height: 32px;
   padding: 0 12px;
   font-size: 13px;
   white-space: nowrap;
+}
+
+/* Tabla de Vehículos: el km queda alineado a la derecha, pegado a su acción "Cargar km",
+   y la flecha del final avisa que la fila abre el detalle (donde están Editar/Dar de baja). */
+.vehicles-section__table .vehicles-section__km-col {
+  text-align: right;
+}
+
+.vehicles-section__row-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.vehicles-section__chevron {
+  flex-shrink: 0;
+  color: rgba(62, 74, 66, 0.35);
+}
+
+.fleet-status__row:hover .vehicles-section__chevron {
+  color: var(--fg-text);
 }
 
 .vehicles-section__status {
@@ -1412,9 +1471,63 @@
 
 .vehicle-detail__header {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.vehicle-detail__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vehicle-detail__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Acciones del encabezado del vehículo: las dos con el mismo estilo neutro. */
+.vehicle-detail__action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.vehicle-detail__action-btn:hover:not(:disabled) {
+  background: var(--fg-bg);
+}
+
+.vehicle-detail__action-btn--danger:hover:not(:disabled) {
+  background: var(--fg-crit-bg);
+  border-color: var(--fg-critical);
+  color: var(--fg-critical);
+}
+
+.vehicle-detail__action-btn--ok:hover:not(:disabled) {
+  background: var(--fg-ok-bg);
+  border-color: var(--fg-ok);
+  color: var(--fg-ok);
+}
+
+.vehicle-detail__action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .vehicle-detail__plate {
@@ -1825,6 +1938,16 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.wo-photo-gallery__open {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
 }
 
 .wo-photo-gallery__remove {
