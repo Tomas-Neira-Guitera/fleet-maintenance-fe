@@ -371,6 +371,44 @@
   background: var(--fg-white);
 }
 
+/* Campo de contraseña con el ojito para mostrarla/ocultarla. */
+.password-field {
+  position: relative;
+}
+
+.password-field__input {
+  padding-right: 48px;
+}
+
+.password-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: rgba(62, 74, 66, 0.55);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.password-field__toggle:hover {
+  color: var(--fg-text);
+}
+
+.password-field__toggle:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: -4px;
+  color: var(--fg-text);
+}
+
 /* Login */
 .login-form {
   display: flex;

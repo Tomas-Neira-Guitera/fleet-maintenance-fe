@@ -19,6 +19,12 @@ const SOURCE_LABEL: Record<WorkOrderSourceType, string> = {
   manual: 'Orden manual',
 };
 
+/** "a", "a y b", "a, b y c". */
+function joinSpanish(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
+}
+
 interface TechnicianWorkOrderProps {
   workOrder: WorkOrder;
   onBack: () => void;
@@ -51,8 +57,12 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
   // Mientras sube o quita una foto no se puede finalizar ni salir: el backend podría ver otra
   // cantidad de fotos que la pantalla, o la lista se pediría antes de que termine.
   const busy = pending || uploadingPhoto || removingPhotoId !== null;
-  const canFinalize =
-    closingDescription.trim().length > 0 && wo.photos.length > 0 && (!needsKm || kmValid) && !busy;
+  // Lo que falta para poder finalizar, para decírselo al técnico (los labels no lo aclaran).
+  const missing: string[] = [];
+  if (closingDescription.trim().length === 0) missing.push('la descripción de lo que se hizo');
+  if (needsKm && !kmValid) missing.push('el kilometraje');
+  if (wo.photos.length === 0) missing.push('una foto');
+  const canFinalize = missing.length === 0 && !busy;
   const createdLabel = new Date(wo.createdAt).toLocaleDateString('es-AR');
 
   async function handleStart() {
@@ -286,6 +296,14 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
 
       {error && <p className="error-banner">{error}</p>}
 
+      {/* Montado todo el tiempo que la OT está en proceso (vacío si no falta nada): un aria-live
+          solo anuncia cambios de una región que ya estaba en pantalla. */}
+      {wo.status === 'en_proceso' && (
+        <p id="finalize-missing" className="technician-wo__hint" aria-live="polite">
+          {missing.length > 0 && `Para finalizar ${missing.length === 1 ? 'falta' : 'faltan'} ${joinSpanish(missing)}.`}
+        </p>
+      )}
+
       <div className="screen__actions">
         <button type="button" className="secondary-btn" onClick={onBack} disabled={busy}>
           Volver
@@ -296,7 +314,13 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
           </button>
         )}
         {wo.status === 'en_proceso' && (
-          <button type="button" className="primary-btn" onClick={handleFinalize} disabled={!canFinalize}>
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={handleFinalize}
+            disabled={!canFinalize}
+            aria-describedby={missing.length > 0 ? 'finalize-missing' : undefined}
+          >
             {pending ? 'Finalizando…' : 'Finalizar'}
           </button>
         )}
