@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { ApiError } from '../../services/apiClient';
-import { deactivateVehicle, getVehicles, updateVehicle } from '../../services/vehiclesService';
+import { getVehicles } from '../../services/vehiclesService';
 import type { OdometerResult } from '../../services/vehiclesService';
 import type { Vehicle } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
-import { AlertTriangleIcon, PowerIcon } from '../icons';
+import { AlertTriangleIcon, ChevronRightIcon } from '../icons';
 import { UpdateOdometerModal } from './UpdateOdometerModal';
 import { VehicleFormModal } from './VehicleFormModal';
 import '../../styles/dashboard.css';
@@ -13,18 +12,28 @@ function formatKm(km: number): string {
   return `${numberFormatter.format(km)} km`;
 }
 
+/** Se recuerda entre montajes: al volver del detalle de un vehículo, la sección se vuelve a
+ *  montar y sin esto el filtro "Ver dados de baja" volvería siempre a destildarse. */
+let lastShowInactive = false;
+
+/** Segunda línea de la celda "Vehículo": "Furgón · 2015", o lo que haya de los dos. */
+function describeVehicle(v: Vehicle): string | null {
+  const parts = [v.vehicleType, v.year?.toString()].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
 /**
- * ABM de vehículos (CAM-25): alta, edición y baja lógica. La asignación de
- * planes de mantenimiento (CAM-16) vive en la pestaña "Planes de
- * Mantenimiento" -- esta pantalla ya no la gestiona.
+ * ABM de vehículos (CAM-25): listado, alta y carga de km. Editar, dar de baja y
+ * reactivar viven en el detalle del vehículo (VehicleDetail), que se abre al tocar la
+ * fila. La asignación de planes de mantenimiento (CAM-16) vive en la pestaña "Planes
+ * de Mantenimiento".
  */
-export function VehiclesSection() {
+export function VehiclesSection({ onOpenVehicle }: { onOpenVehicle: (vehicleId: string) => void }) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
-  const [formTarget, setFormTarget] = useState<'new' | Vehicle | null>(null);
+  const [showInactive, setShowInactive] = useState(lastShowInactive);
+  const [creating, setCreating] = useState(false);
   const [odometerTarget, setOdometerTarget] = useState<Vehicle | null>(null);
-  const [pendingId, setPendingId] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   function load(active: boolean) {
@@ -45,8 +54,8 @@ export function VehiclesSection() {
     };
   }, [showInactive]);
 
-  function handleSaved() {
-    setFormTarget(null);
+  function handleCreated() {
+    setCreating(false);
     load(!showInactive);
   }
 
@@ -57,40 +66,19 @@ export function VehiclesSection() {
     setOdometerTarget(null);
   }
 
-  async function handleToggleActive(vehicle: Vehicle) {
-    const reactivating = vehicle.active === false;
-    if (!reactivating && !window.confirm(`¿Dar de baja "${vehicle.plate}"? Se puede reactivar después.`)) return;
-
-    setPendingId(vehicle.id);
-    setError(null);
-    try {
-      if (reactivating) {
-        await updateVehicle(vehicle.id, { active: true });
-      } else {
-        await deactivateVehicle(vehicle.id);
-      }
-      load(!showInactive);
-    } catch (err) {
-      if (err instanceof ApiError && err.errorCode === 'VEHICLE_ON_TRIP') {
-        setError('No se puede dar de baja: tiene un viaje abierto. Cerrá el viaje (post-trip) y volvé a intentarlo.');
-      } else {
-        setError(err instanceof ApiError ? err.message : 'No se pudo actualizar el vehículo. Intentá de nuevo.');
-      }
-    } finally {
-      setPendingId(null);
-    }
-  }
-
   return (
     <section className="fleet-status vehicles-section">
       <header className="fleet-status__header">
         <h1 className="fleet-status__title">Vehículos</h1>
         <div className="vehicles-section__header-actions">
           <label className="vehicles-section__toggle">
-            <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
+            <input type="checkbox" checked={showInactive} onChange={(e) => {
+                lastShowInactive = e.target.checked;
+                setShowInactive(e.target.checked);
+              }} />
             Ver dados de baja
           </label>
-          <button type="button" className="primary-btn vehicles-section__new-btn" onClick={() => setFormTarget('new')}>
+          <button type="button" className="primary-btn vehicles-section__new-btn" onClick={() => setCreating(true)}>
             + Nuevo vehículo
           </button>
         </div>
@@ -106,74 +94,74 @@ export function VehiclesSection() {
 
       {vehicles && (
         <div className="fleet-status__table-wrap">
-          <table className="fleet-status__table">
+          <table className="fleet-status__table vehicles-section__table">
             <thead>
               <tr>
                 <th>Patente</th>
                 <th>Vehículo</th>
-                <th>Año</th>
-                <th>Tipo</th>
-                <th>Kilometraje</th>
                 <th>Estado</th>
+                <th className="vehicles-section__km-col">Kilometraje</th>
                 <th aria-hidden="true"></th>
               </tr>
             </thead>
             <tbody>
-              {vehicles.map((v) => (
-                <tr key={v.id}>
-                  <td className="fleet-status__plate">{v.plate}</td>
-                  <td>
-                    <div className="fleet-status__vehicle">
-                      <span className="fleet-status__vehicle-name">
-                        {v.brand} {v.model}
+              {vehicles.map((v) => {
+                const subtitle = describeVehicle(v);
+                return (
+                  <tr
+                    key={v.id}
+                    className="fleet-status__row"
+                    onClick={() => onOpenVehicle(v.id)}
+                    title="Ver detalle, historial y acciones"
+                  >
+                    <td className="fleet-status__plate">
+                      <button
+                        type="button"
+                        className="vehicles-section__plate-link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenVehicle(v.id);
+                        }}
+                      >
+                        {v.plate}
+                      </button>
+                    </td>
+                    <td>
+                      <div className="fleet-status__vehicle">
+                        <span className="fleet-status__vehicle-name">
+                          {v.brand} {v.model}
+                        </span>
+                        {subtitle && <span className="fleet-status__vehicle-type">{subtitle}</span>}
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        className={`vehicles-section__status vehicles-section__status--${v.active === false ? 'inactive' : 'active'}`}
+                      >
+                        {v.active === false ? 'Dado de baja' : 'Activo'}
                       </span>
-                    </div>
-                  </td>
-                  <td>{v.year ?? '—'}</td>
-                  <td>{v.vehicleType ?? '—'}</td>
-                  <td className="fleet-status__km">{formatKm(v.odometerKm ?? 0)}</td>
-                  <td>
-                    <span
-                      className={`vehicles-section__status vehicles-section__status--${v.active === false ? 'inactive' : 'active'}`}
-                    >
-                      {v.active === false ? 'Dado de baja' : 'Activo'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="vehicles-section__actions">
-                      {v.active !== false && (
-                        <>
+                    </td>
+                    <td className="fleet-status__km vehicles-section__km-col">{formatKm(v.odometerKm ?? 0)}</td>
+                    <td>
+                      <div className="vehicles-section__row-end">
+                        {v.active !== false && (
                           <button
                             type="button"
                             className="secondary-btn vehicles-section__action-btn"
-                            onClick={() => setFormTarget(v)}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            className="secondary-btn vehicles-section__action-btn"
-                            onClick={() => setOdometerTarget(v)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOdometerTarget(v);
+                            }}
                           >
                             Cargar km
                           </button>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        className={`vehicle-maintenance-list__icon-btn vehicles-section__action-btn ${
-                          v.active === false ? 'vehicle-maintenance-list__icon-btn--ok' : 'vehicle-maintenance-list__icon-btn--warn'
-                        }`}
-                        onClick={() => handleToggleActive(v)}
-                        disabled={pendingId === v.id}
-                      >
-                        <PowerIcon width={14} height={14} />
-                        {v.active === false ? 'Reactivar' : 'Dar de baja'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        )}
+                        <ChevronRightIcon width={16} height={16} className="vehicles-section__chevron" aria-hidden="true" />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {vehicles.length === 0 && (
@@ -184,13 +172,7 @@ export function VehiclesSection() {
         </div>
       )}
 
-      {formTarget && (
-        <VehicleFormModal
-          vehicle={formTarget === 'new' ? undefined : formTarget}
-          onClose={() => setFormTarget(null)}
-          onSaved={handleSaved}
-        />
-      )}
+      {creating && <VehicleFormModal onClose={() => setCreating(false)} onSaved={handleCreated} />}
 
       {odometerTarget && (
         <UpdateOdometerModal

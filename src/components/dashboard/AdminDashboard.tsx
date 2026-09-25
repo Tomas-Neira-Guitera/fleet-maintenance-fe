@@ -25,7 +25,7 @@ export function AdminDashboard({ onViewDefects }: AdminDashboardProps) {
 
       <div className="admin-dashboard__body">
         <FleetKpiCards refreshKey={fleetVersion} />
-        <WeeklyScheduleCard />
+        <WeeklyScheduleCard refreshKey={fleetVersion} />
         <div className="admin-dashboard__grid">
           <FleetStatusTable onFleetChanged={() => setFleetVersion((v) => v + 1)} />
           <div className="admin-dashboard__side">

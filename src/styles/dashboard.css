@@ -20,6 +20,15 @@
   align-items: center;
   justify-content: center;
   color: var(--fg-text);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(62, 74, 66, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Mismo hover que el botón "Volver": sigue blanco, se marcan borde y sombra. */
+.admin-shell__menu-toggle:hover {
+  border-color: rgba(62, 74, 66, 0.35);
+  box-shadow: 0 2px 6px rgba(62, 74, 66, 0.1);
 }
 
 .admin-shell__overlay {
@@ -77,6 +86,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-shell__drawer-close:hover {
+  background: rgba(62, 74, 66, 0.08);
+  color: var(--fg-text);
 }
 
 .admin-shell__nav {
@@ -100,12 +116,25 @@
   font-weight: 600;
   font-size: 14px;
   color: rgba(62, 74, 66, 0.7);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .admin-shell__nav-item svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+/* Hover: verde claro de la paleta y el ícono se corre apenas (mismo gesto que "Volver"). */
+.admin-shell__nav-item:not(.admin-shell__nav-item--active):hover {
+  background: var(--fg-ok-bg);
+  color: var(--fg-text);
+}
+
+.admin-shell__nav-item:not(.admin-shell__nav-item--active):hover svg {
+  transform: translateX(2px);
 }
 
 .admin-shell__nav-item--active {
@@ -122,16 +151,31 @@
   padding: 0 12px;
   border-radius: var(--fg-radius);
   border: var(--fg-border);
-  background: transparent;
+  background: var(--fg-white);
   font-weight: 600;
   font-size: 14px;
   color: rgba(62, 74, 66, 0.7);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(62, 74, 66, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 }
 
 .admin-shell__logout svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+/* Igual que "Volver": sigue blanco, se marcan borde y sombra; el ícono sale hacia afuera. */
+.admin-shell__logout:hover {
+  border-color: rgba(62, 74, 66, 0.35);
+  box-shadow: 0 2px 6px rgba(62, 74, 66, 0.1);
+  color: var(--fg-text);
+}
+
+.admin-shell__logout:hover svg {
+  transform: translateX(2px);
 }
 
 /* Placeholder de secciones todavía sin construir (Vehículos, Planes de Mantenimiento). */
@@ -346,18 +390,33 @@
   font-size: 14px;
 }
 
-.vehicles-section__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .vehicles-section__action-btn {
   min-height: 32px;
   padding: 0 12px;
   font-size: 13px;
   white-space: nowrap;
+}
+
+/* Tabla de Vehículos: el km queda alineado a la derecha, pegado a su acción "Cargar km",
+   y la flecha del final avisa que la fila abre el detalle (donde están Editar/Dar de baja). */
+.vehicles-section__table .vehicles-section__km-col {
+  text-align: right;
+}
+
+.vehicles-section__row-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.vehicles-section__chevron {
+  flex-shrink: 0;
+  color: rgba(62, 74, 66, 0.35);
+}
+
+.fleet-status__row:hover .vehicles-section__chevron {
+  color: var(--fg-text);
 }
 
 .vehicles-section__status {
@@ -1396,5 +1455,518 @@
 
   .month-schedule__day-items {
     display: none;
+  }
+}
+
+/* Detalle de vehiculo (CAM-22): pagina propia dentro del shell de admin. */
+
+.vehicle-detail {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.vehicle-detail__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.vehicle-detail__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vehicle-detail__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Acciones del encabezado del vehículo: las dos con el mismo estilo neutro. */
+.vehicle-detail__action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.vehicle-detail__action-btn:hover:not(:disabled) {
+  background: var(--fg-bg);
+}
+
+.vehicle-detail__action-btn--danger:hover:not(:disabled) {
+  background: var(--fg-crit-bg);
+  border-color: var(--fg-critical);
+  color: var(--fg-critical);
+}
+
+.vehicle-detail__action-btn--ok:hover:not(:disabled) {
+  background: var(--fg-ok-bg);
+  border-color: var(--fg-ok);
+  color: var(--fg-ok);
+}
+
+.vehicle-detail__action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.vehicle-detail__plate {
+  font-family: var(--fg-font-mono);
+  font-size: 14px;
+  color: rgba(62, 74, 66, 0.7);
+}
+
+.vehicle-detail__title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 28px;
+  margin: 2px 0 0;
+  color: var(--fg-text);
+}
+
+.vehicle-detail__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 16px 20px;
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+}
+
+.vehicle-detail__facts dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.vehicle-detail__facts dd {
+  margin: 4px 0 0;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.vehicle-detail__mono {
+  font-family: var(--fg-font-mono);
+}
+
+.vehicle-detail__sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/*
+ * Cada columna apila sus propias tarjetas de forma independiente (flex, no
+ * grid): agrupadas por relación de contenido -- inspecciones+defectos,
+ * mantenimientos+OTs -- para que una tarjeta larga (ej. muchos mantenimientos)
+ * no deje un hueco vacío debajo de las cortas de al lado, que es lo que pasa
+ * si las 4 conviven sueltas en un mismo grid de filas.
+ */
+.vehicle-detail__column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.vehicle-detail__card {
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 16px 20px;
+}
+
+.vehicle-detail__card-title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 16px;
+  margin: 0 0 8px;
+  color: var(--fg-text);
+}
+
+/* Cuenta rápida de lo urgente escondido detrás del "Ver más" -- ej. "1 bloqueante". */
+.vehicle-detail__card-title-flag {
+  font-family: var(--fg-font-body);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--fg-critical);
+}
+
+.vehicle-detail__card-title-flag--warn {
+  color: var(--fg-warn);
+}
+
+.vehicle-detail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vehicle-detail__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: var(--fg-border);
+}
+
+.vehicle-detail__item:first-child {
+  border-top: 0;
+}
+
+.vehicle-detail__item--resolved {
+  opacity: 0.6;
+}
+
+.vehicle-detail__item--clickable {
+  cursor: pointer;
+}
+
+.vehicle-detail__item--clickable:hover {
+  background: var(--fg-bg);
+}
+
+.vehicle-detail__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 4px 0;
+  border: none;
+  border-top: var(--fg-border);
+  background: none;
+  border-radius: var(--fg-radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(62, 74, 66, 0.65);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.vehicle-detail__toggle:hover {
+  color: var(--fg-text);
+}
+
+.vehicle-detail__toggle-icon {
+  flex-shrink: 0;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+
+.vehicle-detail__toggle-icon--expanded {
+  transform: rotate(-90deg);
+}
+
+.vehicle-detail__item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vehicle-detail__item-label {
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.vehicle-detail__item-meta {
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+@media (max-width: 720px) {
+  .vehicle-detail {
+    padding: 20px 16px 32px;
+  }
+}
+
+/* La patente es el punto de entrada por teclado al detalle (CAM-22). */
+.vehicles-section__plate-link {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.vehicles-section__plate-link:hover,
+.vehicles-section__plate-link:focus-visible {
+  text-decoration: underline;
+}
+
+/* Sección "Órdenes de trabajo" (CAM-14/CAM-62/CAM-63). */
+
+.work-orders__filter {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--fg-radius);
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-size: 13px;
+}
+
+.work-orders__row {
+  cursor: pointer;
+}
+
+.work-orders__row:hover {
+  background: var(--fg-bg);
+}
+
+.work-orders__execution {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-text);
+}
+
+.work-orders__execution svg {
+  flex-shrink: 0;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+/* Chip de estado de una OT -- mismo lenguaje visual que .fleet-status-badge. */
+.work-order-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.work-order-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.work-order-badge--asignada {
+  background: var(--fg-bg);
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.work-order-badge--en_proceso {
+  background: var(--fg-warn-bg);
+  color: var(--fg-warn);
+}
+
+.work-order-badge--finalizada {
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+}
+
+.work-order-badge--cancelada {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+}
+
+/* Toggle "personal propio" / "taller externo" (CAM-62), crear y detalle de OT. */
+.wo-execution-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.wo-execution-toggle__btn {
+  flex: 1;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--fg-radius);
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.wo-execution-toggle__btn:hover {
+  border-color: rgba(62, 74, 66, 0.32);
+}
+
+.wo-execution-toggle__btn--active {
+  background: var(--fg-text);
+  border-color: var(--fg-text);
+  color: var(--fg-white);
+}
+
+.wo-detail__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wo-detail__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: var(--fg-border-color) 1px solid;
+}
+
+.wo-detail__section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+.wo-detail__readonly-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--fg-text);
+  font-size: 14px;
+}
+
+/* Lista de gastos de una OT (CAM-63). */
+
+.wo-expense-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wo-expense-list__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-bg);
+  font-size: 13px;
+}
+
+.wo-expense-list__category {
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.wo-expense-list__description {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(62, 74, 66, 0.75);
+}
+
+.wo-expense-list__amount {
+  flex-shrink: 0;
+  font-family: var(--fg-font-mono);
+  color: var(--fg-text);
+}
+
+.wo-expense-list__delete {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+}
+
+.wo-expense-form {
+  display: grid;
+  grid-template-columns: 140px 1fr 100px auto;
+  gap: 8px;
+}
+
+.wo-expense-form__category,
+.wo-expense-form__description,
+.wo-expense-form__amount {
+  min-height: 40px;
+}
+
+/* Galería de fotos de una OT (CAM-14). */
+
+.wo-photo-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wo-photo-gallery__item {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: var(--fg-radius);
+  overflow: hidden;
+  border: var(--fg-border);
+}
+
+.wo-photo-gallery__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wo-photo-gallery__open {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+}
+
+.wo-photo-gallery__remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(62, 74, 66, 0.75);
+  color: var(--fg-white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .wo-expense-form {
+    grid-template-columns: 1fr;
   }
 }

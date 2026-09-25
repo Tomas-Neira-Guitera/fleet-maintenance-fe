@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { createSchedule, getSchedule } from '../../services/scheduleService';
 import { getVehicles } from '../../services/vehiclesService';
-import type { ScheduledMaintenance, ScheduleSourceType, Vehicle } from '../../types/domain';
+import { createWorkOrder } from '../../services/workOrdersService';
+import type { ScheduledMaintenance, ScheduleSourceType, Vehicle, WorkOrderExecutionType } from '../../types/domain';
 import { ApiError } from '../../services/apiClient';
 import { CloseIcon } from '../icons';
+import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import '../../styles/dashboard.css';
 
 interface SchedulePickerModalSourceProps {
@@ -46,6 +48,14 @@ function toIsoDate(date: Date): string {
  * arreglo de un defecto (CAM-51, origen defect), o una programación suelta desde el
  * calendario (origen manual, sin plan ni defecto) -- mismo endpoint genérico de
  * creación, ver CAM-42-programacion-mantenimientos.md.
+ *
+ * Desde CAM-14, planificar también genera la orden de trabajo asociada en el mismo
+ * paso (dos llamadas encadenadas: primero la programación, después la OT con
+ * sourceType 'scheduled_maintenance' sobre lo recién creado) -- ver
+ * claude/CAM-14-ordenes-de-trabajo.md, sección "Planificar genera la OT". Tipo de
+ * ejecución y responsable son opcionales acá (se pueden completar después en el
+ * detalle de la OT); si no se toca nada, la OT nace "interno" por default. Si la
+ * programación se crea pero la OT falla, no se reintenta la programación -- solo la OT.
  */
 export function SchedulePickerModal(props: SchedulePickerModalProps) {
   const manual = props.mode === 'manual';
@@ -57,6 +67,16 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
   const [manualVehicleId, setManualVehicleId] = useState('');
   const [manualTitle, setManualTitle] = useState('');
   const [notes, setNotes] = useState('');
+
+  const [executionType, setExecutionType] = useState<WorkOrderExecutionType>('interno');
+  const [externalProvider, setExternalProvider] = useState('');
+  const [assignee, setAssignee] = useState('');
+  const [technicianId, setTechnicianId] = useState('');
+
+  /** Si la programación ya se creó pero la OT falló, guardamos acá para no duplicarla en un reintento. */
+  const [createdSchedule, setCreatedSchedule] = useState<ScheduledMaintenance | null>(null);
+  /** Ya había una OT abierta para esto (CAM-60): se muestra el aviso en vez de cerrar directo. */
+  const [keptExistingFor, setKeptExistingFor] = useState<ScheduledMaintenance | null>(null);
 
   useEffect(() => {
     if (!manual) return;
@@ -109,31 +129,57 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
     setSubmitting(true);
     setError(null);
     try {
-      const scheduledAt = new Date(value).toISOString();
-      const schedule =
-        props.mode === 'manual'
-          ? await createSchedule({
-              sourceType: 'manual',
-              vehicleId: manualVehicleId,
-              title: manualTitle.trim(),
-              scheduledAt,
-              notes: notes.trim() || undefined,
-            })
-          : await createSchedule({
-              sourceType: props.sourceType,
-              sourceId: props.sourceId,
-              scheduledAt,
-              notes: notes.trim() || undefined,
-            });
+      let schedule = createdSchedule;
+      if (!schedule) {
+        const scheduledAt = new Date(value).toISOString();
+        schedule =
+          props.mode === 'manual'
+            ? await createSchedule({
+                sourceType: 'manual',
+                vehicleId: manualVehicleId,
+                title: manualTitle.trim(),
+                scheduledAt,
+                notes: notes.trim() || undefined,
+              })
+            : await createSchedule({
+                sourceType: props.sourceType,
+                sourceId: props.sourceId,
+                scheduledAt,
+                notes: notes.trim() || undefined,
+              });
+        setCreatedSchedule(schedule);
+      }
+
+      const { created } = await createWorkOrder({
+        sourceType: 'scheduled_maintenance',
+        sourceId: schedule.id,
+        executionType,
+        externalProvider: executionType === 'externo' ? externalProvider.trim() : undefined,
+        assignee: executionType === 'externo' ? assignee.trim() || undefined : undefined,
+        technicianId: executionType === 'interno' ? technicianId || undefined : undefined,
+        description: notes.trim() || undefined,
+      });
+
+      if (!created) {
+        setKeptExistingFor(schedule);
+        return;
+      }
       props.onScheduled(schedule);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo programar. Intentá de nuevo.');
+      setError(
+        createdSchedule
+          ? 'Se guardó la programación, pero no se pudo generar la orden de trabajo. Volvé a confirmar para reintentarlo.'
+          : err instanceof ApiError
+            ? err.message
+            : 'No se pudo programar. Intentá de nuevo.',
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
-  const canConfirm = manual ? Boolean(manualVehicleId && manualTitle.trim() && value) : Boolean(value);
+  const externalOk = executionType === 'interno' || externalProvider.trim().length > 0;
+  const canConfirm = (manual ? Boolean(manualVehicleId && manualTitle.trim() && value) : Boolean(value)) && externalOk;
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -156,7 +202,7 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
                   className="schedule-picker__input"
                   value={manualVehicleId}
                   onChange={(e) => setManualVehicleId(e.target.value)}
-                  disabled={!vehicles}
+                  disabled={!vehicles || Boolean(createdSchedule)}
                 >
                   <option value="">{vehicles ? 'Elegí un vehículo' : 'Cargando…'}</option>
                   {vehicles?.map((v) => (
@@ -174,6 +220,7 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
                   value={manualTitle}
                   onChange={(e) => setManualTitle(e.target.value)}
                   placeholder="Ej: Revisión de frenos"
+                  disabled={Boolean(createdSchedule)}
                 />
               </label>
             </>
@@ -186,6 +233,7 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
               value={value}
               onChange={(e) => setValue(e.target.value)}
               className="schedule-picker__input"
+              disabled={Boolean(createdSchedule)}
             />
           </label>
 
@@ -196,8 +244,52 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
+              disabled={Boolean(createdSchedule)}
             />
           </label>
+
+          <div className="schedule-picker__field">
+            Orden de trabajo (opcional, se puede completar después)
+            <div className="wo-execution-toggle">
+              <button
+                type="button"
+                className={`wo-execution-toggle__btn${executionType === 'interno' ? ' wo-execution-toggle__btn--active' : ''}`}
+                onClick={() => setExecutionType('interno')}
+                aria-pressed={executionType === 'interno'}
+              >
+                Personal propio
+              </button>
+              <button
+                type="button"
+                className={`wo-execution-toggle__btn${executionType === 'externo' ? ' wo-execution-toggle__btn--active' : ''}`}
+                onClick={() => setExecutionType('externo')}
+                aria-pressed={executionType === 'externo'}
+              >
+                Taller externo
+              </button>
+            </div>
+          </div>
+
+          {executionType === 'externo' && (
+            <label className="schedule-picker__field">
+              Proveedor / taller
+              <input
+                type="text"
+                className="schedule-picker__input"
+                value={externalProvider}
+                onChange={(e) => setExternalProvider(e.target.value)}
+                placeholder="Ej: Taller Norte SRL"
+              />
+            </label>
+          )}
+
+          <WorkOrderResponsibleField
+            executionType={executionType}
+            technicianId={technicianId}
+            onTechnicianChange={setTechnicianId}
+            assignee={assignee}
+            onAssigneeChange={setAssignee}
+          />
 
           {value && (
             <div className="schedule-picker__preview">
@@ -218,15 +310,30 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
           )}
 
           {error && <p className="error-banner">{error}</p>}
+          {keptExistingFor && (
+            <p className="info-banner" role="status">
+              Se guardó la planificación. Ya había una orden de trabajo abierta para esto, así que se mantuvo con
+              sus datos (técnico, tipo de ejecución y descripción). Si querés cambiarlos, editala desde su detalle
+              en Órdenes de trabajo.
+            </p>
+          )}
         </div>
 
         <footer className="modal__footer">
-          <button type="button" className="secondary-btn" onClick={props.onClose} disabled={submitting}>
-            Cancelar
-          </button>
-          <button type="button" className="primary-btn" onClick={handleConfirm} disabled={submitting || !canConfirm}>
-            {submitting ? 'Programando…' : 'Confirmar'}
-          </button>
+          {keptExistingFor ? (
+            <button type="button" className="primary-btn" onClick={() => props.onScheduled(keptExistingFor)}>
+              Entendido
+            </button>
+          ) : (
+            <>
+              <button type="button" className="secondary-btn" onClick={props.onClose} disabled={submitting}>
+                Cancelar
+              </button>
+              <button type="button" className="primary-btn" onClick={handleConfirm} disabled={submitting || !canConfirm}>
+                {submitting ? 'Programando…' : 'Confirmar'}
+              </button>
+            </>
+          )}
         </footer>
       </div>
     </div>

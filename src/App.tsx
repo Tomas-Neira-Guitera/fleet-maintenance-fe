@@ -7,7 +7,10 @@ import { Login } from './components/Login';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { AdminShell, type AdminTab } from './components/dashboard/AdminShell';
 import { VehiclesSection } from './components/dashboard/VehiclesSection';
+import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
+import { TechnicianShell } from './components/technician/TechnicianShell';
+import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -15,7 +18,8 @@ type Route =
   | { view: 'list' }
   | { view: 'flow'; vehicle: Vehicle; type: InspectionType }
   | { view: 'admin'; tab: AdminTab }
-  | { view: 'admin-defects' };
+  | { view: 'admin-defects' }
+  | { view: 'admin-vehicle'; vehicleId: string };
 
 function initialRoute(role: Role | null): Route {
   return role === 'ADMIN' ? { view: 'admin', tab: 'resumen' } : { view: 'list' };
@@ -61,7 +65,7 @@ function App() {
   }
 
   if (role === 'ADMIN') {
-    const activeTab = route.view === 'admin' ? route.tab : 'resumen';
+    const activeTab = route.view === 'admin' ? route.tab : route.view === 'admin-vehicle' ? 'vehiculos' : 'resumen';
     return (
       <main className="app">
         <AdminShell
@@ -71,14 +75,29 @@ function App() {
         >
           {route.view === 'admin-defects' ? (
             <DefectsList onBack={() => setRoute({ view: 'admin', tab: 'resumen' })} />
+          ) : route.view === 'admin-vehicle' ? (
+            <VehicleDetail
+              vehicleId={route.vehicleId}
+              onBack={() => setRoute({ view: 'admin', tab: 'vehiculos' })}
+            />
           ) : activeTab === 'vehiculos' ? (
-            <VehiclesSection />
+            <VehiclesSection onOpenVehicle={(vehicleId) => setRoute({ view: 'admin-vehicle', vehicleId })} />
           ) : activeTab === 'planes' ? (
             <MaintenancePlansSection />
+          ) : activeTab === 'ordenes-trabajo' ? (
+            <WorkOrdersSection />
           ) : (
             <AdminDashboard onViewDefects={() => setRoute({ view: 'admin-defects' })} />
           )}
         </AdminShell>
+      </main>
+    );
+  }
+
+  if (role === 'TECNICO') {
+    return (
+      <main className="app mobile-shell">
+        <TechnicianShell onLogout={handleLogout} />
       </main>
     );
   }

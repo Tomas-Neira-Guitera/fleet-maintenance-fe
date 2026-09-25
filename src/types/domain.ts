@@ -35,6 +35,7 @@ export interface ChecklistItemDef {
 }
 
 export type DefectSeverity = 'non-blocking' | 'blocking';
+export type DefectStatus = 'open' | 'resuelto';
 
 export interface DefectDetail {
   severity: DefectSeverity;
@@ -93,11 +94,46 @@ export interface DefectSummary {
   createdAt: string;
   vehicleId: string;
   vehiclePlate: string;
-  status: 'open';
+  status: DefectStatus;
   reportedBy?: string | null;
 }
 
-export type Role = 'ADMIN' | 'CHOFER';
+/** Item de `inspections` en GET /api/vehicles/{id}/history (CAM-22). */
+export interface InspectionHistoryItem {
+  id: string;
+  type: InspectionType;
+  timestamp: string;
+  driverName?: string | null;
+  odometerKm?: number | null;
+  notes?: string | null;
+  hasBlockingDefect: boolean;
+}
+
+/** Item de `maintenance` en GET /api/vehicles/{id}/history: un "marcar como hecho" de un plan (CAM-22). */
+export interface MaintenanceHistoryItem {
+  id: string;
+  planName: string;
+  completedAt: string;
+  completedKm?: number | null;
+  workOrderId?: string | null;
+  notes?: string | null;
+}
+
+/** Respuesta de GET /api/vehicles/{id}/history (CAM-22). */
+export interface VehicleHistory {
+  inspections: InspectionHistoryItem[];
+  defects: DefectSummary[];
+  maintenance: MaintenanceHistoryItem[];
+}
+
+export type Role = 'ADMIN' | 'CHOFER' | 'TECNICO';
+
+/** Ítem de GET /api/users (CAM-60) -- listado de solo lectura. */
+export interface UserSummary {
+  id: string;
+  username: string;
+  role: Role;
+}
 
 /** Respuesta de POST /api/auth/login (CAM-43). */
 export interface LoginResult {
@@ -207,4 +243,55 @@ export interface ScheduledMaintenance {
   scheduledAt: string;
   status: ScheduleStatus;
   notes: string | null;
+}
+
+// --- Órdenes de trabajo (CAM-14/CAM-15/CAM-62/CAM-63) ---
+// Ver claude/CAM-14-ordenes-de-trabajo.md en el proyecto de FleetGuard.
+
+export type WorkOrderSourceType = 'scheduled_maintenance' | 'defect' | 'manual';
+export type WorkOrderExecutionType = 'interno' | 'externo';
+export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'finalizada' | 'cancelada';
+export type WorkOrderExpenseCategory = 'repuesto' | 'mano_de_obra' | 'otro';
+
+export interface WorkOrderExpense {
+  id: string;
+  category: WorkOrderExpenseCategory;
+  description: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface WorkOrderPhoto {
+  id: string;
+  photoUrl: string;
+  createdAt: string;
+}
+
+/** Una orden de trabajo -- GET/POST/PATCH /api/work-orders. */
+export interface WorkOrder {
+  id: string;
+  vehicleId: string;
+  plate: string | null;
+  sourceType: WorkOrderSourceType;
+  scheduledMaintenanceId: string | null;
+  defectId: string | null;
+  /** Defecto de origen, con gravedad, foto y quién lo reportó (CAM-60). Null si la OT no viene de un defecto. */
+  defect: DefectSummary | null;
+  assignmentId: string | null;
+  title: string;
+  description: string | null;
+  executionType: WorkOrderExecutionType;
+  externalProvider: string | null;
+  assignee: string | null;
+  /** Usuario TECNICO a cargo (CAM-60), solo en OTs internas. */
+  technicianId: string | null;
+  technicianUsername: string | null;
+  status: WorkOrderStatus;
+  closingDescription: string | null;
+  expenses: WorkOrderExpense[];
+  totalExpenses: number;
+  photos: WorkOrderPhoto[];
+  createdAt: string;
+  updatedAt: string;
+  finalizedAt: string | null;
 }

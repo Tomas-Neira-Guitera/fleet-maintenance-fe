@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { uploadDefectPhoto } from '../services/photosService';
+import { ApiError } from '../services/apiClient';
+import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../services/photosService';
 import type { ChecklistItemDef, ChecklistItemState, DefectSeverity } from '../types/domain';
 import { AlertTriangleIcon, CameraIcon } from './icons';
 
@@ -79,8 +80,8 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
     try {
       const { photoUrl } = await uploadDefectPhoto(file);
       onChange({ ...state, defect: { ...defect, photoUrl }, uploading: false });
-    } catch {
-      setPhotoError('No se pudo subir la foto. Probá de nuevo.');
+    } catch (err) {
+      setPhotoError(err instanceof ApiError ? err.message : 'No se pudo subir la foto. Probá de nuevo.');
       onChange({ ...state, uploading: false });
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -180,7 +181,7 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={ACCEPTED_PHOTO_TYPES}
               capture="environment"
               className="visually-hidden"
               onChange={handlePhotoChange}

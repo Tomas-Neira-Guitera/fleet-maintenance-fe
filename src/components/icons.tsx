@@ -177,11 +177,88 @@ export function TrashIcon(props: IconProps) {
   );
 }
 
+export function EyeIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function EyeOffIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M10.73 5.08a10.43 10.43 0 0 1 1.27-.08 10.75 10.75 0 0 1 9.94 6.65 1 1 0 0 1 0 .7 10.8 10.8 0 0 1-1.44 2.49" />
+      <path d="M14.08 14.16a3 3 0 0 1-4.24-4.24" />
+      <path d="M17.48 17.5a10.75 10.75 0 0 1-15.42-5.15 1 1 0 0 1 0-.7 10.8 10.8 0 0 1 4.45-5.14" />
+      <path d="m2 2 20 20" />
+    </svg>
+  );
+}
+
+export function PencilIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="m15 5 4 4" />
+    </svg>
+  );
+}
+
 export function PowerIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
       <path d="M12 2v10" />
       <path d="M18.4 6.6a9 9 0 1 1-12.77.04" />
+    </svg>
+  );
+}
+
+export function ClipboardListIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <path d="M9 12h6" />
+      <path d="M9 16h6" />
+      <path d="M9 8h1" />
+    </svg>
+  );
+}
+
+export function CoinsIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="9" cy="9" r="6" />
+      <path d="M18.09 10.37A6 6 0 1 1 10.35 18" />
+      <path d="M9 7v4" />
+      <path d="M7 9h4" />
+    </svg>
+  );
+}
+
+export function BuildingIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="4" y="2" width="16" height="20" rx="1" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6h1" />
+      <path d="M15 6h1" />
+      <path d="M8 10h1" />
+      <path d="M15 10h1" />
+      <path d="M8 14h1" />
+      <path d="M15 14h1" />
+    </svg>
+  );
+}
+
+export function HistoryIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 3v5h5" />
+      <path d="M3.05 13a9 9 0 1 0 2.13-8.36L3 8" />
+      <path d="M12 7v5l4 2" />
     </svg>
   );
 }

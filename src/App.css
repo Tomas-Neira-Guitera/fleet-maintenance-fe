@@ -22,7 +22,8 @@
   padding: 16px 16px 0;
 }
 
-.top-nav--chofer {
+.top-nav--chofer,
+.top-nav--tecnico {
   justify-content: flex-end;
 }
 
@@ -55,20 +56,40 @@
   font-size: 13px;
 }
 
+/* Botón "Volver" (detalle de vehículo, listado de defectos): blanco con borde para que se
+   distinga del fondo, mismo estilo que las acciones del encabezado del vehículo. */
 .top-nav__back {
   flex: 0 0 auto;
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 0 12px;
+  min-height: 38px;
+  padding: 0 14px 0 12px;
   border-radius: var(--fg-radius);
   border: var(--fg-border);
-  background: transparent;
-  color: rgba(62, 74, 66, 0.65);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-family: inherit;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(62, 74, 66, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.top-nav__back svg {
+  transition: transform 0.15s ease;
+}
+
+/* En hover sigue blanco (el fondo de la página es beige): se marca con borde y sombra. */
+.top-nav__back:hover {
+  border-color: rgba(62, 74, 66, 0.35);
+  box-shadow: 0 2px 6px rgba(62, 74, 66, 0.1);
+}
+
+.top-nav__back:hover svg {
+  transform: translateX(-2px);
 }
 
 .screen__header {
@@ -105,6 +126,16 @@
 .error-banner {
   background: var(--fg-crit-bg);
   color: var(--fg-critical);
+  border-radius: var(--fg-radius);
+  padding: 12px 14px;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Aviso informativo (no es un error): mismo formato que .error-banner, en los verdes de la paleta. */
+.info-banner {
+  background: var(--fg-ok-bg);
+  color: var(--fg-text);
   border-radius: var(--fg-radius);
   padding: 12px 14px;
   font-size: 14px;
@@ -195,6 +226,13 @@
 .status-pill--crit {
   background: var(--fg-crit-bg);
   color: var(--fg-critical);
+}
+
+/* Estado neutro: algo pendiente que todavía no arrancó (ej. OT asignada, CAM-60). */
+.status-pill--neutral {
+  background: var(--fg-white);
+  border: var(--fg-border);
+  color: var(--fg-text);
 }
 
 .status-pill__icon {
@@ -333,6 +371,44 @@
   background: var(--fg-white);
 }
 
+/* Campo de contraseña con el ojito para mostrarla/ocultarla. */
+.password-field {
+  position: relative;
+}
+
+.password-field__input {
+  padding-right: 48px;
+}
+
+.password-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: rgba(62, 74, 66, 0.55);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.password-field__toggle:hover {
+  color: var(--fg-text);
+}
+
+.password-field__toggle:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: -4px;
+  color: var(--fg-text);
+}
+
 /* Login */
 .login-form {
   display: flex;
@@ -441,6 +517,12 @@
   height: 18px;
 }
 
+.photo-attach-btn:disabled,
+.photo-preview__remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .photo-preview {
   display: flex;
   align-items: center;
@@ -472,6 +554,94 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Vista del técnico (CAM-60) */
+.technician-wo__status {
+  align-self: flex-start;
+}
+
+.technician-wo__blocking {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-critical);
+}
+
+.technician-wo__defect--blocking {
+  border-color: var(--fg-critical);
+}
+
+.technician-wo__hint {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.65);
+}
+
+.technician-wo__photo-link {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: zoom-in;
+}
+
+/* Visor de fotos a pantalla completa (CAM-53) */
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(20, 24, 21, 0.92);
+  cursor: zoom-out;
+}
+
+.photo-viewer__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: default;
+}
+
+.photo-viewer__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--fg-white);
+  cursor: pointer;
+}
+
+.technician-wo__photo {
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: var(--fg-border);
+}
+
+.technician-wo__text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fg-text);
+  white-space: pre-wrap;
 }
 
 /* Actions */
@@ -604,6 +774,16 @@
   gap: 4px;
   font-size: 12px;
   color: rgba(62, 74, 66, 0.65);
+}
+
+/* OT abierta que está resolviendo el defecto (CAM-60), debajo de la patente y la fecha. */
+.defect-summary-item__work-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-ok);
 }
 
 .photo-link {

@@ -2,6 +2,12 @@ import type { NextMaintenanceSummary } from '../types/domain';
 
 export const numberFormatter = new Intl.NumberFormat('es-AR');
 
+export const currencyFormatter = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+  maximumFractionDigits: 0,
+});
+
 export function formatDate(iso: string): string {
   const [year, month, day] = iso.split('-');
   return `${day}/${month}/${year}`;
