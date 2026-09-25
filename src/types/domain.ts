@@ -275,6 +275,8 @@ export interface WorkOrder {
   sourceType: WorkOrderSourceType;
   scheduledMaintenanceId: string | null;
   defectId: string | null;
+  /** Defecto de origen, con gravedad, foto y quién lo reportó (CAM-60). Null si la OT no viene de un defecto. */
+  defect: DefectSummary | null;
   assignmentId: string | null;
   title: string;
   description: string | null;

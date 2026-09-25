@@ -39,6 +39,7 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [removingPhotoId, setRemovingPhotoId] = useState<string | null>(null);
   const [finalized, setFinalized] = useState(false);
+  const [defectPhotoFailed, setDefectPhotoFailed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mismo criterio que FinalizeWorkOrderModal: el km solo se pide si la OT cierra un plan de mantenimiento.
@@ -148,6 +149,42 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
           </span>
         )}
       </header>
+
+      {wo.defect && (
+        <section className="checklist-section">
+          <h2 className="section-title">Defecto reportado</h2>
+          <div className={`checklist-item${wo.defect.severity === 'blocking' ? ' technician-wo__defect--blocking' : ''}`}>
+            <span
+              className={`severity-tag severity-tag--${wo.defect.severity === 'blocking' ? 'blocking' : 'non-blocking'} technician-wo__status`}
+            >
+              {wo.defect.severity === 'blocking' ? 'Bloqueante' : 'No bloqueante'}
+            </span>
+            {wo.defect.severity === 'blocking' && (
+              <p className="technician-wo__hint">El vehículo no puede circular hasta que se resuelva.</p>
+            )}
+            <p className="technician-wo__text">{wo.defect.description}</p>
+            <p className="technician-wo__hint">
+              Reportado {wo.defect.reportedBy ? `por ${wo.defect.reportedBy} ` : ''}el{' '}
+              {new Date(wo.defect.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+            </p>
+            {wo.defect.photoUrl && defectPhotoFailed ? (
+              <p className="technician-wo__hint">No se pudo cargar la foto del defecto.</p>
+            ) : wo.defect.photoUrl ? (
+              <a href={wo.defect.photoUrl} target="_blank" rel="noreferrer" className="technician-wo__photo-link">
+                <img
+                  src={wo.defect.photoUrl}
+                  alt="Foto del defecto que sacó el chofer"
+                  className="technician-wo__photo"
+                  onError={() => setDefectPhotoFailed(true)}
+                />
+                <span className="technician-wo__hint">Tocá la foto para verla completa</span>
+              </a>
+            ) : (
+              <p className="technician-wo__hint">El chofer no adjuntó foto.</p>
+            )}
+          </div>
+        </section>
+      )}
 
       {wo.description && (
         <section className="checklist-section">
