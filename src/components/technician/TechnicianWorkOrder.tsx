@@ -213,7 +213,7 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
           <h2 className="section-title">Cierre del trabajo</h2>
           <div className="checklist-item">
             <label className="checklist-item__label" htmlFor="closing-description">
-              Qué se hizo (obligatorio)
+              Qué se hizo
             </label>
             <textarea
               id="closing-description"
@@ -227,7 +227,7 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
             {needsKm && (
               <>
                 <label className="checklist-item__label" htmlFor="completed-km">
-                  Kilometraje actual (obligatorio)
+                  Kilometraje actual
                 </label>
                 <input
                   id="completed-km"
@@ -245,7 +245,7 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
               </>
             )}
 
-            <span className="checklist-item__label">Fotos del trabajo (al menos una)</span>
+            <span className="checklist-item__label">Fotos del trabajo</span>
             {wo.photos.map((photo) => (
               <div key={photo.id} className="photo-preview">
                 <img src={photo.photoUrl} alt="Foto del trabajo realizado" />

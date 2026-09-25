@@ -312,9 +312,9 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
           {error && <p className="error-banner">{error}</p>}
           {keptExistingFor && (
             <p className="info-banner" role="status">
-              Se actualizó la fecha. Ya había una orden de trabajo abierta para esto, así que se mantuvo con sus
-              datos (técnico, tipo de ejecución y descripción). Si querés cambiarlos, editala desde su detalle en
-              Órdenes de trabajo.
+              Se guardó la planificación. Ya había una orden de trabajo abierta para esto, así que se mantuvo con
+              sus datos (técnico, tipo de ejecución y descripción). Si querés cambiarlos, editala desde su detalle
+              en Órdenes de trabajo.
             </p>
           )}
         </div>

@@ -738,6 +738,16 @@
   color: rgba(62, 74, 66, 0.65);
 }
 
+/* OT abierta que está resolviendo el defecto (CAM-60), debajo de la patente y la fecha. */
+.defect-summary-item__work-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-ok);
+}
+
 .photo-link {
   display: inline-flex;
   align-items: center;
