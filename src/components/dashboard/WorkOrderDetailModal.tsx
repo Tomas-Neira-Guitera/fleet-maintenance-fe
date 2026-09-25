@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { ApiError } from '../../services/apiClient';
-import { uploadDefectPhoto } from '../../services/photosService';
+import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../../services/photosService';
 import {
   addWorkOrderExpense,
   addWorkOrderPhoto,
@@ -409,7 +409,7 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept={ACCEPTED_PHOTO_TYPES}
                   multiple
                   className="visually-hidden"
                   onChange={handlePhotoChange}

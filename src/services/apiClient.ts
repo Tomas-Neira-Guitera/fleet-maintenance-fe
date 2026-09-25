@@ -51,6 +51,25 @@ export function getSession(): LoginResult | null {
   }
 }
 
+/**
+ * Id del usuario logueado, leído del claim `sub` del JWT (CAM-60) -- `LoginResult` no lo
+ * trae aparte. Solo decodifica el payload para saber "quién soy"; no valida la firma
+ * (eso es trabajo del backend, que todavía no lo hace en ningún endpoint).
+ */
+export function getSessionUserId(): string | null {
+  const token = getSession()?.token;
+  const payload = token?.split('.')[1];
+  if (!payload) return null;
+  try {
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+    const json = new TextDecoder().decode(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)));
+    const sub = (JSON.parse(json) as { sub?: unknown }).sub;
+    return typeof sub === 'string' ? sub : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Header Authorization con el JWT de CAM-43 -- el backend todavía no lo valida, pero ya lo pide el contrato. */
 export function authHeaders(): Record<string, string> {
   const session = getSession();

@@ -198,6 +198,13 @@
   color: var(--fg-critical);
 }
 
+/* Estado neutro: algo pendiente que todavía no arrancó (ej. OT asignada, CAM-60). */
+.status-pill--neutral {
+  background: var(--fg-white);
+  border: var(--fg-border);
+  color: var(--fg-text);
+}
+
 .status-pill__icon {
   width: 14px;
   height: 14px;
@@ -442,6 +449,12 @@
   height: 18px;
 }
 
+.photo-attach-btn:disabled,
+.photo-preview__remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .photo-preview {
   display: flex;
   align-items: center;
@@ -473,6 +486,18 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Vista del técnico (CAM-60) */
+.technician-wo__status {
+  align-self: flex-start;
+}
+
+.technician-wo__text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fg-text);
+  white-space: pre-wrap;
 }
 
 /* Actions */
