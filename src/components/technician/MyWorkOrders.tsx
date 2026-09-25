@@ -65,11 +65,9 @@ export function MyWorkOrders({ onSelectWorkOrder }: MyWorkOrdersProps) {
       <ul className="vehicle-list">
         {workOrders?.map((wo) => (
           <li key={wo.id}>
-            <button
-              type="button"
-              className={`vehicle-card${isBlocking(wo) ? ' vehicle-card--blocked' : ''}`}
-              onClick={() => onSelectWorkOrder(wo)}
-            >
+            {/* Todas las tarjetas iguales: para el técnico da lo mismo de qué flujo llegó la OT.
+                La urgencia se marca solo con la etiqueta (y el orden). */}
+            <button type="button" className="vehicle-card" onClick={() => onSelectWorkOrder(wo)}>
               <div className="vehicle-card__info">
                 <span className="vehicle-card__plate">{wo.plate ?? '—'}</span>
                 <span className="vehicle-card__model">{wo.title}</span>

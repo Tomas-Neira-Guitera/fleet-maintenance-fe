@@ -132,6 +132,16 @@
   margin: 0;
 }
 
+/* Aviso informativo (no es un error): mismo formato que .error-banner, en los verdes de la paleta. */
+.info-banner {
+  background: var(--fg-ok-bg);
+  color: var(--fg-text);
+  border-radius: var(--fg-radius);
+  padding: 12px 14px;
+  font-size: 14px;
+  margin: 0;
+}
+
 /* Vehicle list */
 .vehicle-list {
   list-style: none;

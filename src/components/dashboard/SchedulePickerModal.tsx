@@ -75,6 +75,8 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
 
   /** Si la programación ya se creó pero la OT falló, guardamos acá para no duplicarla en un reintento. */
   const [createdSchedule, setCreatedSchedule] = useState<ScheduledMaintenance | null>(null);
+  /** Ya había una OT abierta para esto (CAM-60): se muestra el aviso en vez de cerrar directo. */
+  const [keptExistingFor, setKeptExistingFor] = useState<ScheduledMaintenance | null>(null);
 
   useEffect(() => {
     if (!manual) return;
@@ -148,7 +150,7 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
         setCreatedSchedule(schedule);
       }
 
-      await createWorkOrder({
+      const { created } = await createWorkOrder({
         sourceType: 'scheduled_maintenance',
         sourceId: schedule.id,
         executionType,
@@ -158,6 +160,10 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
         description: notes.trim() || undefined,
       });
 
+      if (!created) {
+        setKeptExistingFor(schedule);
+        return;
+      }
       props.onScheduled(schedule);
     } catch (err) {
       setError(
@@ -304,15 +310,30 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
           )}
 
           {error && <p className="error-banner">{error}</p>}
+          {keptExistingFor && (
+            <p className="info-banner" role="status">
+              Se actualizó la fecha. Ya había una orden de trabajo abierta para esto, así que se mantuvo con sus
+              datos (técnico, tipo de ejecución y descripción). Si querés cambiarlos, editala desde su detalle en
+              Órdenes de trabajo.
+            </p>
+          )}
         </div>
 
         <footer className="modal__footer">
-          <button type="button" className="secondary-btn" onClick={props.onClose} disabled={submitting}>
-            Cancelar
-          </button>
-          <button type="button" className="primary-btn" onClick={handleConfirm} disabled={submitting || !canConfirm}>
-            {submitting ? 'Programando…' : 'Confirmar'}
-          </button>
+          {keptExistingFor ? (
+            <button type="button" className="primary-btn" onClick={() => props.onScheduled(keptExistingFor)}>
+              Entendido
+            </button>
+          ) : (
+            <>
+              <button type="button" className="secondary-btn" onClick={props.onClose} disabled={submitting}>
+                Cancelar
+              </button>
+              <button type="button" className="primary-btn" onClick={handleConfirm} disabled={submitting || !canConfirm}>
+                {submitting ? 'Programando…' : 'Confirmar'}
+              </button>
+            </>
+          )}
         </footer>
       </div>
     </div>

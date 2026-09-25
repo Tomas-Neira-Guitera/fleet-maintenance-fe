@@ -63,7 +63,7 @@ export function CreateWorkOrderModal(props: CreateWorkOrderModalProps) {
     setSubmitting(true);
     setError(null);
     try {
-      const workOrder =
+      const { workOrder } =
         props.mode === 'manual'
           ? await createWorkOrder({
               sourceType: 'manual',

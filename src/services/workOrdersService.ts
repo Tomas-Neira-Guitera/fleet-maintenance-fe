@@ -61,15 +61,21 @@ interface CreateWorkOrderManual {
 
 export type CreateWorkOrderInput = CreateWorkOrderFromSource | CreateWorkOrderManual;
 
+export interface CreateWorkOrderResult {
+  workOrder: WorkOrder;
+  /** false si ya había una OT abierta para ese origen y el backend devolvió esa, sin cambiar sus datos (CAM-60). */
+  created: boolean;
+}
+
 /** POST /api/work-orders -- crea una OT desde un defecto, una fila programada, o manual (CAM-14). */
-export async function createWorkOrder(input: CreateWorkOrderInput): Promise<WorkOrder> {
+export async function createWorkOrder(input: CreateWorkOrderInput): Promise<CreateWorkOrderResult> {
   const res = await fetch(`${API_BASE_URL}/api/work-orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(input),
   });
   if (!res.ok) return throwApiError(res, 'No se pudo crear la orden de trabajo');
-  return res.json() as Promise<WorkOrder>;
+  return { workOrder: (await res.json()) as WorkOrder, created: res.status === 201 };
 }
 
 export interface UpdateWorkOrderInput {
