@@ -96,11 +96,23 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
 
   async function handleCancel(item: ScheduledMaintenance) {
     const time = timeFormatter.format(new Date(item.scheduledAt));
-    if (!window.confirm(`¿Cancelar "${item.title}" programado para las ${time}?`)) return;
+    if (
+      !window.confirm(
+        `¿Cancelar "${item.title}" programado para las ${time}?\nSi tiene una orden de trabajo sin empezar, también se cancela.`,
+      )
+    )
+      return;
     setCancellingId(item.id);
     setError(null);
     try {
-      await updateSchedule(item.id, { status: 'cancelled' });
+      try {
+        await updateSchedule(item.id, { status: 'cancelled' });
+      } catch (err) {
+        // CAM-77: con una OT en curso el backend pide confirmación explícita antes de cancelar las dos.
+        if (!(err instanceof ApiError) || err.errorCode !== 'WORK_ORDER_IN_PROGRESS') throw err;
+        if (!window.confirm(err.message)) return;
+        await updateSchedule(item.id, { status: 'cancelled', cancelWorkOrder: true });
+      }
       refreshWeek();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo cancelar la programación. Intentá de nuevo.');

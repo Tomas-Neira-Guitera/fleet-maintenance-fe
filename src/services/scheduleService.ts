@@ -51,7 +51,7 @@ export async function createSchedule(input: CreateScheduleInput): Promise<Schedu
 /** PATCH /api/maintenance-schedule/{id} -- reprogramar, cancelar, o marcar realizado (defect/manual). */
 export async function updateSchedule(
   id: string,
-  changes: { scheduledAt?: string; status?: 'done' | 'cancelled' },
+  changes: { scheduledAt?: string; status?: 'done' | 'cancelled'; cancelWorkOrder?: boolean },
 ): Promise<ScheduledMaintenance> {
   const res = await fetch(`${API_BASE_URL}/api/maintenance-schedule/${id}`, {
     method: 'PATCH',
