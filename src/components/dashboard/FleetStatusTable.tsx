@@ -8,6 +8,8 @@ import { VehicleMaintenanceModal } from './VehicleMaintenanceModal';
 import '../../styles/dashboard.css';
 
 const VISIBLE_ROWS = 5;
+// CAM-80: se piden todos los vehículos (el backend pagina de a 20 por defecto), mismo tope que los KPIs.
+const FLEET_STATUS_PAGE_SIZE = 500;
 
 function formatKm(km: number): string {
   return `${numberFormatter.format(km)} km`;
@@ -28,7 +30,7 @@ export function FleetStatusTable({ onFleetChanged }: FleetStatusTableProps) {
   const { ref: scrollRef, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_ROWS, rows?.length ?? 0);
 
   function loadFleetStatus() {
-    getFleetStatus()
+    getFleetStatus({ pageSize: FLEET_STATUS_PAGE_SIZE })
       .then((page) => {
         if (mountedRef.current) setRows(page.items);
       })
