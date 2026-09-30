@@ -1192,7 +1192,7 @@
 
 .weekly-schedule__grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1387,7 +1387,7 @@
 
 .month-schedule__grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
 }
 
@@ -1969,4 +1969,29 @@
   .wo-expense-form {
     grid-template-columns: 1fr;
   }
+}
+
+/* CAM-79: títulos de hasta 30 caracteres. Un título largo (datos previos al límite) ya no
+   ensancha las columnas del calendario ni las tablas: se corta con "…" y el completo va en el tooltip. */
+.weekly-schedule__day,
+.weekly-schedule__item,
+.month-schedule__day {
+  min-width: 0;
+}
+
+.work-orders__title {
+  display: block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-picker__subject,
+.fleet-status__maintenance-name,
+.upcoming-maintenance-card__description,
+.recent-defects-card__description,
+.vehicle-detail__item-label,
+.vehicle-maintenance-list__name {
+  overflow-wrap: anywhere;
 }

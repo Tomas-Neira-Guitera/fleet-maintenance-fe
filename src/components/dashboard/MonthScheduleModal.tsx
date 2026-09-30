@@ -147,7 +147,7 @@ export function MonthScheduleModal({ initialMonth, onClose, onSelectDay }: Month
                   {dayItems.length > 0 && (
                     <span className="month-schedule__day-items">
                       {dayItems.slice(0, 2).map((item) => (
-                        <span key={item.id} className="month-schedule__day-item">
+                        <span key={item.id} className="month-schedule__day-item" title={item.title}>
                           {item.title}
                         </span>
                       ))}

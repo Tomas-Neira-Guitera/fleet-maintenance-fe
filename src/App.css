@@ -896,3 +896,20 @@
   height: 22px;
   flex-shrink: 0;
 }
+
+/* CAM-79: contador de caracteres debajo de los campos de título. */
+.char-counter {
+  align-self: flex-end;
+  font-size: 11px;
+  color: rgba(62, 74, 66, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.char-counter--limit {
+  color: var(--fg-warn);
+}
+
+.defect-summary-item__label,
+.vehicle-card__model {
+  overflow-wrap: anywhere;
+}

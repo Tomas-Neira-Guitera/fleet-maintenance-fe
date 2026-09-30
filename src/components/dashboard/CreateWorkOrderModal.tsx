@@ -6,6 +6,8 @@ import type { Vehicle, WorkOrder, WorkOrderExecutionType, WorkOrderSourceType } 
 import { CloseIcon } from '../icons';
 import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import '../../styles/dashboard.css';
+import { CharCounter } from '../CharCounter';
+import { TITLE_MAX_LENGTH } from '../../utils/textLimits';
 
 interface CreateWorkOrderModalSourceProps {
   mode?: 'source';
@@ -134,9 +136,11 @@ export function CreateWorkOrderModal(props: CreateWorkOrderModalProps) {
                   type="text"
                   className="schedule-picker__input"
                   value={manualTitle}
+                  maxLength={TITLE_MAX_LENGTH}
                   onChange={(e) => setManualTitle(e.target.value)}
-                  placeholder="Ej: Revisión eléctrica preventiva"
+                  placeholder="Ej: Revisión eléctrica"
                 />
+                <CharCounter value={manualTitle} />
               </label>
             </>
           )}

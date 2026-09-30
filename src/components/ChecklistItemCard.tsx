@@ -3,6 +3,8 @@ import { ApiError } from '../services/apiClient';
 import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../services/photosService';
 import type { ChecklistItemDef, ChecklistItemState, DefectSeverity } from '../types/domain';
 import { AlertTriangleIcon, CameraIcon } from './icons';
+import { CharCounter } from './CharCounter';
+import { TITLE_MAX_LENGTH } from '../utils/textLimits';
 
 interface ChecklistItemCardProps {
   def: ChecklistItemDef;
@@ -151,11 +153,13 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
             <textarea
               id={`${def.id}-desc`}
               className="defect-textarea"
-              rows={3}
+              rows={2}
+              maxLength={TITLE_MAX_LENGTH}
               placeholder="Describí brevemente el problema"
               value={defect.description}
               onChange={(e) => setDescription(e.target.value)}
             />
+            <CharCounter value={defect.description} />
           </div>
 
           <div className="defect-panel__field">

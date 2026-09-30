@@ -7,6 +7,8 @@ import { ApiError } from '../../services/apiClient';
 import { CloseIcon } from '../icons';
 import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import '../../styles/dashboard.css';
+import { CharCounter } from '../CharCounter';
+import { TITLE_MAX_LENGTH } from '../../utils/textLimits';
 
 interface SchedulePickerModalSourceProps {
   mode?: 'source';
@@ -192,7 +194,7 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
         </header>
 
         <div className="modal__body">
-          {props.mode !== 'manual' && <p className="schedule-picker__subject">{props.title}</p>}
+          {props.mode !== 'manual' && <p className="schedule-picker__subject" title={props.title}>{props.title}</p>}
 
           {manual && (
             <>
@@ -218,10 +220,12 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
                   type="text"
                   className="schedule-picker__input"
                   value={manualTitle}
+                  maxLength={TITLE_MAX_LENGTH}
                   onChange={(e) => setManualTitle(e.target.value)}
                   placeholder="Ej: Revisión de frenos"
                   disabled={Boolean(createdSchedule)}
                 />
+                <CharCounter value={manualTitle} />
               </label>
             </>
           )}
@@ -300,7 +304,7 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
                   {visiblePreview.map((s) => (
                     <li key={s.id} className="schedule-picker__preview-item">
                       <span>{previewTimeFormatter.format(new Date(s.scheduledAt))}</span>
-                      <span className="schedule-picker__preview-item-title">{s.title}</span>
+                      <span className="schedule-picker__preview-item-title" title={s.title}>{s.title}</span>
                       {s.plate && <span className="schedule-picker__preview-item-plate">{s.plate}</span>}
                     </li>
                   ))}

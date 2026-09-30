@@ -183,7 +183,7 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
                           <TrashIcon width={11} height={11} />
                         </button>
                       </div>
-                      <span className="weekly-schedule__item-title">{item.title}</span>
+                      <span className="weekly-schedule__item-title" title={item.title}>{item.title}</span>
                       {item.plate && <span className="weekly-schedule__item-plate">{item.plate}</span>}
                     </div>
                   ))}
