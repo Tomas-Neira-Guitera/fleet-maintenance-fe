@@ -1,0 +1,57 @@
+import type {
+  ChecklistItemDef,
+  ChecklistItemType,
+  ChecklistSection,
+  InspectionType,
+  VehicleChecklistItem,
+} from '../types/domain';
+import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
+
+/** GET /api/vehicles/{id}/checklist -- checklist propio del vehículo que completa el chofer (CAM-31). */
+export async function getVehicleChecklist(vehicleId: string, type: InspectionType): Promise<ChecklistItemDef[]> {
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/checklist?type=${type}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) return throwApiError(res, 'No se pudo obtener el checklist del vehículo');
+  const body = (await res.json()) as { items: ChecklistItemDef[] };
+  return body.items;
+}
+
+/** GET /api/vehicles/{id}/checklist-items -- configuración del checklist pre-viaje (admin). */
+export async function getVehicleChecklistConfig(vehicleId: string): Promise<VehicleChecklistItem[]> {
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/checklist-items`, { headers: authHeaders() });
+  if (!res.ok) return throwApiError(res, 'No se pudo obtener la configuración del checklist');
+  const body = (await res.json()) as { items: VehicleChecklistItem[] };
+  return body.items;
+}
+
+export interface NewChecklistItem {
+  label: string;
+  type: ChecklistItemType;
+  section: Exclude<ChecklistSection, 'posttrip'>;
+}
+
+export async function addVehicleChecklistItem(vehicleId: string, item: NewChecklistItem): Promise<VehicleChecklistItem> {
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/checklist-items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(item),
+  });
+  if (!res.ok) return throwApiError(res, 'No se pudo agregar el ítem');
+  return res.json() as Promise<VehicleChecklistItem>;
+}
+
+/** Quitar (enabled=false) o volver a agregar un ítem, sea del checklist base o extra. */
+export async function setVehicleChecklistItemEnabled(
+  vehicleId: string,
+  itemId: string,
+  enabled: boolean,
+): Promise<VehicleChecklistItem> {
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/checklist-items/${encodeURIComponent(itemId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ enabled }),
+  });
+  if (!res.ok) return throwApiError(res, 'No se pudo actualizar el ítem');
+  return res.json() as Promise<VehicleChecklistItem>;
+}

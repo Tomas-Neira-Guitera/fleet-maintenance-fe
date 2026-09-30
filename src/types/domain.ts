@@ -34,6 +34,13 @@ export interface ChecklistItemDef {
   required?: boolean;
 }
 
+/** Ítem de la configuración del checklist de un vehículo (CAM-31). locked: obligatorio. */
+export interface VehicleChecklistItem extends ChecklistItemDef {
+  origin: 'base' | 'extra';
+  enabled: boolean;
+  locked: boolean;
+}
+
 export type DefectSeverity = 'non-blocking' | 'blocking';
 export type DefectStatus = 'open' | 'resuelto';
 

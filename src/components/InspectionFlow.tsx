@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getPreTripItems, POST_TRIP_ITEMS } from '../checklist/checklistDefinitions';
 import { CURRENT_DRIVER } from '../services/apiClient';
+import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
 import type {
   ChecklistAnswer,
@@ -49,7 +50,24 @@ function isItemValid(def: ChecklistItemDef, state: ChecklistItemState): boolean 
 }
 
 export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlowProps) {
-  const items = useMemo(() => (type === 'pre-trip' ? getPreTripItems() : POST_TRIP_ITEMS), [type]);
+  // CAM-31: cada vehículo tiene su checklist. Si no se puede pedir, se usa la lista base: el
+  // servidor ignora los ítems que no correspondan y los extras nunca son obligatorios.
+  const fallbackItems = useMemo(() => (type === 'pre-trip' ? getPreTripItems() : POST_TRIP_ITEMS), [type]);
+  const [loadedItems, setLoadedItems] = useState<ChecklistItemDef[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getVehicleChecklist(vehicle.id, type)
+      .then((loaded) => {
+        if (!cancelled) setLoadedItems(loaded);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadedItems(fallbackItems);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicle.id, type, fallbackItems]);
+  const items = useMemo(() => loadedItems ?? [], [loadedItems]);
   const checkItems = useMemo(() => items.filter((i) => i.type === 'check'), [items]);
 
   const [step, setStep] = useState<FlowStep>('checklist');
@@ -126,6 +144,14 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
   const now = useMemo(() => new Date(), []);
   const dateLabel = now.toLocaleDateString('es-AR');
   const timeLabel = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+  if (!loadedItems) {
+    return (
+      <div className="screen">
+        <p className="muted">Cargando checklist…</p>
+      </div>
+    );
+  }
 
   if (step === 'success') {
     return (

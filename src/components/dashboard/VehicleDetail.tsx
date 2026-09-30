@@ -7,6 +7,7 @@ import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
+import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleFormModal } from './VehicleFormModal';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
@@ -412,6 +413,8 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
           </div>
         </div>
       )}
+
+      {vehicle && <VehicleChecklistCard vehicleId={vehicle.id} />}
 
       {editing && vehicle && (
         <VehicleFormModal

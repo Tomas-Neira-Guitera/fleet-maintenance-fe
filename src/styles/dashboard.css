@@ -1995,3 +1995,53 @@
 .vehicle-maintenance-list__name {
   overflow-wrap: anywhere;
 }
+
+/* CAM-31: checklist de inspección propio del vehículo, en el detalle del vehículo. */
+.vehicle-checklist {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vehicle-checklist > .vehicle-detail__card-title,
+.vehicle-checklist > .vehicle-detail__item-meta {
+  margin: 0;
+}
+
+.vehicle-checklist__section-title {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+.vehicle-checklist .vehicle-detail__action-btn {
+  flex-shrink: 0;
+}
+
+.vehicle-checklist__locked {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+.vehicle-checklist__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: var(--fg-border);
+}
+
+.vehicle-checklist__form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.vehicle-checklist__form .vehicle-detail__action-btn {
+  align-self: flex-start;
+}
