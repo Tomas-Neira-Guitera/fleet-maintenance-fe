@@ -453,6 +453,21 @@
   overflow-x: auto;
 }
 
+/* CAM-80/81: listas del Resumen con alto limitado (useVisibleRows) y scroll con la ruedita. */
+.scroll-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.fleet-status__table-wrap.scroll-list thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--fg-white);
+  border-bottom: none;
+  box-shadow: inset 0 -1px 0 var(--fg-border-color);
+}
+
 .fleet-status__table {
   width: 100%;
   border-collapse: collapse;

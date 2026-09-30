@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { getDefects } from '../../services/defectsService';
 import type { DefectSummary } from '../../types/domain';
 import { formatRelativeReportTime } from '../../utils/relativeTime';
 import { SeverityBadge } from '../SeverityBadge';
 import '../../styles/dashboard.css';
 
-const MAX_RECENT_DEFECTS = 3;
+const VISIBLE_DEFECTS = 4;
 
 interface RecentDefectsCardProps {
   onViewAll: () => void;
@@ -36,7 +37,8 @@ export function RecentDefectsCard({ onViewAll }: RecentDefectsCardProps) {
     };
   }, []);
 
-  const recent = defects?.filter((d) => d.status === 'open').slice(0, MAX_RECENT_DEFECTS) ?? null;
+  const recent = defects?.filter((d) => d.status === 'open') ?? null;
+  const { ref: scrollRef, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_DEFECTS, recent?.length ?? 0);
 
   return (
     <section className="recent-defects-card">
@@ -51,10 +53,14 @@ export function RecentDefectsCard({ onViewAll }: RecentDefectsCardProps) {
       {!recent && !error && <p className="muted">Cargando defectos…</p>}
 
       {recent && (
-        <div className="recent-defects-card__list">
+        <div
+          ref={scrollRef}
+          className="recent-defects-card__list scroll-list"
+          style={maxHeight ? { maxHeight } : undefined}
+        >
           {recent.length === 0 && <p className="muted">No hay defectos abiertos.</p>}
           {recent.map((defect) => (
-            <div key={defect.id} className="recent-defects-card__item">
+            <div key={defect.id} data-scroll-item className="recent-defects-card__item">
               <div className="recent-defects-card__top-line">
                 <SeverityBadge severity={defect.severity} />
                 <span className="vehicle-meta__plate">{defect.vehiclePlate}</span>

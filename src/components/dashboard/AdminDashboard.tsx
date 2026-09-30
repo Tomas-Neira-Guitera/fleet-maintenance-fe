@@ -29,8 +29,8 @@ export function AdminDashboard({ onViewDefects }: AdminDashboardProps) {
         <div className="admin-dashboard__grid">
           <FleetStatusTable onFleetChanged={() => setFleetVersion((v) => v + 1)} />
           <div className="admin-dashboard__side">
-            <UpcomingMaintenanceCard refreshKey={fleetVersion} />
             <RecentDefectsCard onViewAll={onViewDefects} />
+            <UpcomingMaintenanceCard refreshKey={fleetVersion} />
           </div>
         </div>
       </div>
