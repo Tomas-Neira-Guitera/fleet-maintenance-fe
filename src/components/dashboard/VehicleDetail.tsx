@@ -414,7 +414,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         </div>
       )}
 
-      {vehicle && <VehicleChecklistCard vehicleId={vehicle.id} />}
+      {vehicle && <VehicleChecklistCard vehicleId={vehicle.id} plate={vehicle.plate} />}
 
       {editing && vehicle && (
         <VehicleFormModal

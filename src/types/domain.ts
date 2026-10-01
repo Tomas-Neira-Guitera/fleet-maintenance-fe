@@ -250,6 +250,8 @@ export interface ScheduledMaintenance {
   scheduledAt: string;
   status: ScheduleStatus;
   notes: string | null;
+  /** OT abierta (asignada o en proceso) vinculada a la programación, si hay una. */
+  workOrder?: { id: string; status: WorkOrderStatus; responsible: string | null } | null;
 }
 
 // --- Órdenes de trabajo (CAM-14/CAM-15/CAM-62/CAM-63) ---

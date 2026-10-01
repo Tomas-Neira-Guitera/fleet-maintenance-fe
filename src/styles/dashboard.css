@@ -1291,10 +1291,26 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
+  width: 100%;
+  flex-shrink: 0;
   padding: 6px 8px;
+  border: none;
   border-radius: 8px;
   background: var(--fg-bg);
+  font: inherit;
   font-size: 11px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.weekly-schedule__item:hover {
+  background: rgba(62, 74, 66, 0.08);
+}
+
+.weekly-schedule__item:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: 1px;
 }
 
 .weekly-schedule__item--assignment {
@@ -1309,13 +1325,6 @@
   border-left: 3px solid var(--fg-warn);
 }
 
-.weekly-schedule__item-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-
 .weekly-schedule__item-time {
   font-family: var(--fg-font-mono);
   font-weight: 600;
@@ -1323,30 +1332,6 @@
 }
 
 /* Cancelar una programación (CAM-42): discreto por defecto, en rojo al hover. */
-.weekly-schedule__item-cancel {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 4px;
-  padding: 0;
-  background: none;
-  color: rgba(62, 74, 66, 0.35);
-}
-
-.weekly-schedule__item-cancel:hover:not(:disabled) {
-  background: var(--fg-crit-bg);
-  color: var(--fg-critical);
-}
-
-.weekly-schedule__item-cancel:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
 .weekly-schedule__item-title {
   color: var(--fg-text);
   overflow: hidden;
@@ -2019,13 +2004,30 @@
   gap: 12px;
 }
 
-.vehicle-checklist > .vehicle-detail__card-title,
+.vehicle-checklist__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vehicle-checklist__header .vehicle-detail__card-title,
 .vehicle-checklist > .vehicle-detail__item-meta {
   margin: 0;
 }
 
+/* Muestra 4 ítems (useVisibleRows) y el resto con scroll; el título de sección queda fijo arriba. */
+.vehicle-checklist__scroll {
+  border-top: var(--fg-border);
+}
+
 .vehicle-checklist__section-title {
-  margin: 0 0 4px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 0 4px;
+  background: var(--fg-white);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -2043,20 +2045,40 @@
   color: rgba(62, 74, 66, 0.55);
 }
 
-.vehicle-checklist__form {
+/* Detalle de un mantenimiento del calendario semanal (modal con Editar / Eliminar). */
+.schedule-detail {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-top: 12px;
-  border-top: var(--fg-border);
+  margin: 0;
 }
 
-.vehicle-checklist__form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+.schedule-detail dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(62, 74, 66, 0.55);
 }
 
-.vehicle-checklist__form .vehicle-detail__action-btn {
-  align-self: flex-start;
+.schedule-detail dd {
+  margin: 2px 0 0;
+  color: var(--fg-text);
+  overflow-wrap: anywhere;
+}
+
+.schedule-detail__date::first-letter {
+  text-transform: uppercase;
+}
+
+.schedule-detail__wo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal__footer .schedule-detail__delete:hover:not(:disabled) {
+  background: var(--fg-crit-bg);
+  border-color: var(--fg-critical);
+  color: var(--fg-critical);
 }
