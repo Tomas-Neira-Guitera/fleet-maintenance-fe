@@ -4,6 +4,7 @@ import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../../services/photosSe
 import { addWorkOrderPhoto, deleteWorkOrderPhoto, updateWorkOrder } from '../../services/workOrdersService';
 import type { WorkOrder, WorkOrderSourceType } from '../../types/domain';
 import { CameraIcon, ClipboardListIcon, ShieldCheckIcon, WrenchIcon } from '../icons';
+import { DictatedTextarea } from '../DictatedTextarea';
 import { PhotoViewer } from '../PhotoViewer';
 
 /** Qué se cierra al finalizar, para la pantalla de éxito. Una OT manual no tiene origen que cerrar. */
@@ -175,6 +176,7 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
               <p className="technician-wo__hint">El vehículo no puede circular hasta que se resuelva.</p>
             )}
             <p className="technician-wo__text">{wo.defect.description}</p>
+            {wo.defect.details && <p className="technician-wo__details">{wo.defect.details}</p>}
             <p className="technician-wo__hint">
               Reportado {wo.defect.reportedBy ? `por ${wo.defect.reportedBy} ` : ''}el{' '}
               {new Date(wo.defect.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
@@ -225,13 +227,12 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
             <label className="checklist-item__label" htmlFor="closing-description">
               Qué se hizo
             </label>
-            <textarea
+            <DictatedTextarea
               id="closing-description"
-              className="defect-textarea"
               rows={3}
-              placeholder="Ej: se cambiaron las pastillas delanteras"
+              placeholder="Ej: se cambiaron las pastillas delanteras. Podés dictarlo con el micrófono."
               value={closingDescription}
-              onChange={(e) => setClosingDescription(e.target.value)}
+              onChange={setClosingDescription}
             />
 
             {needsKm && (

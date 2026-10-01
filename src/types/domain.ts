@@ -46,7 +46,10 @@ export type DefectStatus = 'open' | 'resuelto';
 
 export interface DefectDetail {
   severity: DefectSeverity;
+  /** Título corto del defecto (hasta 30 caracteres, CAM-79). */
   description: string;
+  /** Descripción larga, opcional; se puede dictar (CAM-32). */
+  details?: string;
   photoUrl?: string;
 }
 
@@ -103,6 +106,8 @@ export interface DefectSummary {
   vehiclePlate: string;
   status: DefectStatus;
   reportedBy?: string | null;
+  /** Descripción larga del defecto (CAM-32); `description` es el título corto. */
+  details?: string | null;
 }
 
 /** Item de `inspections` en GET /api/vehicles/{id}/history (CAM-22). */

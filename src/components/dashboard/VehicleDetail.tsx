@@ -325,6 +325,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                     >
                       <div className="vehicle-detail__item-main">
                         <span className="vehicle-detail__item-label">{d.description}</span>
+                        {d.details && <span className="vehicle-detail__item-meta">{d.details}</span>}
                         <span className="vehicle-detail__item-meta">
                           {formatDateTime(d.createdAt)}
                           {d.reportedBy ? ` · ${d.reportedBy}` : ''}
