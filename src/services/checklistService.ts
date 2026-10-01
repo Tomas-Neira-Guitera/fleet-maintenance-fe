@@ -1,6 +1,5 @@
 import type {
   ChecklistItemDef,
-  ChecklistItemType,
   ChecklistSection,
   InspectionType,
   VehicleChecklistItem,
@@ -27,8 +26,9 @@ export async function getVehicleChecklistConfig(vehicleId: string): Promise<Vehi
 
 export interface NewChecklistItem {
   label: string;
-  type: ChecklistItemType;
   section: Exclude<ChecklistSection, 'posttrip'>;
+  /** false = queda cargado en el vehículo pero no entra en el checklist del chofer. */
+  enabled: boolean;
 }
 
 export async function addVehicleChecklistItem(vehicleId: string, item: NewChecklistItem): Promise<VehicleChecklistItem> {
@@ -41,7 +41,16 @@ export async function addVehicleChecklistItem(vehicleId: string, item: NewCheckl
   return res.json() as Promise<VehicleChecklistItem>;
 }
 
-/** Quitar (enabled=false) o volver a agregar un ítem, sea del checklist base o extra. */
+/** DELETE /api/vehicles/{id}/checklist-items/{itemId} -- elimina del vehículo un ítem agregado. */
+export async function deleteVehicleChecklistItem(vehicleId: string, itemId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/checklist-items/${encodeURIComponent(itemId)}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) return throwApiError(res, 'No se pudo eliminar el ítem');
+}
+
+/** Quitar del checklist (enabled=false) o volver a incluir un ítem, sea del checklist base o agregado. */
 export async function setVehicleChecklistItemEnabled(
   vehicleId: string,
   itemId: string,

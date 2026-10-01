@@ -2039,6 +2039,45 @@
   flex-shrink: 0;
 }
 
+.vehicle-checklist__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+/* El atenuado de un ítem fuera del checklist no alcanza a sus botones. */
+.vehicle-checklist .vehicle-detail__item--resolved {
+  opacity: 1;
+}
+
+.vehicle-checklist .vehicle-detail__item--resolved .vehicle-detail__item-main {
+  opacity: 0.55;
+}
+
+/* Interruptor "Incluir en el checklist del chofer" del modal de agregar ítem. */
+.checklist-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--fg-text);
+  cursor: pointer;
+}
+
+.checklist-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--fg-text);
+}
+
+.checklist-toggle small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
 .vehicle-checklist__locked {
   flex-shrink: 0;
   font-size: 12px;

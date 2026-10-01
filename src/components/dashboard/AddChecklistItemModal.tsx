@@ -14,10 +14,10 @@ interface AddChecklistItemModalProps {
   onAdded: (item: VehicleChecklistItem) => void;
 }
 
-/** CAM-31: alta de un ítem extra del checklist pre-viaje de un vehículo. */
+/** CAM-31: alta de un ítem propio del vehículo, incluido o no en el checklist pre-viaje del chofer. */
 export function AddChecklistItemModal({ vehicleId, plate, onClose, onAdded }: AddChecklistItemModalProps) {
   const [label, setLabel] = useState('');
-  const [type, setType] = useState<NewChecklistItem['type']>('check');
+  const [enabled, setEnabled] = useState(true);
   const [section, setSection] = useState<NewChecklistItem['section']>('exterior');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export function AddChecklistItemModal({ vehicleId, plate, onClose, onAdded }: Ad
     setSubmitting(true);
     setError(null);
     try {
-      onAdded(await addVehicleChecklistItem(vehicleId, { label: label.trim(), type, section }));
+      onAdded(await addVehicleChecklistItem(vehicleId, { label: label.trim(), section, enabled }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo agregar el ítem. Intentá de nuevo.');
       setSubmitting(false);
@@ -38,7 +38,7 @@ export function AddChecklistItemModal({ vehicleId, plate, onClose, onAdded }: Ad
       <div className="modal modal--narrow">
         <header className="modal__header">
           <div>
-            <h2 className="modal__title">Agregar ítem al checklist</h2>
+            <h2 className="modal__title">Agregar ítem al vehículo</h2>
             <p className="modal__subtitle">{plate}</p>
           </div>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Cerrar">
@@ -61,17 +61,6 @@ export function AddChecklistItemModal({ vehicleId, plate, onClose, onAdded }: Ad
             <CharCounter value={label} max={CHECKLIST_LABEL_MAX_LENGTH} />
           </label>
           <label className="schedule-picker__field">
-            Tipo
-            <select
-              className="schedule-picker__input"
-              value={type}
-              onChange={(e) => setType(e.target.value as NewChecklistItem['type'])}
-            >
-              <option value="check">OK / Defecto</option>
-              <option value="number">Número</option>
-            </select>
-          </label>
-          <label className="schedule-picker__field">
             Sección
             <select
               className="schedule-picker__input"
@@ -84,6 +73,17 @@ export function AddChecklistItemModal({ vehicleId, plate, onClose, onAdded }: Ad
                 </option>
               ))}
             </select>
+          </label>
+          <label className="checklist-toggle">
+            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+            <span>
+              Incluir en el checklist del chofer
+              <small>
+                {enabled
+                  ? 'El chofer lo revisa en cada pre-viaje.'
+                  : 'Queda cargado en el vehículo, pero no se revisa en la inspección.'}
+              </small>
+            </span>
           </label>
 
           {error && <p className="error-banner">{error}</p>}

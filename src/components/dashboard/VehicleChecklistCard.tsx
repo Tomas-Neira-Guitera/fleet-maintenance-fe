@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { ApiError } from '../../services/apiClient';
-import { getVehicleChecklistConfig, setVehicleChecklistItemEnabled } from '../../services/checklistService';
+import {
+  deleteVehicleChecklistItem,
+  getVehicleChecklistConfig,
+  setVehicleChecklistItemEnabled,
+} from '../../services/checklistService';
 import type { VehicleChecklistItem } from '../../types/domain';
 import { CHECKLIST_SECTIONS } from '../../utils/checklistSections';
+import { TrashIcon } from '../icons';
 import { AddChecklistItemModal } from './AddChecklistItemModal';
 import '../../styles/dashboard.css';
 
@@ -15,8 +20,8 @@ interface VehicleChecklistCardProps {
 }
 
 /**
- * CAM-31: checklist pre-viaje propio del vehículo. El admin quita ítems del checklist base
- * (salvo los obligatorios) y agrega ítems extra que solo aparecen en las inspecciones de este vehículo.
+ * CAM-31: ítems de inspección del vehículo. "Quitar" saca un ítem del checklist del chofer pero lo
+ * deja cargado en el vehículo; "Eliminar" (solo ítems agregados) lo borra del vehículo.
  */
 export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardProps) {
   const [items, setItems] = useState<VehicleChecklistItem[] | null>(null);
@@ -40,18 +45,11 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
   }, [vehicleId]);
 
   async function handleToggle(item: VehicleChecklistItem) {
-    if (item.origin === 'extra' && !window.confirm(`¿Quitar "${item.label}" del checklist de este vehículo?`)) return;
     setBusyId(item.id);
     setError(null);
     try {
       const updated = await setVehicleChecklistItemEnabled(vehicleId, item.id, !item.enabled);
-      setItems((prev) =>
-        prev
-          ? updated.origin === 'extra' && !updated.enabled
-            ? prev.filter((i) => i.id !== updated.id)
-            : prev.map((i) => (i.id === updated.id ? updated : i))
-          : prev,
-      );
+      setItems((prev) => prev?.map((i) => (i.id === updated.id ? updated : i)) ?? prev);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo actualizar el ítem. Intentá de nuevo.');
     } finally {
@@ -59,12 +57,26 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
     }
   }
 
-  const activeCount = items?.filter((i) => i.enabled).length ?? 0;
+  async function handleDelete(item: VehicleChecklistItem) {
+    if (!window.confirm(`¿Eliminar "${item.label}" de este vehículo? Las inspecciones ya hechas no cambian.`)) return;
+    setBusyId(item.id);
+    setError(null);
+    try {
+      await deleteVehicleChecklistItem(vehicleId, item.id);
+      setItems((prev) => prev?.filter((i) => i.id !== item.id) ?? prev);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo eliminar el ítem. Intentá de nuevo.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const totalCount = items?.length ?? 0;
 
   return (
     <section className="vehicle-detail__card vehicle-checklist">
       <header className="vehicle-checklist__header">
-        <h2 className="vehicle-detail__card-title">Checklist de inspección ({activeCount} ítems)</h2>
+        <h2 className="vehicle-detail__card-title">Checklist de inspección ({totalCount} ítems)</h2>
         {items && (
           <button type="button" className="vehicle-detail__action-btn" onClick={() => setAdding(true)}>
             + Agregar ítem
@@ -72,7 +84,7 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
         )}
       </header>
       <p className="vehicle-detail__item-meta">
-        Lo que revisa el chofer en el pre-viaje de este vehículo. El post-viaje es igual para toda la flota.
+        Ítems de este vehículo y cuáles revisa el chofer en el pre-viaje. El post-viaje es igual para toda la flota.
       </p>
 
       {error && <p className="error-banner">{error}</p>}
@@ -96,22 +108,36 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
                       <div className="vehicle-detail__item-main">
                         <span className="vehicle-detail__item-label">{item.label}</span>
                         <span className="vehicle-detail__item-meta">
-                          {item.type === 'number' ? 'Número' : 'OK / Defecto'}
-                          {item.origin === 'extra' ? ' · Agregado para este vehículo' : ''}
-                          {!item.enabled ? ' · No aplica a este vehículo' : ''}
+                          {item.origin === 'extra' ? 'Agregado para este vehículo' : 'Checklist base'}
+                          {!item.enabled ? ' · No se revisa en la inspección' : ''}
                         </span>
                       </div>
                       {item.locked ? (
                         <span className="vehicle-checklist__locked">Obligatorio</span>
                       ) : (
-                        <button
-                          type="button"
-                          className={`vehicle-detail__action-btn ${item.enabled ? 'vehicle-detail__action-btn--danger' : 'vehicle-detail__action-btn--ok'}`}
-                          onClick={() => handleToggle(item)}
-                          disabled={busyId === item.id}
-                        >
-                          {item.enabled ? 'Quitar' : 'Volver a agregar'}
-                        </button>
+                        <div className="vehicle-checklist__actions">
+                          <button
+                            type="button"
+                            className={`vehicle-detail__action-btn ${item.enabled ? '' : 'vehicle-detail__action-btn--ok'}`}
+                            onClick={() => handleToggle(item)}
+                            disabled={busyId === item.id}
+                          >
+                            {item.enabled ? 'Quitar' : 'Incluir en el checklist'}
+                          </button>
+                          {item.origin === 'extra' && (
+                            <button
+                              type="button"
+                              className="vehicle-detail__action-btn vehicle-detail__action-btn--danger vehicle-checklist__delete"
+                              onClick={() => handleDelete(item)}
+                              disabled={busyId === item.id}
+                              aria-label={`Eliminar ${item.label}`}
+                              title="Eliminar del vehículo"
+                            >
+                              <TrashIcon width={14} height={14} />
+                              Eliminar
+                            </button>
+                          )}
+                        </div>
                       )}
                     </li>
                   ))}
