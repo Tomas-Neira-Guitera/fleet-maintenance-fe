@@ -3,6 +3,7 @@ import { getDefects } from '../services/defectsService';
 import { getWorkOrders } from '../services/workOrdersService';
 import type { DefectSummary, WorkOrder } from '../types/domain';
 import { ArrowLeftIcon, CameraIcon, WrenchIcon } from './icons';
+import { PhotoViewer } from './PhotoViewer';
 import { SeverityBadge } from './SeverityBadge';
 import { SchedulePickerModal } from './dashboard/SchedulePickerModal';
 
@@ -35,6 +36,8 @@ export function DefectsList({ onBack }: DefectsListProps) {
   const [defects, setDefects] = useState<DefectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scheduling, setScheduling] = useState<DefectSummary | null>(null);
+  // CAM-53: la foto se ve encima del listado, sin otra pestaña; al cerrarla queda todo como estaba.
+  const [viewingPhoto, setViewingPhoto] = useState<DefectSummary | null>(null);
   // Estado real (CAM-60): qué defectos ya tienen una OT abierta. Si no se puede cargar, todos
   // quedan en "Planificar" -- el backend igual no duplica la OT al replanificar.
   const [openWorkOrders, setOpenWorkOrders] = useState<Map<string, WorkOrder>>(new Map());
@@ -107,10 +110,10 @@ export function DefectsList({ onBack }: DefectsListProps) {
                   {defect.photoUrl && (
                     <>
                       {' · '}
-                      <a href={defect.photoUrl} target="_blank" rel="noreferrer" className="photo-link">
+                      <button type="button" className="photo-link" onClick={() => setViewingPhoto(defect)}>
                         <CameraIcon className="photo-link__icon" />
                         Ver foto
-                      </a>
+                      </button>
                     </>
                   )}
                 </span>
@@ -137,6 +140,14 @@ export function DefectsList({ onBack }: DefectsListProps) {
           );
         })}
       </ul>
+
+      {viewingPhoto?.photoUrl && (
+        <PhotoViewer
+          src={viewingPhoto.photoUrl}
+          alt={`Foto del defecto: ${viewingPhoto.description}`}
+          onClose={() => setViewingPhoto(null)}
+        />
+      )}
 
       {scheduling && (
         <SchedulePickerModal
