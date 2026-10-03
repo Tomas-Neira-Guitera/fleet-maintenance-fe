@@ -5,7 +5,7 @@ interface WireAnswer {
   itemId: string;
   outcome?: 'ok' | 'defect';
   numberValue?: number;
-  defect?: { severity: 'non-blocking' | 'blocking'; description: string; photoUrl?: string };
+  defect?: { severity: 'non-blocking' | 'blocking'; description: string; details?: string; photoUrl?: string };
 }
 
 function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
@@ -14,7 +14,12 @@ function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
     outcome: a.outcome,
     numberValue: a.numberValue !== undefined && a.numberValue !== '' ? Number(a.numberValue) : undefined,
     defect: a.defect
-      ? { severity: a.defect.severity, description: a.defect.description, photoUrl: a.defect.photoUrl }
+      ? {
+          severity: a.defect.severity,
+          description: a.defect.description.trim(),
+          details: a.defect.details?.trim() || undefined,
+          photoUrl: a.defect.photoUrl,
+        }
       : undefined,
   }));
 }

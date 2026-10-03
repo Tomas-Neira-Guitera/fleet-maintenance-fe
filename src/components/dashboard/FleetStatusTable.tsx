@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { getFleetStatus } from '../../services/fleetStatusService';
 import type { FleetStatusRow } from '../../types/domain';
 import { describeNextMaintenance, numberFormatter } from '../../utils/maintenanceFormat';
 import { StatusBadge } from './StatusBadge';
 import { VehicleMaintenanceModal } from './VehicleMaintenanceModal';
 import '../../styles/dashboard.css';
+
+const VISIBLE_ROWS = 5;
+// CAM-80: se piden todos los vehículos (el backend pagina de a 20 por defecto), mismo tope que los KPIs.
+const FLEET_STATUS_PAGE_SIZE = 500;
 
 function formatKm(km: number): string {
   return `${numberFormatter.format(km)} km`;
@@ -22,9 +27,10 @@ export function FleetStatusTable({ onFleetChanged }: FleetStatusTableProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedRow, setSelectedRow] = useState<FleetStatusRow | null>(null);
   const mountedRef = useRef(true);
+  const { ref: scrollRef, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_ROWS, rows?.length ?? 0);
 
   function loadFleetStatus() {
-    getFleetStatus()
+    getFleetStatus({ pageSize: FLEET_STATUS_PAGE_SIZE })
       .then((page) => {
         if (mountedRef.current) setRows(page.items);
       })
@@ -51,7 +57,11 @@ export function FleetStatusTable({ onFleetChanged }: FleetStatusTableProps) {
       {!rows && !error && <p className="muted">Cargando flota…</p>}
 
       {rows && (
-        <div className="fleet-status__table-wrap">
+        <div
+          ref={scrollRef}
+          className="fleet-status__table-wrap scroll-list"
+          style={maxHeight ? { maxHeight } : undefined}
+        >
           <table className="fleet-status__table">
             <thead>
               <tr>
@@ -66,6 +76,7 @@ export function FleetStatusTable({ onFleetChanged }: FleetStatusTableProps) {
               {rows.map((row) => (
                 <tr
                   key={row.vehicleId}
+                  data-scroll-item
                   className="fleet-status__row"
                   onClick={() => setSelectedRow(row)}
                   title="Ver mantenimientos de este vehículo"

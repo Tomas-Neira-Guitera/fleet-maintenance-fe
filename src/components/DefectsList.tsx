@@ -99,6 +99,7 @@ export function DefectsList({ onBack }: DefectsListProps) {
             <li key={defect.id} className="defect-summary-item">
               <div className="defect-summary-item__info">
                 <span className="defect-summary-item__label">{defect.description}</span>
+                {defect.details && <span className="defect-summary-item__details">{defect.details}</span>}
                 <span className="defect-summary-item__meta">
                   <span className="vehicle-meta__plate">{defect.vehiclePlate}</span>
                   {' · '}

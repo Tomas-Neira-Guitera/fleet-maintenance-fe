@@ -159,7 +159,11 @@ export function WorkOrdersSection() {
               {workOrders.map((wo) => (
                 <tr key={wo.id} className="work-orders__row" onClick={() => setSelected(wo)}>
                   <td className="fleet-status__plate">{wo.plate ?? '—'}</td>
-                  <td>{wo.title}</td>
+                  <td>
+                    <span className="work-orders__title" title={wo.title}>
+                      {wo.title}
+                    </span>
+                  </td>
                   <td>
                     <WorkOrderStatusBadge status={wo.status} />
                   </td>

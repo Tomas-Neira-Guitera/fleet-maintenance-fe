@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ApiError } from '../../services/apiClient';
-import { getSchedule, updateSchedule } from '../../services/scheduleService';
+import { useVisibleRows } from '../../hooks/useVisibleRows';
+import { getSchedule } from '../../services/scheduleService';
 import type { ScheduledMaintenance } from '../../types/domain';
-import { ChevronRightIcon, LayoutGridIcon, TrashIcon } from '../icons';
+import { ChevronRightIcon, LayoutGridIcon } from '../icons';
 import { MonthScheduleModal } from './MonthScheduleModal';
+import { ScheduleDetailModal } from './ScheduleDetailModal';
 import { SchedulePickerModal } from './SchedulePickerModal';
 import '../../styles/dashboard.css';
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const VISIBLE_PER_DAY = 2;
 
 const timeFormatter = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit' });
 const dayNumberFormatter = new Intl.DateTimeFormat('es-AR', { day: 'numeric' });
@@ -32,6 +34,41 @@ function toIsoDate(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+interface DayItemsProps {
+  items: ScheduledMaintenance[];
+  onSelect: (item: ScheduledMaintenance) => void;
+}
+
+/** Mantenimientos de un día: se ven 2 y el resto con scroll dentro del día. */
+function DayItems({ items, onSelect }: DayItemsProps) {
+  const { ref, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_PER_DAY, items.length);
+  return (
+    <div
+      ref={ref}
+      className="weekly-schedule__day-items scroll-list"
+      style={maxHeight ? { maxHeight } : undefined}
+    >
+      {items.length === 0 && <span className="weekly-schedule__empty">—</span>}
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          data-scroll-item
+          className={`weekly-schedule__item weekly-schedule__item--${item.sourceType}`}
+          onClick={() => onSelect(item)}
+          title="Ver detalle"
+        >
+          <span className="weekly-schedule__item-time">{timeFormatter.format(new Date(item.scheduledAt))}</span>
+          <span className="weekly-schedule__item-title" title={item.title}>
+            {item.title}
+          </span>
+          {item.plate && <span className="weekly-schedule__item-plate">{item.plate}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 interface WeeklyScheduleCardProps {
   /** Cambiar este valor fuerza un refetch -- ej. después de planificar un
    * mantenimiento desde "Estado de la flota" o desde un defecto, orígenes
@@ -52,7 +89,7 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
   const [error, setError] = useState<string | null>(null);
   const [showMonth, setShowMonth] = useState(false);
   const [schedulingDay, setSchedulingDay] = useState<Date | null>(null);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<ScheduledMaintenance | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
@@ -92,21 +129,6 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
     getSchedule({ from: toIsoDate(weekStart), to: toIsoDate(addDays(weekStart, 7)) })
       .then(setItems)
       .catch(() => setError('No se pudo cargar el calendario de mantenimientos.'));
-  }
-
-  async function handleCancel(item: ScheduledMaintenance) {
-    const time = timeFormatter.format(new Date(item.scheduledAt));
-    if (!window.confirm(`¿Cancelar "${item.title}" programado para las ${time}?`)) return;
-    setCancellingId(item.id);
-    setError(null);
-    try {
-      await updateSchedule(item.id, { status: 'cancelled' });
-      refreshWeek();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo cancelar la programación. Intentá de nuevo.');
-    } finally {
-      setCancellingId(null);
-    }
   }
 
   return (
@@ -166,28 +188,7 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
                     +
                   </button>
                 </div>
-                <div className="weekly-schedule__day-items">
-                  {dayItems.length === 0 && <span className="weekly-schedule__empty">—</span>}
-                  {dayItems.map((item) => (
-                    <div key={item.id} className={`weekly-schedule__item weekly-schedule__item--${item.sourceType}`}>
-                      <div className="weekly-schedule__item-top">
-                        <span className="weekly-schedule__item-time">{timeFormatter.format(new Date(item.scheduledAt))}</span>
-                        <button
-                          type="button"
-                          className="weekly-schedule__item-cancel"
-                          onClick={() => handleCancel(item)}
-                          disabled={cancellingId === item.id}
-                          aria-label="Cancelar programación"
-                          title="Cancelar programación"
-                        >
-                          <TrashIcon width={11} height={11} />
-                        </button>
-                      </div>
-                      <span className="weekly-schedule__item-title">{item.title}</span>
-                      {item.plate && <span className="weekly-schedule__item-plate">{item.plate}</span>}
-                    </div>
-                  ))}
-                </div>
+                <DayItems items={dayItems} onSelect={setSelected} />
               </div>
             );
           })}
@@ -202,6 +203,14 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
             setWeekStart(startOfWeek(day));
             setShowMonth(false);
           }}
+        />
+      )}
+
+      {selected && (
+        <ScheduleDetailModal
+          schedule={selected}
+          onClose={() => setSelected(null)}
+          onChanged={refreshWeek}
         />
       )}
 

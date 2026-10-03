@@ -3,6 +3,9 @@ import { ApiError } from '../services/apiClient';
 import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../services/photosService';
 import type { ChecklistItemDef, ChecklistItemState, DefectSeverity } from '../types/domain';
 import { AlertTriangleIcon, CameraIcon } from './icons';
+import { CharCounter } from './CharCounter';
+import { DictatedTextarea } from './DictatedTextarea';
+import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH } from '../utils/textLimits';
 
 interface ChecklistItemCardProps {
   def: ChecklistItemDef;
@@ -70,6 +73,11 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
   function setDescription(description: string) {
     if (!defect) return;
     onChange({ ...state, defect: { ...defect, description } });
+  }
+
+  function setDetails(details: string) {
+    if (!defect) return;
+    onChange({ ...state, defect: { ...defect, details } });
   }
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -146,15 +154,30 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
 
           <div className="defect-panel__field">
             <label className="defect-panel__field-label" htmlFor={`${def.id}-desc`}>
-              Descripción {defect.severity === 'blocking' ? '(obligatoria)' : '(obligatoria)'}
+              Título (obligatorio)
             </label>
-            <textarea
+            <input
               id={`${def.id}-desc`}
+              type="text"
               className="defect-textarea"
-              rows={3}
-              placeholder="Describí brevemente el problema"
+              maxLength={TITLE_MAX_LENGTH}
+              placeholder="Ej: Foco trasero quemado"
               value={defect.description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+            <CharCounter value={defect.description} />
+          </div>
+
+          <div className="defect-panel__field">
+            <label className="defect-panel__field-label" htmlFor={`${def.id}-details`}>
+              Descripción (opcional)
+            </label>
+            <DictatedTextarea
+              id={`${def.id}-details`}
+              value={defect.details ?? ''}
+              onChange={setDetails}
+              maxLength={DESCRIPTION_MAX_LENGTH}
+              placeholder="Contá qué pasa. Podés dictarlo con el micrófono."
             />
           </div>
 

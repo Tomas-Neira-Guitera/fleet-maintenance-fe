@@ -36,9 +36,26 @@ VITE_API_BASE_URL=http://localhost:8080
 Necesitás el backend `fleet-maintenance` corriendo en esa URL para que la app funcione
 (listado de vehículos, subida de fotos y envío de inspecciones).
 
+## Probar desde un celular
+
+El dictado por voz (CAM-32) usa el micrófono, y el navegador solo lo habilita en una página
+segura (HTTPS) o en `localhost`. Para probarlo desde un celular en la misma red wifi:
+
+```bash
+npm run dev:https
+```
+
+Vite muestra una dirección `https://<ip-de-tu-máquina>:5173`. Abrila en el celular y aceptá el
+aviso del certificado (es autofirmado, solo para desarrollo). En este modo la API se pide al
+mismo origen y Vite la redirige a `http://localhost:8080`, así que no hace falta tocar `.env`.
+
+En `npm run dev` normal el dictado funciona en la propia máquina (`http://localhost:5173`).
+
 ## Scripts
 
 - `npm run dev` — servidor de desarrollo con HMR
+- `npm run dev:https` — lo mismo por HTTPS y visible en la red local, para probar desde un celular
+  (ver "Probar desde un celular")
 - `npm run build` — build de producción (`tsc -b && vite build`)
 - `npm run preview` — sirve el build de producción localmente
 - `npm run lint` — corre Oxlint

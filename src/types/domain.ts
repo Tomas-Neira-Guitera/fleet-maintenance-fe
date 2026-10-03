@@ -34,12 +34,22 @@ export interface ChecklistItemDef {
   required?: boolean;
 }
 
+/** Ítem de la configuración del checklist de un vehículo (CAM-31). locked: obligatorio. */
+export interface VehicleChecklistItem extends ChecklistItemDef {
+  origin: 'base' | 'extra';
+  enabled: boolean;
+  locked: boolean;
+}
+
 export type DefectSeverity = 'non-blocking' | 'blocking';
 export type DefectStatus = 'open' | 'resuelto';
 
 export interface DefectDetail {
   severity: DefectSeverity;
+  /** Título corto del defecto (hasta 30 caracteres, CAM-79). */
   description: string;
+  /** Descripción larga, opcional; se puede dictar (CAM-32). */
+  details?: string;
   photoUrl?: string;
 }
 
@@ -96,6 +106,8 @@ export interface DefectSummary {
   vehiclePlate: string;
   status: DefectStatus;
   reportedBy?: string | null;
+  /** Descripción larga del defecto (CAM-32); `description` es el título corto. */
+  details?: string | null;
 }
 
 /** Item de `inspections` en GET /api/vehicles/{id}/history (CAM-22). */
@@ -243,6 +255,8 @@ export interface ScheduledMaintenance {
   scheduledAt: string;
   status: ScheduleStatus;
   notes: string | null;
+  /** OT abierta (asignada o en proceso) vinculada a la programación, si hay una. */
+  workOrder?: { id: string; status: WorkOrderStatus; responsible: string | null } | null;
 }
 
 // --- Órdenes de trabajo (CAM-14/CAM-15/CAM-62/CAM-63) ---

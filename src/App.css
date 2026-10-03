@@ -896,3 +896,105 @@
   height: 22px;
   flex-shrink: 0;
 }
+
+/* CAM-79: contador de caracteres debajo de los campos de título. */
+.char-counter {
+  align-self: flex-end;
+  font-size: 11px;
+  color: rgba(62, 74, 66, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.char-counter--limit {
+  color: var(--fg-warn);
+}
+
+.defect-summary-item__label,
+.vehicle-card__model {
+  overflow-wrap: anywhere;
+}
+
+/* CAM-32: campo de texto que también se puede dictar con el micrófono. */
+.dictated-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dictated-field__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dictated-field__bar .char-counter {
+  margin-left: auto;
+}
+
+.dictate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dictate-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dictate-btn--listening {
+  background: var(--fg-critical);
+  border-color: var(--fg-critical);
+  color: var(--fg-white);
+}
+
+.dictated-field__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.75);
+  overflow-wrap: anywhere;
+}
+
+.dictated-field__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fg-critical);
+  animation: dictate-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes dictate-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dictated-field__dot {
+    animation: none;
+  }
+}
+
+/* Descripción larga del defecto, debajo del título. */
+.defect-summary-item__details,
+.technician-wo__details {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.8);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

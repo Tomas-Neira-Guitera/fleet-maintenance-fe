@@ -7,6 +7,7 @@ import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
+import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleFormModal } from './VehicleFormModal';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
@@ -324,6 +325,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                     >
                       <div className="vehicle-detail__item-main">
                         <span className="vehicle-detail__item-label">{d.description}</span>
+                        {d.details && <span className="vehicle-detail__item-meta">{d.details}</span>}
                         <span className="vehicle-detail__item-meta">
                           {formatDateTime(d.createdAt)}
                           {d.reportedBy ? ` · ${d.reportedBy}` : ''}
@@ -412,6 +414,8 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
           </div>
         </div>
       )}
+
+      {vehicle && <VehicleChecklistCard vehicleId={vehicle.id} plate={vehicle.plate} />}
 
       {editing && vehicle && (
         <VehicleFormModal

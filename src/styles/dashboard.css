@@ -453,6 +453,21 @@
   overflow-x: auto;
 }
 
+/* CAM-80/81: listas del Resumen con alto limitado (useVisibleRows) y scroll con la ruedita. */
+.scroll-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.fleet-status__table-wrap.scroll-list thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--fg-white);
+  border-bottom: none;
+  box-shadow: inset 0 -1px 0 var(--fg-border-color);
+}
+
 .fleet-status__table {
   width: 100%;
   border-collapse: collapse;
@@ -1192,7 +1207,7 @@
 
 .weekly-schedule__grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1276,10 +1291,26 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
+  width: 100%;
+  flex-shrink: 0;
   padding: 6px 8px;
+  border: none;
   border-radius: 8px;
   background: var(--fg-bg);
+  font: inherit;
   font-size: 11px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.weekly-schedule__item:hover {
+  background: rgba(62, 74, 66, 0.08);
+}
+
+.weekly-schedule__item:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: 1px;
 }
 
 .weekly-schedule__item--assignment {
@@ -1294,13 +1325,6 @@
   border-left: 3px solid var(--fg-warn);
 }
 
-.weekly-schedule__item-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-
 .weekly-schedule__item-time {
   font-family: var(--fg-font-mono);
   font-weight: 600;
@@ -1308,30 +1332,6 @@
 }
 
 /* Cancelar una programación (CAM-42): discreto por defecto, en rojo al hover. */
-.weekly-schedule__item-cancel {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 4px;
-  padding: 0;
-  background: none;
-  color: rgba(62, 74, 66, 0.35);
-}
-
-.weekly-schedule__item-cancel:hover:not(:disabled) {
-  background: var(--fg-crit-bg);
-  color: var(--fg-critical);
-}
-
-.weekly-schedule__item-cancel:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
 .weekly-schedule__item-title {
   color: var(--fg-text);
   overflow: hidden;
@@ -1387,7 +1387,7 @@
 
 .month-schedule__grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
 }
 
@@ -1969,4 +1969,155 @@
   .wo-expense-form {
     grid-template-columns: 1fr;
   }
+}
+
+/* CAM-79: títulos de hasta 30 caracteres. Un título largo (datos previos al límite) ya no
+   ensancha las columnas del calendario ni las tablas: se corta con "…" y el completo va en el tooltip. */
+.weekly-schedule__day,
+.weekly-schedule__item,
+.month-schedule__day {
+  min-width: 0;
+}
+
+.work-orders__title {
+  display: block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-picker__subject,
+.fleet-status__maintenance-name,
+.upcoming-maintenance-card__description,
+.recent-defects-card__description,
+.vehicle-detail__item-label,
+.vehicle-maintenance-list__name {
+  overflow-wrap: anywhere;
+}
+
+/* CAM-31: checklist de inspección propio del vehículo, en el detalle del vehículo. */
+.vehicle-checklist {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vehicle-checklist__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vehicle-checklist__header .vehicle-detail__card-title,
+.vehicle-checklist > .vehicle-detail__item-meta {
+  margin: 0;
+}
+
+/* Muestra 4 ítems (useVisibleRows) y el resto con scroll; el título de sección queda fijo arriba. */
+.vehicle-checklist__scroll {
+  border-top: var(--fg-border);
+}
+
+.vehicle-checklist__section-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 0 4px;
+  background: var(--fg-white);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+.vehicle-checklist .vehicle-detail__action-btn {
+  flex-shrink: 0;
+}
+
+.vehicle-checklist__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+/* El atenuado de un ítem fuera del checklist no alcanza a sus botones. */
+.vehicle-checklist .vehicle-detail__item--resolved {
+  opacity: 1;
+}
+
+.vehicle-checklist .vehicle-detail__item--resolved .vehicle-detail__item-main {
+  opacity: 0.55;
+}
+
+/* Interruptor "Incluir en el checklist del chofer" del modal de agregar ítem. */
+.checklist-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--fg-text);
+  cursor: pointer;
+}
+
+.checklist-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--fg-text);
+}
+
+.checklist-toggle small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.vehicle-checklist__locked {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+/* Detalle de un mantenimiento del calendario semanal (modal con Editar / Eliminar). */
+.schedule-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.schedule-detail dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(62, 74, 66, 0.55);
+}
+
+.schedule-detail dd {
+  margin: 2px 0 0;
+  color: var(--fg-text);
+  overflow-wrap: anywhere;
+}
+
+.schedule-detail__date::first-letter {
+  text-transform: uppercase;
+}
+
+.schedule-detail__wo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal__footer .schedule-detail__delete:hover:not(:disabled) {
+  background: var(--fg-crit-bg);
+  border-color: var(--fg-critical);
+  color: var(--fg-critical);
 }

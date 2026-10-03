@@ -4,6 +4,8 @@ import { createMaintenancePlan, updateMaintenancePlan } from '../../services/mai
 import type { IntervalType, MaintenancePlan } from '../../types/domain';
 import { CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
+import { CharCounter } from '../CharCounter';
+import { TITLE_MAX_LENGTH } from '../../utils/textLimits';
 
 interface MaintenancePlanFormModalProps {
   /** Si viene, edita ese plan; si no, da de alta uno nuevo en el catálogo. */
@@ -76,9 +78,11 @@ export function MaintenancePlanFormModal({ plan, onClose, onSaved }: Maintenance
               type="text"
               className="schedule-picker__input"
               value={name}
+              maxLength={TITLE_MAX_LENGTH}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej: Cambio de aceite"
             />
+            <CharCounter value={name} />
           </label>
           <label className="schedule-picker__field">
             Categoría (opcional)
