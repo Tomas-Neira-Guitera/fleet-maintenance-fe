@@ -140,11 +140,13 @@ export interface VehicleHistory {
 
 export type Role = 'ADMIN' | 'CHOFER' | 'TECNICO';
 
-/** Ítem de GET /api/users (CAM-60) -- listado de solo lectura. */
+/** Usuario de GET/POST/PATCH /api/users (CAM-60, CAM-23). Nunca trae la contraseña. */
 export interface UserSummary {
   id: string;
   username: string;
   role: Role;
+  /** false = desactivado: no puede loguearse (CAM-23). */
+  active: boolean;
 }
 
 /** Respuesta de POST /api/auth/login (CAM-43). */

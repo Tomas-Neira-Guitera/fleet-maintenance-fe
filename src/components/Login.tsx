@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { login } from '../services/authService';
-import { saveSession, saveUsername } from '../services/apiClient';
+import { ApiError, saveSession, saveUsername } from '../services/apiClient';
 import type { Role } from '../types/domain';
 import { EyeIcon, EyeOffIcon } from './icons';
 
@@ -23,11 +23,20 @@ export function Login({ onLogin }: LoginProps) {
     setSubmitting(true);
     try {
       const result = await login(username, password);
+      // CAM-23: el saludo usa el nombre en la misma forma en que lo guarda el backend
+      // ("  José   Muñoz " → "José Muñoz"); en JS, \s ya incluye el espacio duro (NBSP).
+      const displayName = username.normalize('NFC').replace(/\s+/g, ' ').trim();
       saveSession(result);
-      saveUsername(username);
-      onLogin(result.role, username);
-    } catch {
-      setError('Usuario o contraseña incorrectos.');
+      saveUsername(displayName);
+      onLogin(result.role, displayName);
+    } catch (err) {
+      // CAM-23: un usuario desactivado recibe un 403 con su propio mensaje; cualquier otro
+      // rechazo se muestra igual que siempre, sin distinguir usuario inexistente de contraseña mala.
+      setError(
+        err instanceof ApiError && err.errorCode === 'USER_INACTIVE'
+          ? err.message
+          : 'Usuario o contraseña incorrectos.',
+      );
     } finally {
       setSubmitting(false);
     }
