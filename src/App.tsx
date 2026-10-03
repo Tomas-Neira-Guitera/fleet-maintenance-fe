@@ -11,6 +11,7 @@ import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
 import { TechnicianShell } from './components/technician/TechnicianShell';
 import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
+import { UsersSection } from './components/dashboard/UsersSection';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -86,6 +87,8 @@ function App() {
             <MaintenancePlansSection />
           ) : activeTab === 'ordenes-trabajo' ? (
             <WorkOrdersSection />
+          ) : activeTab === 'usuarios' ? (
+            <UsersSection onLogout={handleLogout} />
           ) : (
             <AdminDashboard onViewDefects={() => setRoute({ view: 'admin-defects' })} />
           )}

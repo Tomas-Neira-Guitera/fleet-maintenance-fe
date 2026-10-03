@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isSessionExpired, SESSION_EXPIRED_MESSAGE } from '../../services/apiClient';
 import { getUsers } from '../../services/usersService';
 import { getVehicles } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
@@ -74,8 +75,11 @@ export function WorkOrdersSection() {
       .then((data) => {
         if (mountedRef.current) setTechnicians(data);
       })
-      .catch(() => {
-        if (mountedRef.current) setTechnicians([]);
+      .catch((err: unknown) => {
+        if (!mountedRef.current) return;
+        setTechnicians([]);
+        // CAM-23: /api/users exige el JWT del admin. Si venció, el filtro por técnico queda vacío: se avisa.
+        if (isSessionExpired(err)) setError(SESSION_EXPIRED_MESSAGE);
       });
   }, []);
 
@@ -125,9 +129,10 @@ export function WorkOrdersSection() {
             disabled={!technicians}
           >
             <option value="">Todos los técnicos</option>
+            {/* Incluye a los desactivados (CAM-23): pueden tener OTs viejas a su nombre. */}
             {technicians?.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.username}
+                {t.active ? t.username : `${t.username} (desactivado)`}
               </option>
             ))}
           </select>

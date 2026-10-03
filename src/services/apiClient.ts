@@ -7,8 +7,8 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localho
 
 /**
  * Identidad de chofer temporal (CAM-11), previa al login. Convive con la sesión
- * de CAM-43 a propósito: el backend todavía no valida el JWT en ningún endpoint
- * salvo el propio login, así que esto sigue siendo lo único que el servidor
+ * de CAM-43 a propósito: el backend solo valida el JWT en /api/users (CAM-23), no
+ * en las inspecciones, así que esto sigue siendo lo único que el servidor
  * realmente usa para saber "quién" hace una inspección.
  */
 export const CURRENT_DRIVER = { id: 'driver-demo-1', name: 'Carlos Gómez' };
@@ -54,7 +54,7 @@ export function getSession(): LoginResult | null {
 /**
  * Id del usuario logueado, leído del claim `sub` del JWT (CAM-60) -- `LoginResult` no lo
  * trae aparte. Solo decodifica el payload para saber "quién soy"; no valida la firma
- * (eso es trabajo del backend, que todavía no lo hace en ningún endpoint).
+ * (eso es trabajo del backend: hoy solo en /api/users, CAM-23).
  */
 export function getSessionUserId(): string | null {
   const token = getSession()?.token;
@@ -70,7 +70,10 @@ export function getSessionUserId(): string | null {
   }
 }
 
-/** Header Authorization con el JWT de CAM-43 -- el backend todavía no lo valida, pero ya lo pide el contrato. */
+/**
+ * Header Authorization con el JWT de CAM-43. El backend lo exige en /api/users (CAM-23); en el
+ * resto todavía no lo valida (CAM-73), pero ya lo pide el contrato.
+ */
 export function authHeaders(): Record<string, string> {
   const session = getSession();
   return session ? { Authorization: `Bearer ${session.token}` } : {};
@@ -94,6 +97,16 @@ export class ApiError extends Error {
     this.details = details;
   }
 }
+
+/**
+ * true si el backend rechazó el JWT (401): sin token, vencido o de un usuario desactivado (CAM-23).
+ * Hoy solo pasa en /api/users; el resto de la API todavía no valida el token (CAM-73).
+ */
+export function isSessionExpired(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 401;
+}
+
+export const SESSION_EXPIRED_MESSAGE = 'Tu sesión venció. Cerrá sesión y volvé a entrar.';
 
 export async function throwApiError(res: Response, fallbackMessage: string): Promise<never> {
   let body: { error?: string; message?: string; details?: ApiErrorDetail[] } | undefined;

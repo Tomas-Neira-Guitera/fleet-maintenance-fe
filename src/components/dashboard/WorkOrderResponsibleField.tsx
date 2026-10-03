@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { isSessionExpired, SESSION_EXPIRED_MESSAGE } from '../../services/apiClient';
 import { getUsers } from '../../services/usersService';
 import type { UserSummary, WorkOrderExecutionType } from '../../types/domain';
 
@@ -17,7 +18,7 @@ interface WorkOrderResponsibleFieldProps {
  */
 export function WorkOrderResponsibleField(props: WorkOrderResponsibleFieldProps) {
   const [technicians, setTechnicians] = useState<UserSummary[] | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,16 +26,21 @@ export function WorkOrderResponsibleField(props: WorkOrderResponsibleFieldProps)
       .then((data) => {
         if (!cancelled) setTechnicians(data);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (!cancelled) {
           setTechnicians([]);
-          setLoadError(true);
+          // CAM-23: /api/users exige el JWT del admin; si venció, se avisa en vez de mostrar la lista vacía.
+          setLoadError(isSessionExpired(err) ? SESSION_EXPIRED_MESSAGE : 'No se pudieron cargar los técnicos.');
         }
       });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Solo se ofrecen técnicos activos (CAM-23), salvo el que ya está a cargo: si lo desactivaron,
+  // sigue apareciendo para que editar la OT no lo desasigne sin querer.
+  const options = technicians?.filter((t) => t.active || t.id === props.technicianId);
 
   if (props.executionType === 'externo') {
     return (
@@ -61,13 +67,13 @@ export function WorkOrderResponsibleField(props: WorkOrderResponsibleFieldProps)
         disabled={!technicians}
       >
         <option value="">{technicians ? 'Sin asignar' : 'Cargando técnicos…'}</option>
-        {technicians?.map((t) => (
+        {options?.map((t) => (
           <option key={t.id} value={t.id}>
-            {t.username}
+            {t.active ? t.username : `${t.username} (desactivado)`}
           </option>
         ))}
       </select>
-      {loadError && <span className="muted">No se pudieron cargar los técnicos.</span>}
+      {loadError && <span className="field-error">{loadError}</span>}
     </label>
   );
 }
