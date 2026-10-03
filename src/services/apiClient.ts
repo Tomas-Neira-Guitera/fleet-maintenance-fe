@@ -108,6 +108,13 @@ export function isSessionExpired(err: unknown): boolean {
 
 export const SESSION_EXPIRED_MESSAGE = 'Tu sesión venció. Cerrá sesión y volvé a entrar.';
 
+/** Junta el mensaje del backend con el detalle por campo de un 422, si vino. */
+export function describeApiError(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError)) return fallback;
+  const details = err.details?.map((d) => d.message).filter(Boolean) ?? [];
+  return details.length > 0 ? `${err.message}: ${details.join('. ')}.` : err.message;
+}
+
 export async function throwApiError(res: Response, fallbackMessage: string): Promise<never> {
   let body: { error?: string; message?: string; details?: ApiErrorDetail[] } | undefined;
   try {

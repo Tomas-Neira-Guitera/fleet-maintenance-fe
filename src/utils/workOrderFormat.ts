@@ -9,3 +9,11 @@ export function workOrderResponsible(wo: WorkOrder): string | null {
   if (wo.executionType === 'interno') return wo.technicianUsername ?? wo.assignee;
   return wo.assignee;
 }
+
+/**
+ * Km al finalizar una OT (CAM-74): entero no negativo, sin decimales. Que no sea menor al
+ * odómetro del vehículo lo valida el backend, que es el que lo conoce (422 en completedKm).
+ */
+export function isValidCompletedKm(value: string): boolean {
+  return /^\d+$/.test(value.trim());
+}

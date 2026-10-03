@@ -446,7 +446,13 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
             </button>
           )}
           {wo.status === 'en_proceso' && (
-            <button type="button" className="primary-btn" onClick={() => setFinalizing(true)} disabled={pending}>
+            // Con una foto subiendo, el modal de finalizar abriría con la lista de fotos sin ella (CAM-74).
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => setFinalizing(true)}
+              disabled={pending || uploadingPhoto}
+            >
               Finalizar
             </button>
           )}

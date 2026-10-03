@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import { ApiError } from '../../services/apiClient';
+import { ApiError, describeApiError } from '../../services/apiClient';
 import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../../services/photosService';
 import { addWorkOrderPhoto, deleteWorkOrderPhoto, updateWorkOrder } from '../../services/workOrdersService';
 import type { WorkOrder } from '../../types/domain';
+import { isValidCompletedKm } from '../../utils/workOrderFormat';
 import { CameraIcon, CloseIcon, TrashIcon } from '../icons';
 import { PhotoViewer } from '../PhotoViewer';
 import '../../styles/dashboard.css';
@@ -26,12 +27,17 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [removingPhotoId, setRemovingPhotoId] = useState<string | null>(null);
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const needsKm = wo.assignmentId != null;
+  const kmValid = isValidCompletedKm(completedKm);
+  // CAM-74: mientras sube o quita una foto no se puede finalizar, porque el backend podría
+  // contar otra cantidad de fotos que la que muestra la pantalla.
+  const busy = submitting || uploadingPhoto || removingPhotoId !== null;
   const canFinalize =
-    closingDescription.trim().length > 0 && wo.photos.length > 0 && (!needsKm || completedKm.trim().length > 0);
+    closingDescription.trim().length > 0 && wo.photos.length > 0 && (!needsKm || kmValid) && !busy;
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -55,12 +61,15 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
   }
 
   async function handleDeletePhoto(photoId: string) {
+    setRemovingPhotoId(photoId);
     setError(null);
     try {
       await deleteWorkOrderPhoto(wo.id, photoId);
-      setWo({ ...wo, photos: wo.photos.filter((p) => p.id !== photoId) });
+      setWo((current) => ({ ...current, photos: current.photos.filter((p) => p.id !== photoId) }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo borrar la foto. Intentá de nuevo.');
+    } finally {
+      setRemovingPhotoId(null);
     }
   }
 
@@ -71,11 +80,12 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
       const updated = await updateWorkOrder(wo.id, {
         status: 'finalizada',
         closingDescription: closingDescription.trim(),
-        completedKm: needsKm ? Number(completedKm) : undefined,
+        completedKm: needsKm ? Number(completedKm.trim()) : undefined,
       });
       onFinalized(updated);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo finalizar la orden. Intentá de nuevo.');
+      // El detalle del 422 dice qué falló (ej. un km menor al del vehículo, que acá no se conoce).
+      setError(describeApiError(err, 'No se pudo finalizar la orden. Intentá de nuevo.'));
     } finally {
       setSubmitting(false);
     }
@@ -110,11 +120,16 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
               Kilometraje al finalizar
               <input
                 type="number"
+                inputMode="numeric"
                 min="0"
+                step="1"
                 className="schedule-picker__input"
                 value={completedKm}
                 onChange={(e) => setCompletedKm(e.target.value)}
               />
+              {completedKm.trim() !== '' && !kmValid && (
+                <span className="field-error">Ingresá los kilómetros como un número entero, sin decimales.</span>
+              )}
             </label>
           )}
 
@@ -136,6 +151,7 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
                       type="button"
                       className="wo-photo-gallery__remove"
                       onClick={() => handleDeletePhoto(photo.id)}
+                      disabled={busy}
                       aria-label="Borrar foto"
                     >
                       <TrashIcon width={14} height={14} />
@@ -148,7 +164,7 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
               type="button"
               className="secondary-btn"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
+              disabled={busy}
             >
               <CameraIcon width={14} height={14} />
               {uploadingPhoto ? 'Subiendo…' : 'Adjuntar foto'}
@@ -170,7 +186,7 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
           <button type="button" className="secondary-btn" onClick={onClose} disabled={submitting}>
             Cancelar
           </button>
-          <button type="button" className="primary-btn" onClick={handleConfirm} disabled={submitting || !canFinalize}>
+          <button type="button" className="primary-btn" onClick={handleConfirm} disabled={!canFinalize}>
             {submitting ? 'Finalizando…' : 'Finalizar orden'}
           </button>
         </footer>
