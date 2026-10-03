@@ -183,7 +183,7 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
         </div>
 
         <footer className="modal__footer">
-          <button type="button" className="secondary-btn" onClick={onClose} disabled={submitting}>
+          <button type="button" className="secondary-btn" onClick={onClose} disabled={busy}>
             Cancelar
           </button>
           <button type="button" className="primary-btn" onClick={handleConfirm} disabled={!canFinalize}>

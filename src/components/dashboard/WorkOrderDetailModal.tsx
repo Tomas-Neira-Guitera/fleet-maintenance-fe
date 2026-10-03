@@ -392,7 +392,7 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
                         type="button"
                         className="wo-photo-gallery__remove"
                         onClick={() => handleDeletePhoto(photo.id)}
-                        disabled={pending}
+                        disabled={pending || uploadingPhoto}
                         aria-label="Borrar foto"
                       >
                         <TrashIcon width={14} height={14} />
@@ -408,7 +408,8 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
                   type="button"
                   className="secondary-btn"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingPhoto}
+                  // Subir y borrar a la vez se pisan: la subida termina con la lista de antes del borrado.
+                  disabled={uploadingPhoto || pending}
                 >
                   <CameraIcon width={14} height={14} />
                   {uploadingPhoto ? 'Subiendo…' : 'Agregar foto'}
@@ -445,8 +446,8 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
               Pasar a en proceso
             </button>
           )}
+          {/* Con una foto subiendo, el modal de finalizar abriría con la lista de fotos sin ella (CAM-74). */}
           {wo.status === 'en_proceso' && (
-            // Con una foto subiendo, el modal de finalizar abriría con la lista de fotos sin ella (CAM-74).
             <button
               type="button"
               className="primary-btn"
