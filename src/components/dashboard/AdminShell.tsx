@@ -15,6 +15,8 @@ export type AdminTab = 'resumen' | 'vehiculos' | 'planes' | 'ordenes-trabajo' | 
 
 interface AdminShellProps {
   activeTab: AdminTab;
+  /** Cambia con cada pantalla (la URL, CAM-82); al cambiar se cierra el menú. */
+  locationKey: string;
   onSelectTab: (tab: AdminTab) => void;
   onLogout: () => void;
   children: ReactNode;
@@ -28,8 +30,15 @@ const TABS: { id: AdminTab; label: string; icon: ReactNode }[] = [
   { id: 'usuarios', label: 'Usuarios', icon: <UsersIcon /> },
 ];
 
-export function AdminShell({ activeTab, onSelectTab, onLogout, children }: AdminShellProps) {
+export function AdminShell({ activeTab, locationKey, onSelectTab, onLogout, children }: AdminShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Con atrás/adelante del navegador (CAM-82) la pantalla cambia sin pasar por selectTab: el menú
+  // no tiene que quedar abierto encima de la nueva. Ajuste durante el render, sin efecto.
+  const [lastLocationKey, setLastLocationKey] = useState(locationKey);
+  if (locationKey !== lastLocationKey) {
+    setLastLocationKey(locationKey);
+    setDrawerOpen(false);
+  }
 
   function selectTab(tab: AdminTab) {
     onSelectTab(tab);
