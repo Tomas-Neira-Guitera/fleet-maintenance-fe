@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CloseIcon } from './icons';
 
 interface PhotoViewerProps {
@@ -9,11 +9,13 @@ interface PhotoViewerProps {
 
 /**
  * Foto a pantalla completa sobre la misma página, sin abrir otra pestaña (CAM-53). Se
- * cierra con la ✕, tocando el fondo o con Escape. Reutilizable: hoy lo usa la vista
- * del técnico; sirve igual para las fotos del admin y del chofer.
+ * cierra con la ✕, tocando el fondo o con Escape. Lo usan el listado de defectos, el
+ * detalle y el cierre de una OT, y la vista del técnico.
  */
 export function PhotoViewer({ src, alt, onClose }: PhotoViewerProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  // Si la foto no carga (archivo borrado, URL vieja), un mensaje en vez del ícono de imagen rota.
+  const [failed, setFailed] = useState(false);
   // En una ref para que el efecto corra una sola vez aunque el padre pase una función nueva en cada render.
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -59,7 +61,19 @@ export function PhotoViewer({ src, alt, onClose }: PhotoViewerProps) {
         <CloseIcon width={22} height={22} />
       </button>
       {/* El click en la foto no cierra: solo el fondo y la ✕. */}
-      <img src={src} alt={alt} className="photo-viewer__img" onClick={(e) => e.stopPropagation()} />
+      {failed ? (
+        <p className="photo-viewer__error" role="alert">
+          No se pudo cargar la foto.
+        </p>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          className="photo-viewer__img"
+          onClick={(e) => e.stopPropagation()}
+          onError={() => setFailed(true)}
+        />
+      )}
     </div>
   );
 }
