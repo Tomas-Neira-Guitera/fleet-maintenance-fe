@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ApiError } from '../../services/apiClient';
+import { describeApiError } from '../../services/apiClient';
 import { createUser, updateUser } from '../../services/usersService';
 import type { Role, UserSummary } from '../../types/domain';
 import { CloseIcon, EyeIcon, EyeOffIcon } from '../icons';
@@ -20,13 +20,6 @@ interface UserFormModalProps {
   isSelf: boolean;
   onClose: () => void;
   onSaved: (user: UserSummary) => void;
-}
-
-/** Junta el mensaje del backend con el detalle por campo de un 422, si vino. */
-function describeError(err: unknown, fallback: string): string {
-  if (!(err instanceof ApiError)) return fallback;
-  const details = err.details?.map((d) => d.message).filter(Boolean) ?? [];
-  return details.length > 0 ? `${err.message}: ${details.join('. ')}.` : err.message;
 }
 
 /**
@@ -64,7 +57,7 @@ export function UserFormModal({ user, isSelf, onClose, onSaved }: UserFormModalP
           : await createUser({ username: username.trim(), password, role });
       onSaved(saved);
     } catch (err) {
-      setError(describeError(err, 'No se pudo guardar el usuario. Intentá de nuevo.'));
+      setError(describeApiError(err, 'No se pudo guardar el usuario. Intentá de nuevo.'));
     } finally {
       setSubmitting(false);
     }

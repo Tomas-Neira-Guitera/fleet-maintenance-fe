@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import { ApiError } from '../../services/apiClient';
+import { ApiError, describeApiError } from '../../services/apiClient';
 import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../../services/photosService';
 import { addWorkOrderPhoto, deleteWorkOrderPhoto, updateWorkOrder } from '../../services/workOrdersService';
 import type { WorkOrder, WorkOrderSourceType } from '../../types/domain';
+import { isValidCompletedKm } from '../../utils/workOrderFormat';
 import { CameraIcon, ClipboardListIcon, ShieldCheckIcon, WrenchIcon } from '../icons';
 import { DictatedTextarea } from '../DictatedTextarea';
 import { PhotoViewer } from '../PhotoViewer';
@@ -53,8 +54,7 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
 
   // Mismo criterio que FinalizeWorkOrderModal: el km solo se pide si la OT cierra un plan de mantenimiento.
   const needsKm = wo.assignmentId != null;
-  // Entero no negativo: el backend lo recibe como Long y truncaría un decimal en silencio.
-  const kmValid = /^\d+$/.test(completedKm.trim());
+  const kmValid = isValidCompletedKm(completedKm);
   // Mientras sube o quita una foto no se puede finalizar ni salir: el backend podría ver otra
   // cantidad de fotos que la pantalla, o la lista se pediría antes de que termine.
   const busy = pending || uploadingPhoto || removingPhotoId !== null;
@@ -119,7 +119,8 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
       });
       setFinalized(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo finalizar la orden. Intentá de nuevo.');
+      // El detalle del 422 dice qué falló (ej. un km menor al del vehículo, que acá no se conoce).
+      setError(describeApiError(err, 'No se pudo finalizar la orden. Intentá de nuevo.'));
     } finally {
       setPending(false);
     }
