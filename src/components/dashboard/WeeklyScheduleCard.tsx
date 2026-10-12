@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { getSchedule } from '../../services/scheduleService';
 import type { ScheduledMaintenance } from '../../types/domain';
+import { localDateKeyOf, localDayRange, toLocalDateKey } from '../../utils/localDate';
 import { ChevronRightIcon, LayoutGridIcon } from '../icons';
 import { MonthScheduleModal } from './MonthScheduleModal';
 import { ScheduleDetailModal } from './ScheduleDetailModal';
@@ -27,11 +28,6 @@ function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
-}
-
-function toIsoDate(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 interface DayItemsProps {
@@ -97,7 +93,7 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
     let cancelled = false;
     setItems(null);
     setError(null);
-    getSchedule({ from: toIsoDate(weekStart), to: toIsoDate(addDays(weekStart, 7)) })
+    getSchedule(localDayRange(weekStart, addDays(weekStart, 7)))
       .then((data) => {
         if (!cancelled) setItems(data);
       })
@@ -111,22 +107,22 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
 
   const itemsByDay = useMemo(() => {
     const map = new Map<string, ScheduledMaintenance[]>();
-    for (const day of days) map.set(toIsoDate(day), []);
+    for (const day of days) map.set(toLocalDateKey(day), []);
     for (const item of items ?? []) {
-      const key = item.scheduledAt.slice(0, 10);
+      const key = localDateKeyOf(item.scheduledAt);
       map.get(key)?.push(item);
     }
     for (const list of map.values()) list.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
     return map;
   }, [items, days]);
 
-  const todayKey = toIsoDate(new Date());
+  const todayKey = toLocalDateKey(new Date());
   const rangeLabel = `${dayNumberFormatter.format(weekStart)} ${monthFormatter.format(weekStart)} — ${dayNumberFormatter.format(
     addDays(weekStart, 6),
   )} ${monthFormatter.format(addDays(weekStart, 6))}`;
 
   function refreshWeek() {
-    getSchedule({ from: toIsoDate(weekStart), to: toIsoDate(addDays(weekStart, 7)) })
+    getSchedule(localDayRange(weekStart, addDays(weekStart, 7)))
       .then(setItems)
       .catch(() => setError('No se pudo cargar el calendario de mantenimientos.'));
   }
@@ -171,7 +167,7 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
       {items && (
         <div className="weekly-schedule__grid">
           {days.map((day) => {
-            const key = toIsoDate(day);
+            const key = toLocalDateKey(day);
             const dayItems = itemsByDay.get(key) ?? [];
             return (
               <div key={key} className={`weekly-schedule__day${key === todayKey ? ' weekly-schedule__day--today' : ''}`}>
