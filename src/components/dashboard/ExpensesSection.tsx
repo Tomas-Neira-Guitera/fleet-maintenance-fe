@@ -37,6 +37,17 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const sum = (expenses: Expense[]) => expenses.reduce((total, expense) => total + expense.amount, 0);
 
+/** Sin mayúsculas ni acentos: "neumatico" encuentra "Neumático". */
+function normalizeText(text: string): string {
+  return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
+}
+
+/** Cada palabra buscada tiene que aparecer en la descripción, en cualquier orden. */
+function matchesSearch(expense: Expense, terms: string[]): boolean {
+  const description = normalizeText(expense.description);
+  return terms.every((term) => description.includes(term));
+}
+
 function matches(expense: Expense, filters: Filters, ignore?: keyof Filters): boolean {
   return (
     (ignore === 'vehicleId' || !filters.vehicleId || expense.vehicleId === filters.vehicleId) &&
@@ -92,6 +103,8 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
   const [error, setError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [visibleRows, setVisibleRows] = useState(TABLE_PAGE_SIZE);
+  // Búsqueda del listado: filtra solo la tabla, no los gráficos ni los totales de arriba.
+  const [search, setSearch] = useState('');
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [openingWorkOrderId, setOpeningWorkOrderId] = useState<string | null>(null);
 
@@ -247,6 +260,9 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
   }
 
   const hasFilters = Boolean(filters.vehicleId || filters.category || filters.origin);
+  const searchTerms = normalizeText(search).split(/\s+/).filter(Boolean);
+  const listed = searchTerms.length ? view.filtered.filter((expense) => matchesSearch(expense, searchTerms)) : view.filtered;
+  const listedTotal = sum(listed);
   const periodLabel = describePeriod(period);
 
   return (
@@ -443,6 +459,20 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
                     </div>
                   </div>
 
+                  <div className="expenses__list-header">
+                    <h2 className="chart-card__title">Detalle de gastos</h2>
+                    <input
+                      type="search"
+                      className="work-orders__filter expenses__search"
+                      placeholder="Buscar en la descripción"
+                      value={search}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setVisibleRows(TABLE_PAGE_SIZE);
+                      }}
+                      aria-label="Buscar gastos por descripción"
+                    />
+                  </div>
                   <div className="fleet-status__table-wrap">
                     <table className="fleet-status__table expenses__table">
                       <thead>
@@ -456,7 +486,14 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
                         </tr>
                       </thead>
                       <tbody>
-                        {view.filtered.slice(0, visibleRows).map((expense) => (
+                        {listed.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="muted expenses__no-match">
+                              Ningún gasto tiene «{search.trim()}» en la descripción.
+                            </td>
+                          </tr>
+                        )}
+                        {listed.slice(0, visibleRows).map((expense) => (
                           <tr key={expense.id}>
                             <td className="fleet-status__km">{formatShortDate(expense.date)}</td>
                             <td className="fleet-status__plate">{expense.plate ?? '—'}</td>
@@ -484,20 +521,22 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
                       <tfoot>
                         <tr>
                           <td colSpan={5}>
-                            Total de {view.filtered.length} {view.filtered.length === 1 ? 'gasto' : 'gastos'}
+                            {searchTerms.length
+                              ? `${listed.length} de ${view.filtered.length} gastos coinciden con la búsqueda`
+                              : `Total de ${listed.length} ${listed.length === 1 ? 'gasto' : 'gastos'}`}
                           </td>
-                          <td className="fleet-status__km expenses__amount-col">{currencyFormatter.format(view.total)}</td>
+                          <td className="fleet-status__km expenses__amount-col">{currencyFormatter.format(listedTotal)}</td>
                         </tr>
                       </tfoot>
                     </table>
                   </div>
-                  {view.filtered.length > visibleRows && (
+                  {listed.length > visibleRows && (
                     <button
                       type="button"
                       className="secondary-btn expenses__more"
                       onClick={() => setVisibleRows((rows) => rows + TABLE_PAGE_SIZE)}
                     >
-                      Ver {Math.min(TABLE_PAGE_SIZE, view.filtered.length - visibleRows)} más
+                      Ver {Math.min(TABLE_PAGE_SIZE, listed.length - visibleRows)} más
                     </button>
                   )}
                 </>
