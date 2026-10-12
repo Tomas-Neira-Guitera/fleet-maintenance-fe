@@ -9,6 +9,7 @@ import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import '../../styles/dashboard.css';
 import { CharCounter } from '../CharCounter';
 import { TITLE_MAX_LENGTH } from '../../utils/textLimits';
+import { localDateKeyOf, localDayRange, toLocalDateKey } from '../../utils/localDate';
 
 interface SchedulePickerModalSourceProps {
   mode?: 'source';
@@ -38,11 +39,6 @@ function defaultSuggestion(initialDate?: Date): string {
   d.setHours(9, 0, 0, 0);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function toIsoDate(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 /**
@@ -113,9 +109,12 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
     const from = new Date(day.getFullYear(), day.getMonth(), day.getDate());
     const to = new Date(from);
     to.setDate(to.getDate() + 1);
-    getSchedule({ from: toIsoDate(from), to: toIsoDate(to) })
+    getSchedule(localDayRange(from, to))
       .then((data) => {
-        if (!cancelled) setPreview(data);
+        // El backend incluye las dos puntas del rango: se descarta lo que cae justo a la medianoche
+        // del día siguiente, que no es "de ese día".
+        const dayKey = toLocalDateKey(from);
+        if (!cancelled) setPreview(data.filter((s) => localDateKeyOf(s.scheduledAt) === dayKey));
       })
       .catch(() => {
         if (!cancelled) setPreview(null);
