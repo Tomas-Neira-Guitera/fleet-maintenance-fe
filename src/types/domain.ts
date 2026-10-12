@@ -167,6 +167,36 @@ export interface UserSummary {
   active: boolean;
 }
 
+/** Actividad de un chofer en un período -- GET /api/users/stats (CAM-91). `defects` incluye los bloqueantes. */
+export interface DriverStats {
+  userId: string;
+  username: string;
+  active: boolean;
+  trips: number;
+  inspections: number;
+  defects: number;
+  blockingDefects: number;
+}
+
+/**
+ * Actividad de un técnico -- GET /api/users/stats (CAM-91). `openWorkOrders` es la foto de hoy;
+ * el resto es del período. `avgResolutionHours` es null si no finalizó ninguna OT.
+ */
+export interface TechnicianStats {
+  userId: string;
+  username: string;
+  active: boolean;
+  openWorkOrders: number;
+  finalizedWorkOrders: number;
+  avgResolutionHours: number | null;
+  expensesTotal: number;
+}
+
+export interface UserStats {
+  drivers: DriverStats[];
+  technicians: TechnicianStats[];
+}
+
 /** Respuesta de POST /api/auth/login (CAM-43). */
 export interface LoginResult {
   token: string;

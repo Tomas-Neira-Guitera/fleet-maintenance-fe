@@ -621,3 +621,137 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Sección "Usuarios" (CAM-91): listado, edición y actividad --- */
+
+.users-section__header {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+
+.users-section__actions {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.users-section__search {
+  width: 200px;
+}
+
+.users-section__name {
+  font-family: var(--fg-font-body);
+  font-weight: 500;
+}
+
+.users-section__self {
+  font-size: 13px;
+}
+
+.users-section__row--inactive td:not(:nth-child(3)) {
+  opacity: 0.6;
+}
+
+.user-form__subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.65);
+}
+
+/* Activar o desactivar: separado del resto del formulario, que edita datos. */
+.user-form__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: var(--fg-border);
+}
+
+.user-form__status-text {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.75);
+}
+
+.user-form__status-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.user-form__status-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.user-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.user-activity__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+
+.user-activity__title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 22px;
+  margin: 0;
+  color: var(--fg-text);
+}
+
+.user-activity__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: rgba(62, 74, 66, 0.65);
+}
+
+.user-activity__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.user-activity__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.user-activity__block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-activity__block + .user-activity__block {
+  padding-top: 14px;
+  border-top: var(--fg-border);
+}
+
+.user-activity__block-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+@media (max-width: 1000px) {
+  .user-activity__kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .user-activity__grid {
+    grid-template-columns: 1fr;
+  }
+}
