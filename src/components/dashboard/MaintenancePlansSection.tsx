@@ -21,6 +21,9 @@ function describeInterval(plan: Pick<MaintenancePlan, 'intervalType' | 'interval
  * PlanVehiclesModal para ver a qué vehículos se le puede asignar y asignarlo.
  * Reemplaza el flujo viejo (vehículos primero, "Ver catálogo de planes" como
  * modal aparte -- MaintenancePlanCatalogModal, ahora borrado).
+ *
+ * Un plan activo solo muestra "Editar": desactivarlo se hace desde ahí (CAM-93). Uno
+ * desactivado ("Ver desactivados") muestra "Activar" y "Eliminar".
  */
 export function MaintenancePlansSection() {
   const [plans, setPlans] = useState<MaintenancePlan[] | null>(null);
@@ -54,11 +57,11 @@ export function MaintenancePlansSection() {
     load(!showInactive);
   }
 
-  async function handleToggleActive(plan: MaintenancePlan) {
+  async function handleActivate(plan: MaintenancePlan) {
     setPendingId(plan.id);
     setError(null);
     try {
-      await updateMaintenancePlan(plan.id, { active: !plan.active });
+      await updateMaintenancePlan(plan.id, { active: true });
       load(!showInactive);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo actualizar el plan. Intentá de nuevo.');
@@ -124,7 +127,7 @@ export function MaintenancePlansSection() {
                 </p>
               </div>
               <div className="vehicle-maintenance-list__actions">
-                {p.active && (
+                {p.active ? (
                   <button
                     type="button"
                     className="secondary-btn vehicle-maintenance-list__schedule-btn"
@@ -136,21 +139,20 @@ export function MaintenancePlansSection() {
                   >
                     Editar
                   </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="vehicle-maintenance-list__icon-btn vehicle-maintenance-list__schedule-btn vehicle-maintenance-list__icon-btn--ok"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleActivate(p);
+                    }}
+                    disabled={pendingId === p.id}
+                  >
+                    <PowerIcon width={14} height={14} />
+                    Activar
+                  </button>
                 )}
-                <button
-                  type="button"
-                  className={`vehicle-maintenance-list__icon-btn vehicle-maintenance-list__schedule-btn ${
-                    p.active ? 'vehicle-maintenance-list__icon-btn--warn' : 'vehicle-maintenance-list__icon-btn--ok'
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleToggleActive(p);
-                  }}
-                  disabled={pendingId === p.id}
-                >
-                  <PowerIcon width={14} height={14} />
-                  {p.active ? 'Desactivar' : 'Activar'}
-                </button>
                 {!p.active && (
                   <button
                     type="button"

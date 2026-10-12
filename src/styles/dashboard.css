@@ -892,6 +892,24 @@
   font-size: 14px;
 }
 
+/* Acción secundaria que no es "guardar" (ej. "Desactivar plan", CAM-93): a la izquierda,
+   separada de Cancelar/Guardar. Con ícono, por eso inline-flex. */
+.modal__footer-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-right: auto;
+}
+
+/* Acción de baja en el pie de un modal: neutra como "Cancelar" y roja solo al pasar el mouse,
+   igual que "Dar de baja" en la ficha del vehículo, así no compite con "Guardar". */
+.modal__footer .modal__footer-danger:hover:not(:disabled) {
+  background: var(--fg-crit-bg);
+  border-color: var(--fg-critical);
+  color: var(--fg-critical);
+}
+
 /* Lista de mantenimientos dentro del modal de "Estado de la flota" (CAM-50). */
 
 .vehicle-maintenance-list {
