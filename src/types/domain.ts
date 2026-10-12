@@ -11,9 +11,25 @@ export interface Vehicle {
   chassisNumber?: string | null;
   odometerKm?: number;
   active?: boolean;
+  /** true si tiene un defecto bloqueante sin resolver: no puede iniciar un viaje (CAM-89). */
+  blocked?: boolean;
+  /** El viaje abierto, si está "en viaje" (CAM-87). */
+  currentTrip?: CurrentTrip | null;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
+
+/** Un usuario, por id y nombre actual. */
+export interface UserRef {
+  id: string;
+  name: string;
+}
+
+/** Viaje abierto de un vehículo. openedBy falta en viajes anteriores a CAM-87. */
+export interface CurrentTrip {
+  startedAt: string;
+  openedBy: UserRef | null;
+}
 
 export interface Trip {
   id: string;
@@ -21,6 +37,8 @@ export interface Trip {
   status: 'open' | 'closed';
   startedAt: string;
   endedAt: string | null;
+  openedBy?: UserRef | null;
+  closedBy?: UserRef | null;
 }
 
 export type ChecklistItemType = 'check' | 'number';

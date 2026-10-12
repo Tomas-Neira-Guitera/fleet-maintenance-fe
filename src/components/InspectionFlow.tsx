@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getPreTripItems, POST_TRIP_ITEMS } from '../checklist/checklistDefinitions';
-import { CURRENT_DRIVER } from '../services/apiClient';
+import { ApiError, describeApiError, getUsername, isSessionExpired, SESSION_EXPIRED_MESSAGE } from '../services/apiClient';
 import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
 import type {
@@ -13,14 +13,25 @@ import type {
 } from '../types/domain';
 import { ChecklistItemCard } from './ChecklistItemCard';
 import { HealthRing, type RingStatus } from './HealthRing';
-import { AlertOctagonIcon, ShieldCheckIcon } from './icons';
+import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, ShieldCheckIcon } from './icons';
 
 interface InspectionFlowProps {
   vehicle: Vehicle;
   type: InspectionType;
   onDone: () => void;
   onBack: () => void;
+  /** El vehículo cambió de estado mientras se cargaba la inspección: se vuelve al listado con el motivo. */
+  onUnavailable: (message: string) => void;
+  onLogout: () => void;
 }
+
+// 409 del envío: otro chofer (o el admin) cambió el estado del vehículo mientras tanto.
+const UNAVAILABLE_MESSAGES: Record<string, string> = {
+  VEHICLE_BLOCKED: 'tiene un defecto bloqueante sin resolver y no puede salir.',
+  VEHICLE_INACTIVE: 'fue dado de baja.',
+  VEHICLE_ON_TRIP: 'ya tiene un viaje abierto.',
+  NO_OPEN_TRIP: 'ya no tiene un viaje abierto: alguien lo cerró.',
+};
 
 type FlowStep = 'checklist' | 'summary' | 'success';
 
@@ -41,15 +52,19 @@ function isItemValid(def: ChecklistItemDef, state: ChecklistItemState): boolean 
   if (def.type === 'number') {
     return def.required ? Boolean(state.numberValue?.trim()) : true;
   }
-  if (!state.outcome) return false;
-  if (state.outcome === 'ok') return true;
+  if (state.outcome !== 'defect') return true;
   const defect = state.defect;
   if (!defect || !defect.description.trim()) return false;
   if (defect.severity === 'blocking' && (!defect.photoUrl || state.uploading)) return false;
   return true;
 }
 
-export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlowProps) {
+// CAM-94: los controles arrancan en OK; el chofer solo toca los que tienen un defecto.
+function initialState(def: ChecklistItemDef): ChecklistItemState {
+  return def.type === 'check' ? { outcome: 'ok' } : {};
+}
+
+export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, onLogout }: InspectionFlowProps) {
   // CAM-31: cada vehículo tiene su checklist. Si no se puede pedir, se usa la lista base: el
   // servidor ignora los ítems que no correspondan y los extras nunca son obligatorios.
   const fallbackItems = useMemo(() => (type === 'pre-trip' ? getPreTripItems() : POST_TRIP_ITEMS), [type]);
@@ -77,10 +92,16 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [hasBlockingDefect, setHasBlockingDefect] = useState(false);
+  const driverName = getUsername();
 
-  const answeredCheckCount = checkItems.filter((def) => answers[def.id]?.outcome).length;
-  const allValid = items.every((def) => isItemValid(def, answers[def.id] ?? {}));
+  function stateOf(def: ChecklistItemDef): ChecklistItemState {
+    return answers[def.id] ?? initialState(def);
+  }
+
+  const defectCount = checkItems.filter((def) => stateOf(def).outcome === 'defect').length;
+  const allValid = items.every((def) => isItemValid(def, stateOf(def)));
 
   function updateItem(id: string, next: ChecklistItemState) {
     setAnswers((prev) => ({ ...prev, [id]: next }));
@@ -97,7 +118,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
 
   const summaryData = useMemo(() => {
     const list: ChecklistAnswer[] = checkItems.map((def) => {
-      const state = answers[def.id] ?? {};
+      const state = answers[def.id] ?? initialState(def);
       return {
         itemId: def.id,
         label: def.label,
@@ -118,7 +139,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
     setSubmitting(true);
     setSubmitError(null);
     const fullAnswers: ChecklistAnswer[] = items.map((def) => {
-      const state = answers[def.id] ?? {};
+      const state = stateOf(def);
       return {
         itemId: def.id,
         label: def.label,
@@ -134,8 +155,17 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
       const { inspection } = await submitInspection(vehicle.id, type, fullAnswers, notes.trim() || undefined);
       setHasBlockingDefect(inspection.hasBlockingDefect);
       setStep('success');
-    } catch {
-      setSubmitError('No se pudo enviar la inspección. Intentá de nuevo.');
+    } catch (err) {
+      const unavailable = err instanceof ApiError && err.status === 409 && UNAVAILABLE_MESSAGES[err.errorCode ?? ''];
+      if (unavailable) {
+        // CAM-89: no tiene sentido reintentar; se avisa y se vuelve a la flota, ya actualizada.
+        onUnavailable(`No se envió la inspección: ${vehicle.plate} ${unavailable}`);
+      } else if (isSessionExpired(err)) {
+        // CAM-85: el chofer de la inspección sale del token, así que sin sesión no se puede enviar.
+        setSessionExpired(true);
+      } else {
+        setSubmitError(describeApiError(err, 'No se pudo enviar la inspección. Intentá de nuevo.'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -161,9 +191,11 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
         </div>
         <h1 className="screen__title">Inspección enviada</h1>
         <p className="screen__subtitle">
-          {type === 'pre-trip'
-            ? `El pre-viaje de ${vehicle.plate} quedó registrado. Buen viaje.`
-            : `El post-viaje de ${vehicle.plate} quedó registrado. El viaje fue cerrado.`}
+          {type === 'post-trip'
+            ? `El post-viaje de ${vehicle.plate} quedó registrado. El viaje fue cerrado.`
+            : hasBlockingDefect
+              ? `El pre-viaje de ${vehicle.plate} quedó registrado. El vehículo no sale: queda no disponible hasta que se resuelva el defecto.`
+              : `El pre-viaje de ${vehicle.plate} quedó registrado. Buen viaje.`}
         </p>
 
         {hasBlockingDefect && (
@@ -186,8 +218,8 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
         <header className="screen__header">
           <h1 className="screen__title">Resumen</h1>
           <p className="screen__subtitle vehicle-meta">
-            <span className="vehicle-meta__plate">{vehicle.plate}</span> · {CURRENT_DRIVER.name} · {dateLabel}{' '}
-            {timeLabel}
+            <span className="vehicle-meta__plate">{vehicle.plate}</span> · {driverName ? `${driverName} · ` : ''}
+            {dateLabel} {timeLabel}
           </p>
         </header>
 
@@ -221,6 +253,14 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
         </label>
 
         {submitError && <p className="error-banner">{submitError}</p>}
+        {sessionExpired && (
+          <div className="error-banner session-expired">
+            <p>{SESSION_EXPIRED_MESSAGE}</p>
+            <button type="button" className="secondary-btn" onClick={onLogout}>
+              Cerrar sesión
+            </button>
+          </div>
+        )}
 
         <div className="screen__actions">
           <button type="button" className="secondary-btn" onClick={() => setStep('checklist')} disabled={submitting}>
@@ -239,20 +279,22 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
       <header className="screen__header">
         <h1 className="screen__title">{type === 'pre-trip' ? 'Pre-viaje' : 'Post-viaje'}</h1>
         <p className="screen__subtitle vehicle-meta">
-          <span className="vehicle-meta__plate">{vehicle.plate}</span> · {CURRENT_DRIVER.name} · {dateLabel}{' '}
-          {timeLabel}
+          <span className="vehicle-meta__plate">{vehicle.plate}</span> · {driverName ? `${driverName} · ` : ''}
+          {dateLabel} {timeLabel}
         </p>
-        <div className="progress-indicator">
-          <div className="progress-indicator__bar">
-            <div
-              className="progress-indicator__fill"
-              style={{ width: `${checkItems.length ? (answeredCheckCount / checkItems.length) * 100 : 100}%` }}
-            />
-          </div>
-          <span className="progress-indicator__label">
-            {answeredCheckCount}/{checkItems.length}
+        <p className={`checklist-status${defectCount > 0 ? ' checklist-status--defects' : ''}`}>
+          {defectCount > 0 ? (
+            <AlertTriangleIcon className="checklist-status__icon" />
+          ) : (
+            <CheckCircleIcon className="checklist-status__icon" />
+          )}
+          <span className="checklist-status__text">
+            {defectCount === 0
+              ? `${checkItems.length} controles en OK`
+              : `${defectCount} de ${checkItems.length} con defecto`}
           </span>
-        </div>
+          {defectCount === 0 && <span className="checklist-status__hint">Marcá solo lo que tenga un defecto.</span>}
+        </p>
       </header>
 
       {groupBySection(items).map(([section, sectionItems]) => (
@@ -263,7 +305,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack }: InspectionFlow
               <ChecklistItemCard
                 key={def.id}
                 def={def}
-                state={answers[def.id] ?? {}}
+                state={stateOf(def)}
                 onChange={(next) => updateItem(def.id, next)}
                 showValidation={showValidation}
               />
