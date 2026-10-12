@@ -11,6 +11,7 @@ import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
 import { TechnicianShell } from './components/technician/TechnicianShell';
 import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
+import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
 import { adminPath, useAdminRoute } from './hooks/useAdminRoute';
 import { clearSession, getSession } from './services/apiClient';
@@ -48,6 +49,8 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
           <MaintenancePlansSection />
         ) : activeTab === 'ordenes-trabajo' ? (
           <WorkOrdersSection />
+        ) : activeTab === 'gastos' ? (
+          <ExpensesSection onLogout={onLogout} />
         ) : activeTab === 'usuarios' ? (
           <UsersSection onLogout={onLogout} />
         ) : (

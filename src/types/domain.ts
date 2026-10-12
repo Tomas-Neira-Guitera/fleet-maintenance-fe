@@ -295,6 +295,26 @@ export interface WorkOrderExpense {
   createdAt: string;
 }
 
+/** De dónde nació la OT de un gasto: un plan (preventivo), un defecto (correctivo) o suelta. */
+export type ExpenseOrigin = 'plan' | 'defect' | 'manual';
+
+/** Un gasto de mantenimiento con su vehículo y su OT -- GET /api/expenses (CAM-52). */
+export interface Expense {
+  id: string;
+  /** Cuándo se cargó el gasto. */
+  date: string;
+  vehicleId: string;
+  plate: string | null;
+  category: WorkOrderExpenseCategory;
+  description: string;
+  amount: number;
+  workOrderId: string;
+  workOrderTitle: string;
+  workOrderStatus: WorkOrderStatus;
+  origin: ExpenseOrigin;
+  executionType: WorkOrderExecutionType;
+}
+
 export interface WorkOrderPhoto {
   id: string;
   photoUrl: string;

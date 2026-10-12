@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import {
   ClipboardListIcon,
   CloseIcon,
+  CoinsIcon,
   LayoutGridIcon,
   LogOutIcon,
   MenuIcon,
@@ -11,7 +12,7 @@ import {
 } from '../icons';
 import '../../styles/dashboard.css';
 
-export type AdminTab = 'resumen' | 'vehiculos' | 'planes' | 'ordenes-trabajo' | 'usuarios';
+export type AdminTab = 'resumen' | 'vehiculos' | 'planes' | 'ordenes-trabajo' | 'gastos' | 'usuarios';
 
 interface AdminShellProps {
   activeTab: AdminTab;
@@ -27,6 +28,7 @@ const TABS: { id: AdminTab; label: string; icon: ReactNode }[] = [
   { id: 'vehiculos', label: 'Vehículos', icon: <TruckIcon /> },
   { id: 'planes', label: 'Planes de Mantenimiento', icon: <WrenchIcon /> },
   { id: 'ordenes-trabajo', label: 'Órdenes de trabajo', icon: <ClipboardListIcon /> },
+  { id: 'gastos', label: 'Gastos', icon: <CoinsIcon /> },
   { id: 'usuarios', label: 'Usuarios', icon: <UsersIcon /> },
 ];
 
