@@ -10,6 +10,7 @@ import {
   type UpdateWorkOrderInput,
 } from '../../services/workOrdersService';
 import type { WorkOrder, WorkOrderExecutionType, WorkOrderExpenseCategory } from '../../types/domain';
+import { EXPENSE_CATEGORY_LABEL } from '../../utils/expenseFormat';
 import { currencyFormatter } from '../../utils/maintenanceFormat';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { BuildingIcon, CameraIcon, CloseIcon, TrashIcon, WrenchIcon } from '../icons';
@@ -18,12 +19,6 @@ import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import { PhotoViewer } from '../PhotoViewer';
 import '../../styles/dashboard.css';
-
-const EXPENSE_CATEGORY_LABEL: Record<WorkOrderExpenseCategory, string> = {
-  repuesto: 'Repuesto',
-  mano_de_obra: 'Mano de obra',
-  otro: 'Otro',
-};
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' });

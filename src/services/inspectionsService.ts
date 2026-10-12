@@ -1,5 +1,5 @@
 import type { ChecklistAnswer, InspectionType, SubmitInspectionResult } from '../types/domain';
-import { API_BASE_URL, authHeaders, driverHeaders, throwApiError } from './apiClient';
+import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 interface WireAnswer {
   itemId: string;
@@ -13,7 +13,8 @@ function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
     itemId: a.itemId,
     outcome: a.outcome,
     numberValue: a.numberValue !== undefined && a.numberValue !== '' ? Number(a.numberValue) : undefined,
-    defect: a.defect
+    // CAM-94: si el chofer volvió el ítem a OK, lo que había cargado del defecto no se manda.
+    defect: a.outcome === 'defect' && a.defect
       ? {
           severity: a.defect.severity,
           description: a.defect.description.trim(),
@@ -24,6 +25,7 @@ function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
   }));
 }
 
+/** POST /api/inspections/{vehicleId} -- el chofer es el del token (CAM-85): 401 si la sesión venció. */
 export async function submitInspection(
   vehicleId: string,
   type: InspectionType,
@@ -32,7 +34,7 @@ export async function submitInspection(
 ): Promise<SubmitInspectionResult> {
   const res = await fetch(`${API_BASE_URL}/api/inspections/${vehicleId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...driverHeaders(), ...authHeaders() },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ type, answers: toWireAnswers(answers), notes }),
   });
   if (!res.ok) return throwApiError(res, 'No se pudo enviar la inspección');

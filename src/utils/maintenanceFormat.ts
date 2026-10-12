@@ -8,6 +8,14 @@ export const currencyFormatter = new Intl.NumberFormat('es-AR', {
   maximumFractionDigits: 0,
 });
 
+/** Montos largos en poco espacio: "$ 31 M", "$ 416,5 mil" (centro de una dona, eje de un gráfico). */
+export const compactCurrencyFormatter = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
 export function formatDate(iso: string): string {
   const [year, month, day] = iso.split('-');
   return `${day}/${month}/${year}`;

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { describeApiError } from '../../services/apiClient';
+import { describeApiError, saveUsername } from '../../services/apiClient';
 import { createUser, updateUser } from '../../services/usersService';
 import type { Role, UserSummary } from '../../types/domain';
-import { CloseIcon, EyeIcon, EyeOffIcon } from '../icons';
+import { CloseIcon, EyeIcon, EyeOffIcon, PowerIcon } from '../icons';
 import { ROLE_LABEL } from '../../utils/roleLabels';
 import '../../styles/dashboard.css';
 
@@ -13,19 +13,24 @@ const PASSWORD_MIN_LENGTH = 6;
 const PASSWORD_MAX_BYTES = 72;
 const utf8 = new TextEncoder();
 
+/** Misma forma canónica que usa el backend: sin espacios en los extremos ni repetidos. */
+function normalizeUsername(value: string): string {
+  return value.normalize('NFC').replace(/\s+/g, ' ').trim();
+}
+
 interface UserFormModalProps {
   /** Si viene, edita ese usuario; si no, da de alta uno nuevo. */
   user?: UserSummary;
-  /** El admin logueado edita su propio usuario: no puede quitarse el rol ADMIN. */
+  /** El admin logueado edita su propio usuario: no puede desactivarse. */
   isSelf: boolean;
   onClose: () => void;
   onSaved: (user: UserSummary) => void;
 }
 
 /**
- * Alta y edición de un usuario (CAM-23) -- POST/PATCH /api/users[/{id}]. En la edición el
- * nombre de usuario no se cambia y la contraseña es opcional (solo para resetearla).
- * Activar o desactivar se hace desde el listado, no acá.
+ * Alta y edición de un usuario (CAM-23, CAM-91) -- POST/PATCH /api/users[/{id}]. El rol se elige
+ * en el alta y después no se cambia. En la edición se puede renombrar, resetear la contraseña
+ * (opcional) y, más abajo, desactivar o reactivar.
  */
 export function UserFormModal({ user, isSelf, onClose, onSaved }: UserFormModalProps) {
   const isEdit = Boolean(user);
@@ -34,80 +39,100 @@ export function UserFormModal({ user, isSelf, onClose, onSaved }: UserFormModalP
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>(user?.role ?? 'CHOFER');
+  const [confirmingDeactivate, setConfirmingDeactivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const cleanUsername = normalizeUsername(username);
+  const renamed = isEdit && cleanUsername !== user?.username;
   const passwordTooShort = password.length > 0 && password.length < PASSWORD_MIN_LENGTH;
   const passwordTooLong = utf8.encode(password).length > PASSWORD_MAX_BYTES;
   const passwordInvalid = passwordTooShort || passwordTooLong;
   const canSubmit = isEdit
-    ? !passwordInvalid && (role !== user?.role || password.length > 0)
-    : Boolean(username.trim()) && password.length >= PASSWORD_MIN_LENGTH && !passwordTooLong;
+    ? Boolean(cleanUsername) && !passwordInvalid && (renamed || password.length > 0)
+    : Boolean(cleanUsername) && password.length >= PASSWORD_MIN_LENGTH && !passwordTooLong;
 
-  async function handleSubmit() {
+  async function run(request: () => Promise<UserSummary>) {
     setSubmitting(true);
     setError(null);
     try {
-      const saved =
-        isEdit && user
-          ? await updateUser(user.id, {
-              ...(role !== user.role ? { role } : {}),
-              ...(password ? { password } : {}),
-            })
-          : await createUser({ username: username.trim(), password, role });
+      const saved = await request();
+      // El saludo del admin sale del nombre guardado en el login: si se renombró a sí mismo, se actualiza.
+      if (isSelf) saveUsername(saved.username);
       onSaved(saved);
     } catch (err) {
       setError(describeApiError(err, 'No se pudo guardar el usuario. Intentá de nuevo.'));
+      setConfirmingDeactivate(false);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleSubmit() {
+    void run(() =>
+      isEdit && user
+        ? updateUser(user.id, {
+            ...(renamed ? { username: cleanUsername } : {}),
+            ...(password ? { password } : {}),
+          })
+        : createUser({ username: cleanUsername, password, role }),
+    );
+  }
+
+  function handleSetActive(active: boolean) {
+    if (user) void run(() => updateUser(user.id, { active }));
   }
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal modal--narrow">
         <header className="modal__header">
-          <h2 className="modal__title">{isEdit ? `Editar ${user?.username}` : 'Nuevo usuario'}</h2>
+          <div>
+            <h2 className="modal__title">{isEdit ? 'Editar usuario' : 'Nuevo usuario'}</h2>
+            {isEdit && user && (
+              <p className="user-form__subtitle">
+                {ROLE_LABEL[user.role]}
+                {!user.active && ' · Desactivado'}
+              </p>
+            )}
+          </div>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Cerrar">
             <CloseIcon width={18} height={18} />
           </button>
         </header>
 
         <div className="modal__body">
+          <label className="schedule-picker__field">
+            Nombre de usuario
+            <input
+              type="text"
+              className="schedule-picker__input"
+              value={username}
+              maxLength={USERNAME_MAX_LENGTH}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Ej: Juan Pérez"
+              autoComplete="off"
+            />
+            <span className="muted">
+              {renamed
+                ? 'Va a entrar con el nombre nuevo. Su historial pasa a mostrarse con ese nombre.'
+                : 'Es el nombre con el que entra y el que se ve en la app. Letras, números, espacios, punto, guion y guion bajo.'}
+            </span>
+          </label>
+
           {!isEdit && (
             <label className="schedule-picker__field">
-              Usuario
-              <input
-                type="text"
-                className="schedule-picker__input"
-                value={username}
-                maxLength={USERNAME_MAX_LENGTH}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Ej: Juan Pérez"
-                autoComplete="off"
-              />
-              <span className="muted">
-                Es el nombre con el que entra y el que se ve en la app. Letras, números, espacios, punto, guion y guion bajo.
-              </span>
+              Rol
+              <select className="schedule-picker__input" value={role} onChange={(e) => setRole(e.target.value as Role)}>
+                {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
+              </select>
+              <span className="muted">Elegilo bien: después no se puede cambiar.</span>
             </label>
           )}
-
-          <label className="schedule-picker__field">
-            Rol
-            <select
-              className="schedule-picker__input"
-              value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
-              disabled={isSelf}
-            >
-              {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABEL[r]}
-                </option>
-              ))}
-            </select>
-            {isSelf && <span className="muted">No podés quitarte el rol de administrador.</span>}
-          </label>
 
           <div className="schedule-picker__field">
             <label htmlFor="user-form-password">{isEdit ? 'Nueva contraseña (opcional)' : 'Contraseña inicial'}</label>
@@ -140,6 +165,68 @@ export function UserFormModal({ user, isSelf, onClose, onSaved }: UserFormModalP
           </div>
 
           {error && <p className="error-banner">{error}</p>}
+
+          {/* CAM-91: activar o desactivar vive acá, aparte de los datos, y pide confirmación. */}
+          {isEdit && user && !isSelf && (
+            <div className="user-form__status">
+              {user.active ? (
+                confirmingDeactivate ? (
+                  <>
+                    <p className="user-form__status-text">
+                      ¿Desactivar a <strong>{user.username}</strong>? No va a poder iniciar sesión.
+                    </p>
+                    <div className="user-form__status-actions">
+                      <button
+                        type="button"
+                        className="secondary-btn user-form__status-btn"
+                        onClick={() => setConfirmingDeactivate(false)}
+                        disabled={submitting}
+                      >
+                        No, volver
+                      </button>
+                      <button
+                        type="button"
+                        className="vehicle-maintenance-list__icon-btn vehicle-maintenance-list__icon-btn--warn user-form__status-btn"
+                        onClick={() => handleSetActive(false)}
+                        disabled={submitting}
+                      >
+                        <PowerIcon width={14} height={14} />
+                        Sí, desactivar
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="user-form__status-text">
+                      Un usuario desactivado no puede iniciar sesión. Su historial se conserva.
+                    </p>
+                    <button
+                      type="button"
+                      className="vehicle-maintenance-list__icon-btn vehicle-maintenance-list__icon-btn--warn user-form__status-btn"
+                      onClick={() => setConfirmingDeactivate(true)}
+                      disabled={submitting}
+                    >
+                      <PowerIcon width={14} height={14} />
+                      Desactivar usuario
+                    </button>
+                  </>
+                )
+              ) : (
+                <>
+                  <p className="user-form__status-text">Está desactivado: no puede iniciar sesión.</p>
+                  <button
+                    type="button"
+                    className="vehicle-maintenance-list__icon-btn vehicle-maintenance-list__icon-btn--ok user-form__status-btn"
+                    onClick={() => handleSetActive(true)}
+                    disabled={submitting}
+                  >
+                    <PowerIcon width={14} height={14} />
+                    Reactivar usuario
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <footer className="modal__footer">

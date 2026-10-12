@@ -13,6 +13,13 @@
   --fg-border-color: rgba(62, 74, 66, 0.14);
   --fg-border: 1px solid var(--fg-border-color);
 
+  /* Series de los gráficos (CAM-52, CAM-91): identifican categorías, no estados. Verde, ámbar y
+     rojo quedan reservados para "ok / atención / crítico". Trío validado para daltonismo. */
+  --fg-chart-1: #4768A5;
+  --fg-chart-2: #179FA5;
+  --fg-chart-3: #843C5B;
+  --fg-chart-track: rgba(62, 74, 66, 0.08);
+
   --fg-font-display: 'Space Grotesk', system-ui, sans-serif;
   --fg-font-body: 'Inter', system-ui, sans-serif;
   --fg-font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;

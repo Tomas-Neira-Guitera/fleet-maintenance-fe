@@ -11,6 +11,7 @@ import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
 import { TechnicianShell } from './components/technician/TechnicianShell';
 import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
+import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
 import { adminPath, useAdminRoute } from './hooks/useAdminRoute';
 import { clearSession, getSession } from './services/apiClient';
@@ -48,6 +49,8 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
           <MaintenancePlansSection />
         ) : activeTab === 'ordenes-trabajo' ? (
           <WorkOrdersSection />
+        ) : activeTab === 'gastos' ? (
+          <ExpensesSection onLogout={onLogout} />
         ) : activeTab === 'usuarios' ? (
           <UsersSection onLogout={onLogout} />
         ) : (
@@ -62,6 +65,8 @@ function App() {
   const [role, setRole] = useState<Role | null>(() => getSession()?.role ?? null);
   const [route, setRoute] = useState<Route>({ view: 'list' });
   const [listKey, setListKey] = useState(0);
+  // Por qué el chofer volvió a la flota sin poder enviar la inspección (CAM-89).
+  const [listNotice, setListNotice] = useState<string | null>(null);
 
   // Sin sesión se deja la URL como está: si era el link a un vehículo, el admin cae ahí al
   // loguearse. El chofer y el técnico no tienen rutas, así que no se quedan con una del admin.
@@ -81,13 +86,21 @@ function App() {
     // El próximo que entre arranca de cero, no en la última pantalla del admin anterior.
     window.history.replaceState(null, '', '/');
     setRole(null);
+    setListNotice(null);
     setRoute({ view: 'list' });
   }
 
   function handleSelectVehicle(vehicle: Vehicle) {
     // Decisión de producto (CAM-11): un vehículo con viaje abierto solo puede cerrarlo (post-viaje).
     const type: InspectionType = vehicle.status === 'on-trip' ? 'post-trip' : 'pre-trip';
+    setListNotice(null);
     setRoute({ view: 'flow', vehicle, type });
+  }
+
+  function handleFlowUnavailable(message: string) {
+    setListNotice(message);
+    setListKey((k) => k + 1);
+    setRoute({ view: 'list' });
   }
 
   function handleFlowDone() {
@@ -128,9 +141,18 @@ function App() {
           </button>
         </nav>
       )}
-      {route.view === 'list' && <VehicleList key={listKey} onSelectVehicle={handleSelectVehicle} />}
+      {route.view === 'list' && (
+        <VehicleList key={listKey} onSelectVehicle={handleSelectVehicle} notice={listNotice} />
+      )}
       {route.view === 'flow' && (
-        <InspectionFlow vehicle={route.vehicle} type={route.type} onDone={handleFlowDone} onBack={handleFlowBack} />
+        <InspectionFlow
+          vehicle={route.vehicle}
+          type={route.type}
+          onDone={handleFlowDone}
+          onBack={handleFlowBack}
+          onUnavailable={handleFlowUnavailable}
+          onLogout={handleLogout}
+        />
       )}
     </main>
   );

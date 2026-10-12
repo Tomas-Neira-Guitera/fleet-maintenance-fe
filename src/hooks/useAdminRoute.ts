@@ -15,6 +15,7 @@ const TAB_PATHS: Record<AdminTab, string> = {
   vehiculos: '/vehiculos',
   planes: '/planes',
   'ordenes-trabajo': '/ordenes-trabajo',
+  gastos: '/gastos',
   usuarios: '/usuarios',
 };
 
