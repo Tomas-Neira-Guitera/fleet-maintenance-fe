@@ -11,9 +11,25 @@ export interface Vehicle {
   chassisNumber?: string | null;
   odometerKm?: number;
   active?: boolean;
+  /** true si tiene un defecto bloqueante sin resolver: no puede iniciar un viaje (CAM-89). */
+  blocked?: boolean;
+  /** El viaje abierto, si está "en viaje" (CAM-87). */
+  currentTrip?: CurrentTrip | null;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
+
+/** Un usuario, por id y nombre actual. */
+export interface UserRef {
+  id: string;
+  name: string;
+}
+
+/** Viaje abierto de un vehículo. openedBy falta en viajes anteriores a CAM-87. */
+export interface CurrentTrip {
+  startedAt: string;
+  openedBy: UserRef | null;
+}
 
 export interface Trip {
   id: string;
@@ -21,6 +37,8 @@ export interface Trip {
   status: 'open' | 'closed';
   startedAt: string;
   endedAt: string | null;
+  openedBy?: UserRef | null;
+  closedBy?: UserRef | null;
 }
 
 export type ChecklistItemType = 'check' | 'number';
@@ -149,6 +167,36 @@ export interface UserSummary {
   active: boolean;
 }
 
+/** Actividad de un chofer en un período -- GET /api/users/stats (CAM-91). `defects` incluye los bloqueantes. */
+export interface DriverStats {
+  userId: string;
+  username: string;
+  active: boolean;
+  trips: number;
+  inspections: number;
+  defects: number;
+  blockingDefects: number;
+}
+
+/**
+ * Actividad de un técnico -- GET /api/users/stats (CAM-91). `openWorkOrders` es la foto de hoy;
+ * el resto es del período. `avgResolutionHours` es null si no finalizó ninguna OT.
+ */
+export interface TechnicianStats {
+  userId: string;
+  username: string;
+  active: boolean;
+  openWorkOrders: number;
+  finalizedWorkOrders: number;
+  avgResolutionHours: number | null;
+  expensesTotal: number;
+}
+
+export interface UserStats {
+  drivers: DriverStats[];
+  technicians: TechnicianStats[];
+}
+
 /** Respuesta de POST /api/auth/login (CAM-43). */
 export interface LoginResult {
   token: string;
@@ -275,6 +323,26 @@ export interface WorkOrderExpense {
   description: string;
   amount: number;
   createdAt: string;
+}
+
+/** De dónde nació la OT de un gasto: un plan (preventivo), un defecto (correctivo) o suelta. */
+export type ExpenseOrigin = 'plan' | 'defect' | 'manual';
+
+/** Un gasto de mantenimiento con su vehículo y su OT -- GET /api/expenses (CAM-52). */
+export interface Expense {
+  id: string;
+  /** Cuándo se cargó el gasto. */
+  date: string;
+  vehicleId: string;
+  plate: string | null;
+  category: WorkOrderExpenseCategory;
+  description: string;
+  amount: number;
+  workOrderId: string;
+  workOrderTitle: string;
+  workOrderStatus: WorkOrderStatus;
+  origin: ExpenseOrigin;
+  executionType: WorkOrderExecutionType;
 }
 
 export interface WorkOrderPhoto {
