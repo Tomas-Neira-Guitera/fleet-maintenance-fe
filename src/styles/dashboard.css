@@ -892,6 +892,24 @@
   font-size: 14px;
 }
 
+/* Acción secundaria que no es "guardar" (ej. "Desactivar plan", CAM-93): a la izquierda,
+   separada de Cancelar/Guardar. Con ícono, por eso inline-flex. */
+.modal__footer-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-right: auto;
+}
+
+/* Acción de baja en el pie de un modal: neutra como "Cancelar" y roja solo al pasar el mouse,
+   igual que "Dar de baja" en la ficha del vehículo, así no compite con "Guardar". */
+.modal__footer .modal__footer-danger:hover:not(:disabled) {
+  background: var(--fg-crit-bg);
+  border-color: var(--fg-critical);
+  color: var(--fg-critical);
+}
+
 /* Lista de mantenimientos dentro del modal de "Estado de la flota" (CAM-50). */
 
 .vehicle-maintenance-list {
@@ -1731,6 +1749,24 @@
   background: var(--fg-white);
   color: var(--fg-text);
   font-size: 13px;
+}
+
+/* CAM-92: con cuatro filtros, la barra no entra al lado del título en pantallas medianas. En vez de
+   aplastar el título y cortar "+ Nueva orden", pasa a un segundo renglón, alineada a la derecha. */
+.work-orders__header {
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+
+.work-orders__filters {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.work-orders__header .fleet-status__title {
+  white-space: nowrap;
 }
 
 .work-orders__row {

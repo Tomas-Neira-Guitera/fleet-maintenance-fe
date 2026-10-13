@@ -49,7 +49,7 @@ export function DictatedTextarea({ id, value, onChange, maxLength, rows = 3, pla
             aria-pressed={listening}
           >
             {listening ? <StopIcon width={18} height={18} /> : <MicIcon width={18} height={18} />}
-            {listening ? 'Terminar' : 'Dictar'}
+            {listening ? 'Detener' : 'Dictar'}
           </button>
         )}
         {maxLength && (

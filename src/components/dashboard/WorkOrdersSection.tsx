@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { isSessionExpired, SESSION_EXPIRED_MESSAGE } from '../../services/apiClient';
 import { getUsers } from '../../services/usersService';
 import { getVehicles } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
 import type { UserSummary, Vehicle, WorkOrder, WorkOrderStatus } from '../../types/domain';
 import { currencyFormatter } from '../../utils/maintenanceFormat';
+import { isInPeriod, presetPeriod, type Period } from '../../utils/period';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { BuildingIcon, WrenchIcon } from '../icons';
 import { CreateWorkOrderModal } from './CreateWorkOrderModal';
+import { PeriodFilter } from './PeriodFilter';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import '../../styles/dashboard.css';
@@ -25,8 +27,12 @@ function formatDateTime(iso: string): string {
 }
 
 /**
- * Sección "Órdenes de trabajo" (CAM-63): listado con filtros por vehículo/estado,
- * creación manual, y detalle con gastos/fotos. Mismo molde que VehiclesSection.
+ * Sección "Órdenes de trabajo" (CAM-63): listado con filtros por vehículo/estado/técnico y por fecha
+ * de creación (CAM-92), creación manual, y detalle con gastos/fotos. Mismo molde que VehiclesSection.
+ *
+ * El filtro por fecha es el mismo PeriodFilter de Gastos y Usuarios, con "Todas las fechas" de más.
+ * Se aplica sobre la lista ya cargada (GET /api/work-orders no filtra por fecha): los demás filtros
+ * van al backend, este no.
  */
 export function WorkOrdersSection() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[] | null>(null);
@@ -36,6 +42,8 @@ export function WorkOrdersSection() {
   const [vehicleFilter, setVehicleFilter] = useState('');
   const [technicians, setTechnicians] = useState<UserSummary[] | null>(null);
   const [technicianFilter, setTechnicianFilter] = useState('');
+  // Período de creación; null = todas las fechas.
+  const [period, setPeriod] = useState<Period | null>(null);
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<WorkOrder | null>(null);
   const mountedRef = useRef(true);
@@ -83,6 +91,14 @@ export function WorkOrdersSection() {
       });
   }, []);
 
+  const visibleWorkOrders = useMemo(() => {
+    if (!workOrders || !period) return workOrders;
+    // Un atajo se recalcula con cada recarga de la lista: si la pestaña quedó abierta y cambió el día
+    // o el mes, "Este mes" no se queda con el anterior. Un rango a mano se usa tal cual.
+    const active = period.preset === 'custom' ? period : presetPeriod(period.preset);
+    return workOrders.filter((wo) => isInPeriod(wo.createdAt, active));
+  }, [workOrders, period]);
+
   function handleCreated() {
     setCreating(false);
     load();
@@ -95,9 +111,9 @@ export function WorkOrdersSection() {
 
   return (
     <section className="fleet-status vehicles-section">
-      <header className="fleet-status__header">
+      <header className="fleet-status__header work-orders__header">
         <h1 className="fleet-status__title">Órdenes de trabajo</h1>
-        <div className="vehicles-section__header-actions">
+        <div className="vehicles-section__header-actions work-orders__filters">
           <select
             className="work-orders__filter"
             value={statusFilter}
@@ -136,6 +152,7 @@ export function WorkOrdersSection() {
               </option>
             ))}
           </select>
+          <PeriodFilter period={period} onChange={setPeriod} allLabel="Todas las fechas" label="Creadas:" />
           <button type="button" className="primary-btn vehicles-section__new-btn" onClick={() => setCreating(true)}>
             + Nueva orden
           </button>
@@ -144,9 +161,11 @@ export function WorkOrdersSection() {
 
       {error && <p className="error-banner">{error}</p>}
       {!workOrders && !error && <p className="muted">Cargando órdenes de trabajo…</p>}
-      {workOrders && workOrders.length === 0 && <p className="muted">No hay órdenes de trabajo con estos filtros.</p>}
+      {visibleWorkOrders && visibleWorkOrders.length === 0 && (
+        <p className="muted">No hay órdenes de trabajo con estos filtros.</p>
+      )}
 
-      {workOrders && workOrders.length > 0 && (
+      {visibleWorkOrders && visibleWorkOrders.length > 0 && (
         <div className="fleet-status__table-wrap">
           <table className="fleet-status__table">
             <thead>
@@ -161,7 +180,7 @@ export function WorkOrdersSection() {
               </tr>
             </thead>
             <tbody>
-              {workOrders.map((wo) => (
+              {visibleWorkOrders.map((wo) => (
                 <tr key={wo.id} className="work-orders__row" onClick={() => setSelected(wo)}>
                   <td className="fleet-status__plate">{wo.plate ?? '—'}</td>
                   <td>

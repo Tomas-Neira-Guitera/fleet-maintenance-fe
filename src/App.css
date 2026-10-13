@@ -568,6 +568,8 @@
   background: var(--fg-white);
 }
 
+/* CAM-84: mismo color que el botón de dictado (.dictate-btn), así la foto -- obligatoria en un
+   defecto bloqueante -- no queda con menos peso visual que el dictado, que es opcional. */
 .photo-attach-btn {
   display: flex;
   align-items: center;
@@ -575,11 +577,12 @@
   gap: 8px;
   min-height: 44px;
   border-radius: 10px;
-  border: 1px dashed var(--fg-border-color);
-  background: var(--fg-white);
+  border: 1px solid var(--fg-text);
+  background: var(--fg-text);
   font-weight: 600;
   font-size: 14px;
-  color: var(--fg-text);
+  color: var(--fg-white);
+  cursor: pointer;
 }
 
 .photo-attach-btn__icon {
@@ -1016,6 +1019,7 @@
   margin-left: auto;
 }
 
+/* CAM-84: con el color del botón principal (y no blanco) para que el chofer lo vea de un vistazo. */
 .dictate-btn {
   display: inline-flex;
   align-items: center;
@@ -1023,9 +1027,9 @@
   min-height: 44px;
   padding: 0 18px;
   border-radius: 999px;
-  border: var(--fg-border);
-  background: var(--fg-white);
-  color: var(--fg-text);
+  border: 1px solid var(--fg-text);
+  background: var(--fg-text);
+  color: var(--fg-white);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
