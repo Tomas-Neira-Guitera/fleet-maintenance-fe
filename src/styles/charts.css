@@ -390,6 +390,13 @@
   color: rgba(62, 74, 66, 0.6);
 }
 
+/* Texto opcional delante del select (ej. "Creadas:" en Órdenes de trabajo, CAM-92). */
+.period-filter__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
 .period-filter__date--invalid {
   border-color: var(--fg-critical);
 }

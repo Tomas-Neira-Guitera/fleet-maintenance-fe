@@ -4,11 +4,12 @@ import { getUsers } from '../../services/usersService';
 import { getVehicles } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
 import type { UserSummary, Vehicle, WorkOrder, WorkOrderStatus } from '../../types/domain';
-import { parseLocalDateInput, presetPeriod, toLocalDateKey, type PeriodPreset } from '../../utils/localDate';
 import { currencyFormatter } from '../../utils/maintenanceFormat';
+import { isInPeriod, presetPeriod, type Period } from '../../utils/period';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { BuildingIcon, WrenchIcon } from '../icons';
 import { CreateWorkOrderModal } from './CreateWorkOrderModal';
+import { PeriodFilter } from './PeriodFilter';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import '../../styles/dashboard.css';
@@ -21,16 +22,6 @@ const STATUS_FILTERS: { value: WorkOrderStatus | ''; label: string }[] = [
   { value: 'cancelada', label: 'Cancelada' },
 ];
 
-type DateFilter = '' | PeriodPreset | 'custom';
-
-const DATE_FILTERS: { value: DateFilter; label: string }[] = [
-  { value: '', label: 'Creadas: todas' },
-  { value: 'month', label: 'Creadas este mes' },
-  { value: 'quarter', label: 'Creadas últimos 3 meses' },
-  { value: 'year', label: 'Creadas este año' },
-  { value: 'custom', label: 'Creadas entre fechas…' },
-];
-
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
@@ -39,8 +30,9 @@ function formatDateTime(iso: string): string {
  * Sección "Órdenes de trabajo" (CAM-63): listado con filtros por vehículo/estado/técnico y por fecha
  * de creación (CAM-92), creación manual, y detalle con gastos/fotos. Mismo molde que VehiclesSection.
  *
- * El filtro por fecha se aplica sobre la lista ya cargada (GET /api/work-orders no filtra por
- * fecha): los demás filtros van al backend, este no.
+ * El filtro por fecha es el mismo PeriodFilter de Gastos y Usuarios, con "Todas las fechas" de más.
+ * Se aplica sobre la lista ya cargada (GET /api/work-orders no filtra por fecha): los demás filtros
+ * van al backend, este no.
  */
 export function WorkOrdersSection() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[] | null>(null);
@@ -50,10 +42,8 @@ export function WorkOrdersSection() {
   const [vehicleFilter, setVehicleFilter] = useState('');
   const [technicians, setTechnicians] = useState<UserSummary[] | null>(null);
   const [technicianFilter, setTechnicianFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('');
-  // "Entre fechas" arranca con el mes en curso hasta hoy, así filtra algo apenas se elige.
-  const [customFrom, setCustomFrom] = useState(() => toLocalDateKey(presetPeriod('month').from));
-  const [customTo, setCustomTo] = useState(() => toLocalDateKey(new Date()));
+  // Período de creación; null = todas las fechas.
+  const [period, setPeriod] = useState<Period | null>(null);
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<WorkOrder | null>(null);
   const mountedRef = useRef(true);
@@ -101,29 +91,13 @@ export function WorkOrdersSection() {
       });
   }, []);
 
-  // [from, to) en hora local; null si no hay filtro de fecha o el rango a mano no es válido
-  // (incompleto o al revés): en ese caso no se filtra por fecha.
-  const datePeriod = useMemo(() => {
-    if (dateFilter === '') return null;
-    if (dateFilter !== 'custom') return presetPeriod(dateFilter);
-    const from = parseLocalDateInput(customFrom);
-    const lastDay = parseLocalDateInput(customTo);
-    if (!from || !lastDay || lastDay < from) return null;
-    const to = new Date(lastDay);
-    to.setDate(to.getDate() + 1); // "hasta" incluye ese día completo
-    return { from, to };
-    // workOrders: cada recarga recalcula "ahora", así un atajo no queda viejo si cambió el día o el mes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateFilter, customFrom, customTo, workOrders]);
-  const customRangeReversed = dateFilter === 'custom' && customFrom !== '' && customTo !== '' && customTo < customFrom;
-
   const visibleWorkOrders = useMemo(() => {
-    if (!workOrders || !datePeriod) return workOrders;
-    return workOrders.filter((wo) => {
-      const created = new Date(wo.createdAt);
-      return created >= datePeriod.from && created < datePeriod.to;
-    });
-  }, [workOrders, datePeriod]);
+    if (!workOrders || !period) return workOrders;
+    // Un atajo se recalcula con cada recarga de la lista: si la pestaña quedó abierta y cambió el día
+    // o el mes, "Este mes" no se queda con el anterior. Un rango a mano se usa tal cual.
+    const active = period.preset === 'custom' ? period : presetPeriod(period.preset);
+    return workOrders.filter((wo) => isInPeriod(wo.createdAt, active));
+  }, [workOrders, period]);
 
   function handleCreated() {
     setCreating(false);
@@ -178,49 +152,12 @@ export function WorkOrdersSection() {
               </option>
             ))}
           </select>
-          <select
-            className="work-orders__filter"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-            aria-label="Fecha de creación"
-          >
-            {DATE_FILTERS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </select>
+          <PeriodFilter period={period} onChange={setPeriod} allLabel="Todas las fechas" label="Creadas:" />
           <button type="button" className="primary-btn vehicles-section__new-btn" onClick={() => setCreating(true)}>
             + Nueva orden
           </button>
         </div>
       </header>
-
-      {dateFilter === 'custom' && (
-        <div className="work-orders__date-range">
-          <label>
-            Creadas desde
-            <input
-              type="date"
-              className="work-orders__filter"
-              value={customFrom}
-              max={customTo || undefined}
-              onChange={(e) => setCustomFrom(e.target.value)}
-            />
-          </label>
-          <label>
-            hasta
-            <input
-              type="date"
-              className="work-orders__filter"
-              value={customTo}
-              min={customFrom || undefined}
-              onChange={(e) => setCustomTo(e.target.value)}
-            />
-          </label>
-          {customRangeReversed && <span className="field-error">La fecha "desde" es posterior a "hasta".</span>}
-        </div>
-      )}
 
       {error && <p className="error-banner">{error}</p>}
       {!workOrders && !error && <p className="muted">Cargando órdenes de trabajo…</p>}
