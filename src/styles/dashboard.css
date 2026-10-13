@@ -1769,24 +1769,6 @@
   white-space: nowrap;
 }
 
-/* CAM-92: rango a mano del filtro de fecha, debajo de la barra de filtros (que ya no tiene lugar). */
-.work-orders__date-range {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: var(--fg-text);
-}
-
-.work-orders__date-range label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .work-orders__row {
   cursor: pointer;
 }
