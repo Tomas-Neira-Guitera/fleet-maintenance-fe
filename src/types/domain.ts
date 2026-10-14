@@ -345,6 +345,20 @@ export interface Expense {
   executionType: WorkOrderExecutionType;
 }
 
+/**
+ * Costo de mantenimiento de un vehículo -- GET /api/vehicles/{id}/costs (CAM-105). firstKnownKm,
+ * kmDriven y costPerKm vienen en null cuando no hay km suficientes para calcularlos.
+ */
+export interface VehicleCosts {
+  totalAmount: number;
+  last12MonthsAmount: number;
+  expenseCount: number;
+  currentKm: number;
+  firstKnownKm: number | null;
+  kmDriven: number | null;
+  costPerKm: number | null;
+}
+
 export interface WorkOrderPhoto {
   id: string;
   photoUrl: string;
