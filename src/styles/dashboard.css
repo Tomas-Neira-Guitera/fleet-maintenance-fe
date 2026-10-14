@@ -2213,6 +2213,86 @@
   min-height: 40px;
 }
 
+/* Comprobante del gasto (CAM-107): segundo renglón del formulario, a todo el ancho. Número y foto,
+   los dos opcionales; en el celular la foto baja abajo del número. */
+.wo-expense-form__receipt {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.wo-expense-form__receipt-number {
+  min-height: 40px;
+  width: 240px;
+  max-width: 100%;
+}
+
+.wo-expense-form__receipt-photo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+
+.wo-expense-form__receipt-add,
+.wo-expense-form__receipt-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.wo-expense-form__receipt-add:disabled,
+.wo-expense-form__receipt-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wo-expense-form__receipt-thumb {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: var(--fg-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--fg-white);
+  cursor: zoom-in;
+  flex-shrink: 0;
+}
+
+.wo-expense-form__receipt-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wo-expense-form__receipt-label {
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.wo-expense-list__receipt {
+  flex-shrink: 0;
+}
+
+.wo-expense-list__receipt-number {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
 /* Galería de fotos de una OT (CAM-14). */
 
 .wo-photo-gallery {
@@ -2265,6 +2345,15 @@
 @media (max-width: 640px) {
   .wo-expense-form {
     grid-template-columns: 1fr;
+  }
+
+  /* En una sola columna, "Agregar" va después del comprobante: que se adjunte antes de guardar (CAM-107). */
+  .wo-expense-form__submit {
+    order: 1;
+  }
+
+  .wo-expense-form__receipt-number {
+    width: 100%;
   }
 }
 

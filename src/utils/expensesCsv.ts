@@ -11,7 +11,17 @@ const SEPARATOR = ';';
 const NEWLINE = '\r\n';
 const BOM = '\uFEFF';
 
-const HEADERS = ['Fecha', 'Patente', 'Orden de trabajo', 'Origen', 'Realizado por', 'Categoría', 'Descripción', 'Monto'];
+const HEADERS = [
+  'Fecha',
+  'Patente',
+  'Orden de trabajo',
+  'Origen',
+  'Realizado por',
+  'Categoría',
+  'Descripción',
+  'N° de comprobante',
+  'Monto',
+];
 
 /**
  * Un campo listo para el CSV. Entre comillas si trae separador, comillas o salto de línea (las
@@ -21,6 +31,19 @@ const HEADERS = ['Fecha', 'Patente', 'Orden de trabajo', 'Origen', 'Realizado po
 export function csvField(value: string): string {
   const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
   return /[";\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
+/**
+ * N° de comprobante (CAM-107). Siempre como texto para Excel: si no, se come los ceros de "00012345",
+ * pasa a notación científica un número de más de 15 dígitos y convierte "3/4" en fecha. Va como
+ * ="…" (las comillas internas, duplicadas), que Excel muestra tal cual y no puede ejecutar nada:
+ * todo queda adentro de un texto. Y como el campo lleva comillas, se cita entero como pide RFC 4180,
+ * así lo leen bien también los lectores estrictos. No pasa por csvField: el ' que agrega se vería.
+ */
+function receiptNumberField(receiptNumber: string | null): string {
+  if (!receiptNumber) return '';
+  const formula = `="${receiptNumber.replace(/"/g, '""')}"`;
+  return `"${formula.replace(/"/g, '""')}"`;
 }
 
 /** Monto con coma decimal y sin separador de miles, para que Excel lo tome como número. */
@@ -40,7 +63,7 @@ export function buildExpensesCsv(expenses: Expense[]): string {
       expense.description,
     ]
       .map(csvField)
-      .concat(formatAmount(expense.amount))
+      .concat(receiptNumberField(expense.receiptNumber), formatAmount(expense.amount))
       .join(SEPARATOR),
   );
   return BOM + [HEADERS.map(csvField).join(SEPARATOR), ...rows].join(NEWLINE) + NEWLINE;

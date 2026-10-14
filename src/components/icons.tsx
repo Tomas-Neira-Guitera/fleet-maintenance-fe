@@ -238,6 +238,18 @@ export function CoinsIcon(props: IconProps) {
   );
 }
 
+/** Ticket o factura: el comprobante de un gasto (CAM-107). */
+export function ReceiptIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+      <path d="M8 8h8" />
+      <path d="M8 12h8" />
+      <path d="M8 16h5" />
+    </svg>
+  );
+}
+
 export function BuildingIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

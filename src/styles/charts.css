@@ -627,6 +627,28 @@
   white-space: nowrap;
 }
 
+/* La descripción se corta con "…", pero el ícono del comprobante (CAM-107) siempre se ve. */
+.expenses__description-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.expenses__description-cell .expenses__description {
+  min-width: 0;
+}
+
+.expenses__receipt {
+  flex-shrink: 0;
+}
+
+.expenses__receipt-number {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
 /* Link a la OT del gasto: es un botón (abre el detalle en un modal), con aspecto de link. */
 .expenses__wo-link {
   max-width: 240px;
