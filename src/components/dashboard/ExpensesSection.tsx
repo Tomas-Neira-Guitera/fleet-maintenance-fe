@@ -6,10 +6,12 @@ import { getWorkOrder } from '../../services/workOrdersService';
 import type { Expense, ExpenseOrigin, Vehicle, WorkOrder, WorkOrderExpenseCategory } from '../../types/domain';
 import { formatShortDate } from '../../utils/dateFormat';
 import { EXPENSE_CATEGORY_LABEL, EXPENSE_ORIGIN_LABEL } from '../../utils/expenseFormat';
+import { buildExpensesCsv, downloadCsv } from '../../utils/expensesCsv';
 import { compactCurrencyFormatter, currencyFormatter } from '../../utils/maintenanceFormat';
 import {
   customPeriod,
   describePeriod,
+  lastDayOf,
   periodParams,
   presetPeriod,
   toDateInputValue,
@@ -296,6 +298,25 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
   const listedTotal = sum(listed);
   const periodLabel = describePeriod(period);
 
+  /**
+   * CAM-108: el CSV trae exactamente las filas del listado, con todos los filtros y la búsqueda.
+   * El nombre dice el período y, si hay un vehículo elegido, su patente.
+   */
+  function exportCsv() {
+    // Saneada antes de decidir si va: un vehículo sin patente figura como "—" y quedaría vacía.
+    const plate = filters.vehicleId
+      ? (vehicleOptions.find(([id]) => id === filters.vehicleId)?.[1] ?? '').replace(/[^A-Za-z0-9]/g, '')
+      : '';
+    const name = [
+      'gastos',
+      toDateInputValue(period.from),
+      'al',
+      toDateInputValue(lastDayOf(period)),
+      ...(plate ? [plate] : []),
+    ].join('_');
+    downloadCsv(`${name}.csv`, buildExpensesCsv(listed));
+  }
+
   return (
     <section className="fleet-status vehicles-section expenses">
       <header className="fleet-status__header expenses__header">
@@ -492,17 +513,28 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
 
                   <div className="expenses__list-header">
                     <h2 className="chart-card__title">Detalle de gastos</h2>
-                    <input
-                      type="search"
-                      className="work-orders__filter expenses__search"
-                      placeholder="Buscar en la descripción"
-                      value={search}
-                      onChange={(e) => {
-                        setSearch(e.target.value);
-                        setVisibleRows(TABLE_PAGE_SIZE);
-                      }}
-                      aria-label="Buscar gastos por descripción"
-                    />
+                    <div className="expenses__list-actions">
+                      <input
+                        type="search"
+                        className="work-orders__filter expenses__search"
+                        placeholder="Buscar en la descripción"
+                        value={search}
+                        onChange={(e) => {
+                          setSearch(e.target.value);
+                          setVisibleRows(TABLE_PAGE_SIZE);
+                        }}
+                        aria-label="Buscar gastos por descripción"
+                      />
+                      <button
+                        type="button"
+                        className="secondary-btn expenses__export"
+                        onClick={exportCsv}
+                        disabled={listed.length === 0}
+                        title={`Descarga los ${listed.length} gastos del listado, con los filtros y la búsqueda aplicados`}
+                      >
+                        Exportar CSV
+                      </button>
+                    </div>
                   </div>
                   <div className="fleet-status__table-wrap">
                     <table className="fleet-status__table expenses__table">

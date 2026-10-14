@@ -583,9 +583,31 @@
   margin-top: 8px;
 }
 
+.expenses__list-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+}
+
 .expenses__search {
   width: 260px;
   max-width: 100%;
+}
+
+/* Exportar CSV (CAM-108): a la altura del buscador, que es lo último que recorta el listado. */
+.expenses__export {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.expenses__export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .expenses__table td.expenses__no-match {
