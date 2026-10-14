@@ -56,7 +56,10 @@ function matches(expense: Expense, filters: Filters, ignore?: keyof Filters): bo
   );
 }
 
-/** Un valor por mes del período; si el período es corto (hasta dos meses), uno por día. */
+/**
+ * Un valor por mes del período; si el período es corto (hasta dos meses), uno por día. Cada
+ * columna se parte por origen (CAM-104), con los mismos colores que la dona de preventivo y correctivo.
+ */
 function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
   const byDay = (period.to.getTime() - period.from.getTime()) / DAY_MS <= 62;
   const keyOf = (date: Date) =>
@@ -64,7 +67,7 @@ function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
 
   const totals = new Map<string, number>();
   for (const expense of expenses) {
-    const key = keyOf(new Date(expense.date));
+    const key = `${keyOf(new Date(expense.date))}|${expense.origin}`;
     totals.set(key, (totals.get(key) ?? 0) + expense.amount);
   }
 
@@ -80,7 +83,11 @@ function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
       fullLabel: byDay
         ? cursor.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
         : cursor.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }),
-      value: totals.get(key) ?? 0,
+      segments: ORIGINS.map((origin, i) => ({
+        label: EXPENSE_ORIGIN_LABEL[origin],
+        value: totals.get(`${key}|${origin}`) ?? 0,
+        color: SERIES_COLORS[i],
+      })),
     });
     if (byDay) cursor.setDate(cursor.getDate() + 1);
     else cursor.setMonth(cursor.getMonth() + 1);
@@ -409,7 +416,7 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
                         data={view.timeline}
                         formatValue={currencyFormatter.format}
                         formatCompact={compactCurrencyFormatter.format}
-                        ariaLabel={`Gasto del ${periodLabel}: ${currencyFormatter.format(view.total)} en total. El detalle está en el listado de gastos.`}
+                        ariaLabel={`Gasto del ${periodLabel}, partido por origen: preventivo, correctivo y órdenes sueltas. ${currencyFormatter.format(view.total)} en total. El detalle está en el listado de gastos.`}
                       />
                     </div>
                   </div>

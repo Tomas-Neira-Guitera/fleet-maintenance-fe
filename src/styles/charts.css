@@ -342,9 +342,30 @@
   shape-rendering: crispEdges;
 }
 
-.column-chart__column {
-  fill: var(--fg-chart-1);
+.column-chart__stack {
   transition: opacity 0.15s ease;
+}
+
+.column-chart__legend {
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.chart-tooltip .chart-tooltip__row,
+.chart-tooltip .chart-tooltip__row span {
+  opacity: 1;
+}
+
+.chart-tooltip__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-tooltip__amount {
+  margin-left: auto;
+  padding-left: 12px;
+  font-family: var(--fg-font-mono);
 }
 
 .column-chart__tick,
@@ -362,7 +383,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .donut-chart__arc,
-  .column-chart__column,
+  .column-chart__stack,
   .bar-list__row {
     transition: none;
   }
