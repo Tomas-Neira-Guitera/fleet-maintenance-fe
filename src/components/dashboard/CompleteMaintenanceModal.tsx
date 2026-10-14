@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ApiError } from '../../services/apiClient';
 import { createMaintenanceCompletion } from '../../services/maintenanceAssignmentsService';
 import type { CompletionResult, MaintenanceAssignment } from '../../types/domain';
+import { DatePicker } from '../datetime/DatePicker';
 import { CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
 
@@ -27,6 +28,7 @@ export function CompleteMaintenanceModal({ vehicleId, assignment, onClose, onCom
   const needsKm = assignment.intervalType === 'km' || assignment.intervalType === 'both';
 
   const [completedAt, setCompletedAt] = useState(todayIso());
+  const completedAtId = useId();
   const [completedKm, setCompletedKm] = useState(
     assignment.lastDoneKm != null ? String(assignment.lastDoneKm) : '',
   );
@@ -69,16 +71,17 @@ export function CompleteMaintenanceModal({ vehicleId, assignment, onClose, onCom
         </header>
 
         <div className="modal__body">
-          <label className="schedule-picker__field">
-            Fecha en que se hizo
-            <input
-              type="date"
-              className="schedule-picker__input"
+          <div className="schedule-picker__field">
+            <label htmlFor={completedAtId}>Fecha en que se hizo</label>
+            <DatePicker
+              id={completedAtId}
               value={completedAt}
+              onChange={setCompletedAt}
               max={todayIso()}
-              onChange={(e) => setCompletedAt(e.target.value)}
+              label="Fecha en que se hizo"
+              className="schedule-picker__input"
             />
-          </label>
+          </div>
 
           {needsKm && (
             <label className="schedule-picker__field">

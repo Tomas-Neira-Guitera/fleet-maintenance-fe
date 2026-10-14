@@ -8,6 +8,7 @@ import {
   type Period,
   type PeriodPreset,
 } from '../../utils/period';
+import { DatePicker } from '../datetime/DatePicker';
 import '../../styles/dashboard.css';
 import '../../styles/charts.css';
 
@@ -37,8 +38,8 @@ type PeriodFilterProps = RequiredPeriodProps | OptionalPeriodProps;
 
 /**
  * Selector de período de Gastos, de la actividad de Usuarios y de Órdenes de trabajo: atajos primero
- * y, con "Personalizado", dos fechas (las dos incluidas). Mientras el rango a mano no es válido se
- * conserva el período anterior.
+ * y, con "Personalizado", dos fechas (las dos incluidas). Desde CAM-65 los selectores de fecha no dejan
+ * armar un rango invertido: "Desde" no pasa de "Hasta" ni al revés.
  */
 export function PeriodFilter(props: PeriodFilterProps) {
   const { period, label, allLabel } = props;
@@ -47,7 +48,6 @@ export function PeriodFilter(props: PeriodFilterProps) {
   const base = period ?? presetPeriod('month');
   const [fromValue, setFromValue] = useState(toDateInputValue(base.from));
   const [toValue, setToValue] = useState(toDateInputValue(lastDayOf(base)));
-  const invalidRange = period?.preset === 'custom' && !customPeriod(fromValue, toValue);
 
   function emit(next: Period | null) {
     if (props.allLabel !== undefined) {
@@ -102,22 +102,20 @@ export function PeriodFilter(props: PeriodFilterProps) {
       </select>
       {period?.preset === 'custom' && (
         <>
-          <input
-            type="date"
-            className={`work-orders__filter${invalidRange ? ' period-filter__date--invalid' : ''}`}
+          <DatePicker
+            className="work-orders__filter"
             value={fromValue}
             max={toValue || undefined}
-            onChange={(e) => changeDates(e.target.value, toValue)}
-            aria-label="Desde"
+            onChange={(next) => changeDates(next, toValue)}
+            label="Desde"
           />
           <span className="period-filter__separator">al</span>
-          <input
-            type="date"
-            className={`work-orders__filter${invalidRange ? ' period-filter__date--invalid' : ''}`}
+          <DatePicker
+            className="work-orders__filter"
             value={toValue}
             min={fromValue || undefined}
-            onChange={(e) => changeDates(fromValue, e.target.value)}
-            aria-label="Hasta"
+            onChange={(next) => changeDates(fromValue, next)}
+            label="Hasta"
           />
         </>
       )}

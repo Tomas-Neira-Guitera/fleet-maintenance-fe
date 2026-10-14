@@ -1,18 +1,16 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ApiError } from '../../services/apiClient';
 import { updateSchedule } from '../../services/scheduleService';
-import type { ScheduledMaintenance, ScheduleSourceType } from '../../types/domain';
+import type { ScheduledMaintenance } from '../../types/domain';
+import { toLocalDateKey } from '../../utils/localDate';
+import { SCHEDULE_SOURCE_LABEL, scheduleDisplayStatus } from '../../utils/scheduleStatus';
 import { TITLE_MAX_LENGTH } from '../../utils/textLimits';
 import { CharCounter } from '../CharCounter';
+import { DateTimePicker } from '../datetime/DateTimePicker';
 import { CloseIcon } from '../icons';
+import { ScheduleStatusBadge } from './ScheduleStatusBadge';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import '../../styles/dashboard.css';
-
-const SOURCE_LABEL: Record<ScheduleSourceType, string> = {
-  assignment: 'Plan de mantenimiento',
-  defect: 'Defecto reportado',
-  manual: 'Programado a mano',
-};
 
 const dateTimeFormatter = new Intl.DateTimeFormat('es-AR', {
   weekday: 'long',
@@ -22,7 +20,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('es-AR', {
   minute: '2-digit',
 });
 
-// Valor para <input type="datetime-local"> en hora local.
+// Valor para el selector de fecha y hora, "2026-10-16T09:00", en hora local.
 function toLocalInput(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -32,13 +30,14 @@ function toLocalInput(iso: string): string {
 interface ScheduleDetailModalProps {
   schedule: ScheduledMaintenance;
   onClose: () => void;
-  /** Después de editar o eliminar, para que el calendario vuelva a pedir la semana. */
+  /** Después de editar o cancelar, para que el calendario vuelva a pedir la semana. */
   onChanged: () => void;
 }
 
 /**
  * Detalle de un mantenimiento del calendario semanal, con "Editar" (fecha y hora, notas y,
- * si es manual, título) y "Eliminar", que cancela la programación (baja lógica, CAM-42 decisión 9).
+ * si es manual, título) y "Cancelar turno", que cancela la programación (baja lógica, CAM-42 decisión 9).
+ * Desde CAM-65 el turno cancelado sigue en el calendario, tachado, por eso ya no se habla de "eliminar".
  */
 export function ScheduleDetailModal({ schedule, onClose, onChanged }: ScheduleDetailModalProps) {
   const [current, setCurrent] = useState(schedule);
@@ -46,10 +45,13 @@ export function ScheduleDetailModal({ schedule, onClose, onChanged }: ScheduleDe
   const [title, setTitle] = useState(schedule.title);
   const [when, setWhen] = useState(toLocalInput(schedule.scheduledAt));
   const [notes, setNotes] = useState(schedule.notes ?? '');
+  const whenLabelId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const manual = current.sourceType === 'manual';
+  // Un turno hecho o cancelado queda en el calendario (CAM-65), pero ya no se edita ni se cancela.
+  const closed = current.status !== 'scheduled';
   const canSave = Boolean(when) && (!manual || Boolean(title.trim()));
 
   function startEditing() {
@@ -81,7 +83,7 @@ export function ScheduleDetailModal({ schedule, onClose, onChanged }: ScheduleDe
 
   async function handleDelete() {
     const otNote = current.workOrder ? '\nTambién se cancela su orden de trabajo si todavía no empezó.' : '';
-    if (!window.confirm(`¿Eliminar "${current.title}" del calendario?${otNote}`)) return;
+    if (!window.confirm(`¿Cancelar "${current.title}"? Va a quedar en el calendario como cancelado.${otNote}`)) return;
     setBusy(true);
     setError(null);
     try {
@@ -99,7 +101,7 @@ export function ScheduleDetailModal({ schedule, onClose, onChanged }: ScheduleDe
       onChanged();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo eliminar la programación. Intentá de nuevo.');
+      setError(err instanceof ApiError ? err.message : 'No se pudo cancelar el turno. Intentá de nuevo.');
       setBusy(false);
     }
   }
@@ -133,15 +135,18 @@ export function ScheduleDetailModal({ schedule, onClose, onChanged }: ScheduleDe
                   <CharCounter value={title} />
                 </label>
               )}
-              <label className="schedule-picker__field">
-                Fecha y hora
-                <input
-                  type="datetime-local"
-                  className="schedule-picker__input"
+              <div className="schedule-picker__field" role="group" aria-labelledby={whenLabelId}>
+                <label id={whenLabelId} htmlFor={`${whenLabelId}-day`}>
+                  Fecha y hora
+                </label>
+                <DateTimePicker
+                  id={`${whenLabelId}-day`}
                   value={when}
-                  onChange={(e) => setWhen(e.target.value)}
+                  onChange={setWhen}
+                  min={toLocalDateKey(new Date())}
+                  className="schedule-picker__input"
                 />
-              </label>
+              </div>
               <label className="schedule-picker__field">
                 Notas (opcional)
                 <textarea
@@ -159,8 +164,14 @@ export function ScheduleDetailModal({ schedule, onClose, onChanged }: ScheduleDe
                 <dd className="schedule-detail__date">{dateTimeFormatter.format(new Date(current.scheduledAt))}</dd>
               </div>
               <div>
+                <dt>Estado</dt>
+                <dd>
+                  <ScheduleStatusBadge status={scheduleDisplayStatus(current)} />
+                </dd>
+              </div>
+              <div>
                 <dt>Origen</dt>
-                <dd>{SOURCE_LABEL[current.sourceType]}</dd>
+                <dd>{SCHEDULE_SOURCE_LABEL[current.sourceType]}</dd>
               </div>
               <div>
                 <dt>Notas</dt>
@@ -195,10 +206,14 @@ export function ScheduleDetailModal({ schedule, onClose, onChanged }: ScheduleDe
                 {busy ? 'Guardando…' : 'Guardar'}
               </button>
             </>
+          ) : closed ? (
+            <button type="button" className="secondary-btn" onClick={onClose}>
+              Cerrar
+            </button>
           ) : (
             <>
               <button type="button" className="secondary-btn schedule-detail__delete" onClick={handleDelete} disabled={busy}>
-                Eliminar
+                Cancelar turno
               </button>
               <button type="button" className="primary-btn" onClick={startEditing} disabled={busy}>
                 Editar
