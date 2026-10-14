@@ -7,7 +7,14 @@ import type { Expense, ExpenseOrigin, Vehicle, WorkOrder, WorkOrderExpenseCatego
 import { formatShortDate } from '../../utils/dateFormat';
 import { EXPENSE_CATEGORY_LABEL, EXPENSE_ORIGIN_LABEL } from '../../utils/expenseFormat';
 import { compactCurrencyFormatter, currencyFormatter } from '../../utils/maintenanceFormat';
-import { describePeriod, periodParams, presetPeriod, type Period } from '../../utils/period';
+import {
+  customPeriod,
+  describePeriod,
+  periodParams,
+  presetPeriod,
+  toDateInputValue,
+  type Period,
+} from '../../utils/period';
 import { BarList, type BarListItem } from '../charts/BarList';
 import { ColumnChart, type ColumnDatum } from '../charts/ColumnChart';
 import { DonutChart, type DonutSegment } from '../charts/DonutChart';
@@ -19,6 +26,11 @@ import '../../styles/charts.css';
 interface ExpensesSectionProps {
   /** Para el botón de "volver a entrar" cuando la sesión venció. */
   onLogout: () => void;
+  /**
+   * Llegando desde el detalle de un vehículo (CAM-105): arranca filtrada por él y en los últimos
+   * 12 meses, la misma ventana que muestra su tarjeta de costos.
+   */
+  initialVehicleId?: string;
 }
 
 interface Filters {
@@ -34,6 +46,16 @@ const ORIGINS: ExpenseOrigin[] = ['plan', 'defect', 'manual'];
 const SERIES_COLORS = ['var(--fg-chart-1)', 'var(--fg-chart-2)', 'var(--fg-chart-3)'];
 const TABLE_PAGE_SIZE = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Desde la medianoche del mismo día de hace un año hasta hoy: la misma ventana que "Últimos 12 meses"
+ * en la tarjeta de costos (GET /api/vehicles/{id}/costs). Un 29/02 cae en el 28/02, como en el backend.
+ */
+function lastTwelveMonths(now = new Date()): Period {
+  const daysInMonthThen = new Date(now.getFullYear() - 1, now.getMonth() + 1, 0).getDate();
+  const from = new Date(now.getFullYear() - 1, now.getMonth(), Math.min(now.getDate(), daysInMonthThen));
+  return customPeriod(toDateInputValue(from), toDateInputValue(now)) ?? presetPeriod('year');
+}
 
 const sum = (expenses: Expense[]) => expenses.reduce((total, expense) => total + expense.amount, 0);
 
@@ -60,8 +82,10 @@ function matches(expense: Expense, filters: Filters, ignore?: keyof Filters): bo
  * Un valor por mes del período; si el período es corto (hasta dos meses), uno por día. Cada
  * columna se parte por origen (CAM-104), con los mismos colores que la dona de preventivo y correctivo.
  */
+const isDaily = (period: Period) => (period.to.getTime() - period.from.getTime()) / DAY_MS <= 62;
+
 function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
-  const byDay = (period.to.getTime() - period.from.getTime()) / DAY_MS <= 62;
+  const byDay = isDaily(period);
   const keyOf = (date: Date) =>
     byDay ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` : `${date.getFullYear()}-${date.getMonth()}`;
 
@@ -100,13 +124,13 @@ function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
  * lugar. El período se pide al backend; vehículo, categoría y origen se filtran acá, y cada
  * gráfico sirve también de filtro (se elige tocando un segmento o una barra).
  */
-export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
-  const [period, setPeriod] = useState<Period>(() => presetPeriod('year'));
+export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionProps) {
+  const [period, setPeriod] = useState<Period>(() => (initialVehicleId ? lastTwelveMonths() : presetPeriod('year')));
   // Se incrementa para volver a pedir el mismo período (al cerrar una OT que pudo cambiar sus gastos).
   const [reloadKey, setReloadKey] = useState(0);
   const [loaded, setLoaded] = useState<{ key: string; expenses: Expense[] } | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [filters, setFilters] = useState<Filters>(() => ({ ...NO_FILTERS, vehicleId: initialVehicleId ?? '' }));
   const [error, setError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [visibleRows, setVisibleRows] = useState(TABLE_PAGE_SIZE);
@@ -410,7 +434,7 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
                     <div className="chart-card">
                       <div className="chart-card__header">
                         <h2 className="chart-card__title">Evolución del gasto</h2>
-                        <span className="chart-card__hint">{view.timeline.length > 12 ? 'Por día' : 'Por mes'}</span>
+                        <span className="chart-card__hint">{isDaily(period) ? 'Por día' : 'Por mes'}</span>
                       </div>
                       <ColumnChart
                         data={view.timeline}

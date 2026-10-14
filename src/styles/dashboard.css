@@ -1815,6 +1815,78 @@
   color: var(--fg-text);
 }
 
+/* Costos del vehículo (CAM-105): tres cifras en fila, que bajan una abajo de otra en el celular. */
+.vehicle-costs__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vehicle-costs__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.vehicle-costs__link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vehicle-costs__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 24px;
+  margin: 4px 0 0;
+}
+
+.vehicle-costs__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vehicle-costs__stat dt {
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.vehicle-costs__stat dd {
+  margin: 0;
+}
+
+.vehicle-costs__value {
+  font-family: var(--fg-font-mono);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.vehicle-costs__value--empty {
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.vehicle-costs__hint {
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.vehicle-costs__empty {
+  margin: 12px 0 0;
+}
+
 /* Cuenta rápida de lo urgente escondido detrás del "Ver más" -- ej. "1 bloqueante". */
 .vehicle-detail__card-title-flag {
   font-family: var(--fg-font-body);
