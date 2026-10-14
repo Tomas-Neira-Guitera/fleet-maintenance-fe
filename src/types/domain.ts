@@ -323,6 +323,10 @@ export interface WorkOrderExpense {
   description: string;
   amount: number;
   createdAt: string;
+  /** Número de la factura o el ticket (CAM-107); null si no se cargó. */
+  receiptNumber: string | null;
+  /** Foto de la factura o el ticket (CAM-107); null si no se adjuntó. */
+  receiptPhotoUrl: string | null;
 }
 
 /** De dónde nació la OT de un gasto: un plan (preventivo), un defecto (correctivo) o suelta. */
@@ -343,6 +347,10 @@ export interface Expense {
   workOrderStatus: WorkOrderStatus;
   origin: ExpenseOrigin;
   executionType: WorkOrderExecutionType;
+  /** Número de la factura o el ticket (CAM-107); null si no se cargó. */
+  receiptNumber: string | null;
+  /** Foto del comprobante (CAM-107); null si no se adjuntó. */
+  receiptPhotoUrl: string | null;
 }
 
 /**

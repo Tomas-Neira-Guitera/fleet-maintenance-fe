@@ -20,6 +20,8 @@ import {
 import { BarList, type BarListItem } from '../charts/BarList';
 import { ColumnChart, type ColumnDatum } from '../charts/ColumnChart';
 import { DonutChart, type DonutSegment } from '../charts/DonutChart';
+import { ReceiptIcon } from '../icons';
+import { PhotoViewer } from '../PhotoViewer';
 import { PeriodFilter } from './PeriodFilter';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import '../../styles/dashboard.css';
@@ -66,10 +68,10 @@ function normalizeText(text: string): string {
   return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
 }
 
-/** Cada palabra buscada tiene que aparecer en la descripción, en cualquier orden. */
+/** Cada palabra buscada tiene que aparecer en la descripción o en el N° de comprobante, en cualquier orden. */
 function matchesSearch(expense: Expense, terms: string[]): boolean {
-  const description = normalizeText(expense.description);
-  return terms.every((term) => description.includes(term));
+  const text = normalizeText(`${expense.description} ${expense.receiptNumber ?? ''}`);
+  return terms.every((term) => text.includes(term));
 }
 
 function matches(expense: Expense, filters: Filters, ignore?: keyof Filters): boolean {
@@ -140,6 +142,7 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
   const [search, setSearch] = useState('');
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [openingWorkOrderId, setOpeningWorkOrderId] = useState<string | null>(null);
+  const [viewingReceiptUrl, setViewingReceiptUrl] = useState<string | null>(null);
 
   const requestKey = `${period.from.getTime()}-${period.to.getTime()}-${reloadKey}`;
   const expenses = loaded?.expenses ?? null;
@@ -517,13 +520,13 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                       <input
                         type="search"
                         className="work-orders__filter expenses__search"
-                        placeholder="Buscar en la descripción"
+                        placeholder="Buscar en la descripción o el N° de comprobante"
                         value={search}
                         onChange={(e) => {
                           setSearch(e.target.value);
                           setVisibleRows(TABLE_PAGE_SIZE);
                         }}
-                        aria-label="Buscar gastos por descripción"
+                        aria-label="Buscar gastos por descripción o número de comprobante"
                       />
                       <button
                         type="button"
@@ -552,7 +555,7 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                         {listed.length === 0 && (
                           <tr>
                             <td colSpan={6} className="muted expenses__no-match">
-                              Ningún gasto tiene «{search.trim()}» en la descripción.
+                              Ningún gasto tiene «{search.trim()}» en la descripción ni en el N° de comprobante.
                             </td>
                           </tr>
                         )}
@@ -562,8 +565,24 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                             <td className="fleet-status__plate">{expense.plate ?? '—'}</td>
                             <td>{EXPENSE_CATEGORY_LABEL[expense.category]}</td>
                             <td>
-                              <span className="expenses__description" title={expense.description}>
-                                {expense.description}
+                              <span className="expenses__description-cell">
+                                <span className="expenses__description" title={expense.description}>
+                                  {expense.description}
+                                  {expense.receiptNumber && (
+                                    <span className="expenses__receipt-number">Comprobante N° {expense.receiptNumber}</span>
+                                  )}
+                                </span>
+                                {expense.receiptPhotoUrl && (
+                                  <button
+                                    type="button"
+                                    className="vehicle-maintenance-list__icon-btn expenses__receipt"
+                                    onClick={() => setViewingReceiptUrl(expense.receiptPhotoUrl)}
+                                    aria-label="Ver comprobante"
+                                    title="Ver comprobante"
+                                  >
+                                    <ReceiptIcon width={14} height={14} />
+                                  </button>
+                                )}
                               </span>
                             </td>
                             <td>
@@ -607,6 +626,10 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
             </div>
           )}
         </>
+      )}
+
+      {viewingReceiptUrl && (
+        <PhotoViewer src={viewingReceiptUrl} alt="Comprobante del gasto" onClose={() => setViewingReceiptUrl(null)} />
       )}
 
       {selectedWorkOrder && (
