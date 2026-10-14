@@ -397,10 +397,6 @@
   color: var(--fg-text);
 }
 
-.period-filter__date--invalid {
-  border-color: var(--fg-critical);
-}
-
 .expenses__clear {
   border: none;
   background: none;

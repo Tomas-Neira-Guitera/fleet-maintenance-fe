@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { createSchedule, getSchedule } from '../../services/scheduleService';
 import { getVehicles } from '../../services/vehiclesService';
 import { createWorkOrder } from '../../services/workOrdersService';
 import type { ScheduledMaintenance, ScheduleSourceType, Vehicle, WorkOrderExecutionType } from '../../types/domain';
 import { ApiError } from '../../services/apiClient';
+import { DateTimePicker } from '../datetime/DateTimePicker';
 import { CloseIcon } from '../icons';
 import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import '../../styles/dashboard.css';
@@ -58,6 +59,7 @@ function defaultSuggestion(initialDate?: Date): string {
 export function SchedulePickerModal(props: SchedulePickerModalProps) {
   const manual = props.mode === 'manual';
   const [value, setValue] = useState(defaultSuggestion(props.initialDate));
+  const whenLabelId = useId();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -229,16 +231,19 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
             </>
           )}
 
-          <label className="schedule-picker__field">
-            Fecha y hora
-            <input
-              type="datetime-local"
+          <div className="schedule-picker__field" role="group" aria-labelledby={whenLabelId}>
+            <label id={whenLabelId} htmlFor={`${whenLabelId}-day`}>
+              Fecha y hora
+            </label>
+            <DateTimePicker
+              id={`${whenLabelId}-day`}
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={setValue}
+              min={toLocalDateKey(new Date())}
               className="schedule-picker__input"
               disabled={Boolean(createdSchedule)}
             />
-          </label>
+          </div>
 
           <label className="schedule-picker__field">
             Notas (opcional)
