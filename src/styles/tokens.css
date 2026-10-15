@@ -11,6 +11,11 @@
   --fg-warn-bg: rgba(227, 168, 87, 0.16);
   --fg-crit-bg: rgba(193, 96, 77, 0.12);
   --fg-border-color: rgba(62, 74, 66, 0.14);
+  /* Texto secundario (CAM-65): el más claro que todavía pasa 4,5:1 sobre blanco y sobre --fg-bg. */
+  --fg-text-muted: rgba(62, 74, 66, 0.8);
+  --fg-hover: rgba(62, 74, 66, 0.08);
+  /* Sombra de lo que flota sobre la página, como los selectores de fecha y hora (CAM-65). */
+  --fg-shadow-pop: 0 12px 32px rgba(62, 74, 66, 0.18);
   --fg-border: 1px solid var(--fg-border-color);
 
   /* Series de los gráficos (CAM-52, CAM-91): identifican categorías, no estados. Verde, ámbar y

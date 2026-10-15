@@ -6,11 +6,22 @@ import { getWorkOrder } from '../../services/workOrdersService';
 import type { Expense, ExpenseOrigin, Vehicle, WorkOrder, WorkOrderExpenseCategory } from '../../types/domain';
 import { formatShortDate } from '../../utils/dateFormat';
 import { EXPENSE_CATEGORY_LABEL, EXPENSE_ORIGIN_LABEL } from '../../utils/expenseFormat';
+import { buildExpensesCsv, downloadCsv } from '../../utils/expensesCsv';
 import { compactCurrencyFormatter, currencyFormatter } from '../../utils/maintenanceFormat';
-import { describePeriod, periodParams, presetPeriod, type Period } from '../../utils/period';
+import {
+  customPeriod,
+  describePeriod,
+  lastDayOf,
+  periodParams,
+  presetPeriod,
+  toDateInputValue,
+  type Period,
+} from '../../utils/period';
 import { BarList, type BarListItem } from '../charts/BarList';
 import { ColumnChart, type ColumnDatum } from '../charts/ColumnChart';
 import { DonutChart, type DonutSegment } from '../charts/DonutChart';
+import { ReceiptIcon } from '../icons';
+import { PhotoViewer } from '../PhotoViewer';
 import { PeriodFilter } from './PeriodFilter';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import '../../styles/dashboard.css';
@@ -19,6 +30,11 @@ import '../../styles/charts.css';
 interface ExpensesSectionProps {
   /** Para el botón de "volver a entrar" cuando la sesión venció. */
   onLogout: () => void;
+  /**
+   * Llegando desde el detalle de un vehículo (CAM-105): arranca filtrada por él y en los últimos
+   * 12 meses, la misma ventana que muestra su tarjeta de costos.
+   */
+  initialVehicleId?: string;
 }
 
 interface Filters {
@@ -35,6 +51,16 @@ const SERIES_COLORS = ['var(--fg-chart-1)', 'var(--fg-chart-2)', 'var(--fg-chart
 const TABLE_PAGE_SIZE = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Desde la medianoche del mismo día de hace un año hasta hoy: la misma ventana que "Últimos 12 meses"
+ * en la tarjeta de costos (GET /api/vehicles/{id}/costs). Un 29/02 cae en el 28/02, como en el backend.
+ */
+function lastTwelveMonths(now = new Date()): Period {
+  const daysInMonthThen = new Date(now.getFullYear() - 1, now.getMonth() + 1, 0).getDate();
+  const from = new Date(now.getFullYear() - 1, now.getMonth(), Math.min(now.getDate(), daysInMonthThen));
+  return customPeriod(toDateInputValue(from), toDateInputValue(now)) ?? presetPeriod('year');
+}
+
 const sum = (expenses: Expense[]) => expenses.reduce((total, expense) => total + expense.amount, 0);
 
 /** Sin mayúsculas ni acentos: "neumatico" encuentra "Neumático". */
@@ -42,10 +68,10 @@ function normalizeText(text: string): string {
   return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
 }
 
-/** Cada palabra buscada tiene que aparecer en la descripción, en cualquier orden. */
+/** Cada palabra buscada tiene que aparecer en la descripción o en el N° de comprobante, en cualquier orden. */
 function matchesSearch(expense: Expense, terms: string[]): boolean {
-  const description = normalizeText(expense.description);
-  return terms.every((term) => description.includes(term));
+  const text = normalizeText(`${expense.description} ${expense.receiptNumber ?? ''}`);
+  return terms.every((term) => text.includes(term));
 }
 
 function matches(expense: Expense, filters: Filters, ignore?: keyof Filters): boolean {
@@ -56,15 +82,20 @@ function matches(expense: Expense, filters: Filters, ignore?: keyof Filters): bo
   );
 }
 
-/** Un valor por mes del período; si el período es corto (hasta dos meses), uno por día. */
+/**
+ * Un valor por mes del período; si el período es corto (hasta dos meses), uno por día. Cada
+ * columna se parte por origen (CAM-104), con los mismos colores que la dona de preventivo y correctivo.
+ */
+const isDaily = (period: Period) => (period.to.getTime() - period.from.getTime()) / DAY_MS <= 62;
+
 function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
-  const byDay = (period.to.getTime() - period.from.getTime()) / DAY_MS <= 62;
+  const byDay = isDaily(period);
   const keyOf = (date: Date) =>
     byDay ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` : `${date.getFullYear()}-${date.getMonth()}`;
 
   const totals = new Map<string, number>();
   for (const expense of expenses) {
-    const key = keyOf(new Date(expense.date));
+    const key = `${keyOf(new Date(expense.date))}|${expense.origin}`;
     totals.set(key, (totals.get(key) ?? 0) + expense.amount);
   }
 
@@ -80,7 +111,11 @@ function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
       fullLabel: byDay
         ? cursor.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
         : cursor.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }),
-      value: totals.get(key) ?? 0,
+      segments: ORIGINS.map((origin, i) => ({
+        label: EXPENSE_ORIGIN_LABEL[origin],
+        value: totals.get(`${key}|${origin}`) ?? 0,
+        color: SERIES_COLORS[i],
+      })),
     });
     if (byDay) cursor.setDate(cursor.getDate() + 1);
     else cursor.setMonth(cursor.getMonth() + 1);
@@ -93,13 +128,13 @@ function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
  * lugar. El período se pide al backend; vehículo, categoría y origen se filtran acá, y cada
  * gráfico sirve también de filtro (se elige tocando un segmento o una barra).
  */
-export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
-  const [period, setPeriod] = useState<Period>(() => presetPeriod('year'));
+export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionProps) {
+  const [period, setPeriod] = useState<Period>(() => (initialVehicleId ? lastTwelveMonths() : presetPeriod('year')));
   // Se incrementa para volver a pedir el mismo período (al cerrar una OT que pudo cambiar sus gastos).
   const [reloadKey, setReloadKey] = useState(0);
   const [loaded, setLoaded] = useState<{ key: string; expenses: Expense[] } | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [filters, setFilters] = useState<Filters>(() => ({ ...NO_FILTERS, vehicleId: initialVehicleId ?? '' }));
   const [error, setError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [visibleRows, setVisibleRows] = useState(TABLE_PAGE_SIZE);
@@ -107,6 +142,7 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
   const [search, setSearch] = useState('');
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [openingWorkOrderId, setOpeningWorkOrderId] = useState<string | null>(null);
+  const [viewingReceiptUrl, setViewingReceiptUrl] = useState<string | null>(null);
 
   const requestKey = `${period.from.getTime()}-${period.to.getTime()}-${reloadKey}`;
   const expenses = loaded?.expenses ?? null;
@@ -265,6 +301,25 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
   const listedTotal = sum(listed);
   const periodLabel = describePeriod(period);
 
+  /**
+   * CAM-108: el CSV trae exactamente las filas del listado, con todos los filtros y la búsqueda.
+   * El nombre dice el período y, si hay un vehículo elegido, su patente.
+   */
+  function exportCsv() {
+    // Saneada antes de decidir si va: un vehículo sin patente figura como "—" y quedaría vacía.
+    const plate = filters.vehicleId
+      ? (vehicleOptions.find(([id]) => id === filters.vehicleId)?.[1] ?? '').replace(/[^A-Za-z0-9]/g, '')
+      : '';
+    const name = [
+      'gastos',
+      toDateInputValue(period.from),
+      'al',
+      toDateInputValue(lastDayOf(period)),
+      ...(plate ? [plate] : []),
+    ].join('_');
+    downloadCsv(`${name}.csv`, buildExpensesCsv(listed));
+  }
+
   return (
     <section className="fleet-status vehicles-section expenses">
       <header className="fleet-status__header expenses__header">
@@ -403,13 +458,13 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
                     <div className="chart-card">
                       <div className="chart-card__header">
                         <h2 className="chart-card__title">Evolución del gasto</h2>
-                        <span className="chart-card__hint">{view.timeline.length > 12 ? 'Por día' : 'Por mes'}</span>
+                        <span className="chart-card__hint">{isDaily(period) ? 'Por día' : 'Por mes'}</span>
                       </div>
                       <ColumnChart
                         data={view.timeline}
                         formatValue={currencyFormatter.format}
                         formatCompact={compactCurrencyFormatter.format}
-                        ariaLabel={`Gasto del ${periodLabel}: ${currencyFormatter.format(view.total)} en total. El detalle está en el listado de gastos.`}
+                        ariaLabel={`Gasto del ${periodLabel}, partido por origen: preventivo, correctivo y órdenes sueltas. ${currencyFormatter.format(view.total)} en total. El detalle está en el listado de gastos.`}
                       />
                     </div>
                   </div>
@@ -461,17 +516,28 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
 
                   <div className="expenses__list-header">
                     <h2 className="chart-card__title">Detalle de gastos</h2>
-                    <input
-                      type="search"
-                      className="work-orders__filter expenses__search"
-                      placeholder="Buscar en la descripción"
-                      value={search}
-                      onChange={(e) => {
-                        setSearch(e.target.value);
-                        setVisibleRows(TABLE_PAGE_SIZE);
-                      }}
-                      aria-label="Buscar gastos por descripción"
-                    />
+                    <div className="expenses__list-actions">
+                      <input
+                        type="search"
+                        className="work-orders__filter expenses__search"
+                        placeholder="Buscar en la descripción o el N° de comprobante"
+                        value={search}
+                        onChange={(e) => {
+                          setSearch(e.target.value);
+                          setVisibleRows(TABLE_PAGE_SIZE);
+                        }}
+                        aria-label="Buscar gastos por descripción o número de comprobante"
+                      />
+                      <button
+                        type="button"
+                        className="secondary-btn expenses__export"
+                        onClick={exportCsv}
+                        disabled={listed.length === 0}
+                        title={`Descarga los ${listed.length} gastos del listado, con los filtros y la búsqueda aplicados`}
+                      >
+                        Exportar CSV
+                      </button>
+                    </div>
                   </div>
                   <div className="fleet-status__table-wrap">
                     <table className="fleet-status__table expenses__table">
@@ -489,7 +555,7 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
                         {listed.length === 0 && (
                           <tr>
                             <td colSpan={6} className="muted expenses__no-match">
-                              Ningún gasto tiene «{search.trim()}» en la descripción.
+                              Ningún gasto tiene «{search.trim()}» en la descripción ni en el N° de comprobante.
                             </td>
                           </tr>
                         )}
@@ -499,8 +565,24 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
                             <td className="fleet-status__plate">{expense.plate ?? '—'}</td>
                             <td>{EXPENSE_CATEGORY_LABEL[expense.category]}</td>
                             <td>
-                              <span className="expenses__description" title={expense.description}>
-                                {expense.description}
+                              <span className="expenses__description-cell">
+                                <span className="expenses__description" title={expense.description}>
+                                  {expense.description}
+                                  {expense.receiptNumber && (
+                                    <span className="expenses__receipt-number">Comprobante N° {expense.receiptNumber}</span>
+                                  )}
+                                </span>
+                                {expense.receiptPhotoUrl && (
+                                  <button
+                                    type="button"
+                                    className="vehicle-maintenance-list__icon-btn expenses__receipt"
+                                    onClick={() => setViewingReceiptUrl(expense.receiptPhotoUrl)}
+                                    aria-label="Ver comprobante"
+                                    title="Ver comprobante"
+                                  >
+                                    <ReceiptIcon width={14} height={14} />
+                                  </button>
+                                )}
                               </span>
                             </td>
                             <td>
@@ -544,6 +626,10 @@ export function ExpensesSection({ onLogout }: ExpensesSectionProps) {
             </div>
           )}
         </>
+      )}
+
+      {viewingReceiptUrl && (
+        <PhotoViewer src={viewingReceiptUrl} alt="Comprobante del gasto" onClose={() => setViewingReceiptUrl(null)} />
       )}
 
       {selectedWorkOrder && (

@@ -24,7 +24,14 @@ type Route = { view: 'list' } | { view: 'flow'; vehicle: Vehicle; type: Inspecti
 /** Vista del admin, aparte para que el hook de ruteo solo corra con ese rol. */
 function AdminApp({ onLogout }: { onLogout: () => void }) {
   const [route, navigate] = useAdminRoute();
-  const activeTab = route.view === 'tab' ? route.tab : route.view === 'vehicle' ? 'vehiculos' : 'resumen';
+  const activeTab =
+    route.view === 'tab'
+      ? route.tab
+      : route.view === 'vehicle'
+        ? 'vehiculos'
+        : route.view === 'vehicle-expenses'
+          ? 'gastos'
+          : 'resumen';
 
   return (
     <main className="app">
@@ -42,7 +49,11 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             key={route.vehicleId}
             vehicleId={route.vehicleId}
             onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
+            onViewExpenses={() => navigate({ view: 'vehicle-expenses', vehicleId: route.vehicleId })}
           />
+        ) : route.view === 'vehicle-expenses' ? (
+          // key: llegar con otro vehículo, o volver a Gastos sin filtro, arranca la pestaña de cero.
+          <ExpensesSection key={route.vehicleId} onLogout={onLogout} initialVehicleId={route.vehicleId} />
         ) : activeTab === 'vehiculos' ? (
           <VehiclesSection onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })} />
         ) : activeTab === 'planes' ? (
@@ -50,7 +61,7 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         ) : activeTab === 'ordenes-trabajo' ? (
           <WorkOrdersSection />
         ) : activeTab === 'gastos' ? (
-          <ExpensesSection onLogout={onLogout} />
+          <ExpensesSection key="todos" onLogout={onLogout} />
         ) : activeTab === 'usuarios' ? (
           <UsersSection onLogout={onLogout} />
         ) : (

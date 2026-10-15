@@ -4,14 +4,16 @@ import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 interface GetScheduleOptions {
   from: string;
   to: string;
-  status?: ScheduleStatus;
+  /** Uno o varios estados (CAM-65); sin ninguno, el backend trae solo los programados. */
+  status?: ScheduleStatus | ScheduleStatus[];
   vehicleId?: string;
 }
 
 /** GET /api/maintenance-schedule -- alimenta el calendario semanal/mensual y el preview del modal de Planificar. */
 export async function getSchedule(options: GetScheduleOptions): Promise<ScheduledMaintenance[]> {
   const params = new URLSearchParams({ from: options.from, to: options.to });
-  if (options.status) params.set('status', options.status);
+  const statuses = options.status === undefined ? [] : [options.status].flat();
+  if (statuses.length > 0) params.set('status', statuses.join(','));
   if (options.vehicleId) params.set('vehicleId', options.vehicleId);
 
   const res = await fetch(`${API_BASE_URL}/api/maintenance-schedule?${params.toString()}`, { headers: authHeaders() });
