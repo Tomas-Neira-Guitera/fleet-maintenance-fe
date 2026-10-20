@@ -342,9 +342,30 @@
   shape-rendering: crispEdges;
 }
 
-.column-chart__column {
-  fill: var(--fg-chart-1);
+.column-chart__stack {
   transition: opacity 0.15s ease;
+}
+
+.column-chart__legend {
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.chart-tooltip .chart-tooltip__row,
+.chart-tooltip .chart-tooltip__row span {
+  opacity: 1;
+}
+
+.chart-tooltip__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-tooltip__amount {
+  margin-left: auto;
+  padding-left: 12px;
+  font-family: var(--fg-font-mono);
 }
 
 .column-chart__tick,
@@ -362,7 +383,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .donut-chart__arc,
-  .column-chart__column,
+  .column-chart__stack,
   .bar-list__row {
     transition: none;
   }
@@ -395,10 +416,6 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--fg-text);
-}
-
-.period-filter__date--invalid {
-  border-color: var(--fg-critical);
 }
 
 .expenses__clear {
@@ -566,9 +583,31 @@
   margin-top: 8px;
 }
 
+.expenses__list-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+}
+
 .expenses__search {
   width: 260px;
   max-width: 100%;
+}
+
+/* Exportar CSV (CAM-108): a la altura del buscador, que es lo último que recorta el listado. */
+.expenses__export {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.expenses__export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .expenses__table td.expenses__no-match {
@@ -586,6 +625,28 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* La descripción se corta con "…", pero el ícono del comprobante (CAM-107) siempre se ve. */
+.expenses__description-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.expenses__description-cell .expenses__description {
+  min-width: 0;
+}
+
+.expenses__receipt {
+  flex-shrink: 0;
+}
+
+.expenses__receipt-number {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-text-muted);
 }
 
 /* Link a la OT del gasto: es un botón (abre el detalle en un modal), con aspecto de link. */

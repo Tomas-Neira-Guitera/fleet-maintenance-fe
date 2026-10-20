@@ -13,7 +13,7 @@ import type { WorkOrder, WorkOrderExecutionType, WorkOrderExpenseCategory } from
 import { EXPENSE_CATEGORY_LABEL } from '../../utils/expenseFormat';
 import { currencyFormatter } from '../../utils/maintenanceFormat';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
-import { BuildingIcon, CameraIcon, CloseIcon, TrashIcon, WrenchIcon } from '../icons';
+import { BuildingIcon, CameraIcon, CloseIcon, ReceiptIcon, TrashIcon, WrenchIcon } from '../icons';
 import { FinalizeWorkOrderModal } from './FinalizeWorkOrderModal';
 import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
@@ -51,6 +51,11 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
   const [expenseDescription, setExpenseDescription] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [addingExpense, setAddingExpense] = useState(false);
+  // CAM-107: comprobante opcional. La foto sube al elegirla; número y foto se mandan con el gasto al tocar "Agregar".
+  const [receiptNumber, setReceiptNumber] = useState('');
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+  const [receiptPhotoUrl, setReceiptPhotoUrl] = useState<string | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -141,14 +146,35 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
         category: expenseCategory,
         description: expenseDescription.trim(),
         amount,
+        receiptNumber: receiptNumber.trim() || undefined,
+        receiptPhotoUrl: receiptPhotoUrl ?? undefined,
       });
       apply({ ...wo, expenses: [...wo.expenses, expense], totalExpenses: wo.totalExpenses + expense.amount });
       setExpenseDescription('');
       setExpenseAmount('');
+      setReceiptNumber('');
+      setReceiptPhotoUrl(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo agregar el gasto. Intentá de nuevo.');
     } finally {
       setAddingExpense(false);
+    }
+  }
+
+  async function handleReceiptChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingReceipt(true);
+    setError(null);
+    try {
+      // Mismo mecanismo y formatos que las fotos de la OT, con el mismo mensaje si el archivo no sirve.
+      const { photoUrl } = await uploadDefectPhoto(file);
+      setReceiptPhotoUrl(photoUrl);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo subir el comprobante. Probá de nuevo.');
+    } finally {
+      setUploadingReceipt(false);
+      if (receiptInputRef.current) receiptInputRef.current.value = '';
     }
   }
 
@@ -310,7 +336,23 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
                 {wo.expenses.map((expense) => (
                   <li key={expense.id} className="wo-expense-list__item">
                     <span className="wo-expense-list__category">{EXPENSE_CATEGORY_LABEL[expense.category]}</span>
-                    <span className="wo-expense-list__description">{expense.description}</span>
+                    <span className="wo-expense-list__description">
+                      {expense.description}
+                      {expense.receiptNumber && (
+                        <span className="wo-expense-list__receipt-number">Comprobante N° {expense.receiptNumber}</span>
+                      )}
+                    </span>
+                    {expense.receiptPhotoUrl && (
+                      <button
+                        type="button"
+                        className="vehicle-maintenance-list__icon-btn wo-expense-list__receipt"
+                        onClick={() => setViewingPhotoUrl(expense.receiptPhotoUrl)}
+                        aria-label="Ver comprobante"
+                        title="Ver comprobante"
+                      >
+                        <ReceiptIcon width={14} height={14} />
+                      </button>
+                    )}
                     <span className="wo-expense-list__amount">{currencyFormatter.format(expense.amount)}</span>
                     {isOpen && (
                       <button
@@ -357,12 +399,67 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
                 />
                 <button
                   type="button"
-                  className="secondary-btn"
+                  className="secondary-btn wo-expense-form__submit"
                   onClick={handleAddExpense}
-                  disabled={addingExpense || !expenseDescription.trim() || !(Number(expenseAmount) > 0)}
+                  disabled={
+                    addingExpense || uploadingReceipt || !expenseDescription.trim() || !(Number(expenseAmount) > 0)
+                  }
                 >
                   Agregar
                 </button>
+                <div className="wo-expense-form__receipt">
+                  <input
+                    type="text"
+                    className="schedule-picker__input wo-expense-form__receipt-number"
+                    placeholder="N° de comprobante (opcional)"
+                    aria-label="Número de comprobante (opcional)"
+                    maxLength={50}
+                    value={receiptNumber}
+                    onChange={(e) => setReceiptNumber(e.target.value)}
+                  />
+                  {/* aria-live: un lector de pantalla anuncia cuando termina de subir y aparece "Foto adjunta". */}
+                  <span className="wo-expense-form__receipt-photo" aria-live="polite">
+                    {receiptPhotoUrl ? (
+                      <>
+                        <button
+                          type="button"
+                          className="wo-expense-form__receipt-thumb"
+                          onClick={() => setViewingPhotoUrl(receiptPhotoUrl)}
+                          aria-label="Ver la foto del comprobante adjunta"
+                        >
+                          <img src={receiptPhotoUrl} alt="Foto del comprobante adjunta" />
+                        </button>
+                        <span className="wo-expense-form__receipt-label">Foto adjunta</span>
+                        <button
+                          type="button"
+                          className="wo-expense-form__receipt-remove"
+                          onClick={() => setReceiptPhotoUrl(null)}
+                          disabled={addingExpense}
+                        >
+                          Quitar
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="wo-expense-form__receipt-add"
+                        onClick={() => receiptInputRef.current?.click()}
+                        disabled={uploadingReceipt || addingExpense}
+                      >
+                        <ReceiptIcon width={14} height={14} />
+                        {uploadingReceipt ? 'Subiendo…' : 'Adjuntar foto (opcional)'}
+                      </button>
+                    )}
+                  </span>
+                  {/* Sin capture: en el celular ofrece sacar la foto o elegir una de la galería. */}
+                  <input
+                    ref={receiptInputRef}
+                    type="file"
+                    accept={ACCEPTED_PHOTO_TYPES}
+                    className="visually-hidden"
+                    onChange={handleReceiptChange}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -441,13 +538,15 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
               Pasar a en proceso
             </button>
           )}
-          {/* Con una foto subiendo, el modal de finalizar abriría con la lista de fotos sin ella (CAM-74). */}
+          {/* Con una foto subiendo, el modal de finalizar abriría con la lista de fotos sin ella (CAM-74).
+              Con un comprobante adjunto sin "Agregar", finalizar lo perdería: la OT cerrada ya no acepta gastos (CAM-107). */}
           {wo.status === 'en_proceso' && (
             <button
               type="button"
               className="primary-btn"
               onClick={() => setFinalizing(true)}
-              disabled={pending || uploadingPhoto}
+              disabled={pending || uploadingPhoto || uploadingReceipt || receiptPhotoUrl != null}
+              title={receiptPhotoUrl != null ? 'Agregá el gasto del comprobante, o quitalo, antes de finalizar' : undefined}
             >
               Finalizar
             </button>

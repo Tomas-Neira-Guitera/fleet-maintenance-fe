@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getSchedule } from '../../services/scheduleService';
 import type { ScheduledMaintenance } from '../../types/domain';
 import { localDateKeyOf, localDayRange, toLocalDateKey } from '../../utils/localDate';
+import { ALL_SCHEDULE_STATUSES, SCHEDULE_STATUS_LABEL, scheduleDisplayStatus } from '../../utils/scheduleStatus';
 import { ChevronRightIcon, CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
 
@@ -55,7 +56,7 @@ export function MonthScheduleModal({ initialMonth, onClose, onSelectDay }: Month
     setError(null);
     const from = days[0];
     const to = addDays(days[days.length - 1], 1);
-    getSchedule(localDayRange(from, to))
+    getSchedule({ ...localDayRange(from, to), status: ALL_SCHEDULE_STATUSES })
       .then((data) => {
         if (!cancelled) setItems(data);
       })
@@ -74,11 +75,16 @@ export function MonthScheduleModal({ initialMonth, onClose, onSelectDay }: Month
       if (!map.has(key)) map.set(key, []);
       map.get(key)?.push(item);
     }
-    for (const list of map.values()) list.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+    // Cada día muestra solo 2: primero lo que sigue pendiente, para que un turno programado no quede
+    // escondido en "+N más" detrás de lo ya hecho o cancelado (CAM-65).
+    const pendingFirst = (a: ScheduledMaintenance, b: ScheduledMaintenance) =>
+      Number(a.status !== 'scheduled') - Number(b.status !== 'scheduled') || a.scheduledAt.localeCompare(b.scheduledAt);
+    for (const list of map.values()) list.sort(pendingFirst);
     return map;
   }, [items]);
 
-  const todayKey = toLocalDateKey(new Date());
+  const now = new Date();
+  const todayKey = toLocalDateKey(now);
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -142,11 +148,18 @@ export function MonthScheduleModal({ initialMonth, onClose, onSelectDay }: Month
                   <span className="month-schedule__day-number">{dayNumberFormatter.format(day)}</span>
                   {dayItems.length > 0 && (
                     <span className="month-schedule__day-items">
-                      {dayItems.slice(0, 2).map((item) => (
-                        <span key={item.id} className="month-schedule__day-item" title={item.title}>
-                          {item.title}
-                        </span>
-                      ))}
+                      {dayItems.slice(0, 2).map((item) => {
+                        const status = scheduleDisplayStatus(item, now);
+                        return (
+                          <span
+                            key={item.id}
+                            className={`month-schedule__day-item month-schedule__day-item--${status}`}
+                            title={`${item.title} · ${SCHEDULE_STATUS_LABEL[status]}`}
+                          >
+                            {item.title}
+                          </span>
+                        );
+                      })}
                       {dayItems.length > 2 && (
                         <span className="month-schedule__day-more">+{dayItems.length - 2} más</span>
                       )}

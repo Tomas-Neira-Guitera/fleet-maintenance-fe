@@ -323,6 +323,10 @@ export interface WorkOrderExpense {
   description: string;
   amount: number;
   createdAt: string;
+  /** Número de la factura o el ticket (CAM-107); null si no se cargó. */
+  receiptNumber: string | null;
+  /** Foto de la factura o el ticket (CAM-107); null si no se adjuntó. */
+  receiptPhotoUrl: string | null;
 }
 
 /** De dónde nació la OT de un gasto: un plan (preventivo), un defecto (correctivo) o suelta. */
@@ -343,6 +347,24 @@ export interface Expense {
   workOrderStatus: WorkOrderStatus;
   origin: ExpenseOrigin;
   executionType: WorkOrderExecutionType;
+  /** Número de la factura o el ticket (CAM-107); null si no se cargó. */
+  receiptNumber: string | null;
+  /** Foto del comprobante (CAM-107); null si no se adjuntó. */
+  receiptPhotoUrl: string | null;
+}
+
+/**
+ * Costo de mantenimiento de un vehículo -- GET /api/vehicles/{id}/costs (CAM-105). firstKnownKm,
+ * kmDriven y costPerKm vienen en null cuando no hay km suficientes para calcularlos.
+ */
+export interface VehicleCosts {
+  totalAmount: number;
+  last12MonthsAmount: number;
+  expenseCount: number;
+  currentKm: number;
+  firstKnownKm: number | null;
+  kmDriven: number | null;
+  costPerKm: number | null;
 }
 
 export interface WorkOrderPhoto {
