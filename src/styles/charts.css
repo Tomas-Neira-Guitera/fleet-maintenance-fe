@@ -591,9 +591,73 @@
   max-width: 100%;
 }
 
-.expenses__search {
+.expenses__search-box {
+  position: relative;
   width: 260px;
   max-width: 100%;
+}
+
+.expenses__search {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+}
+
+/* CAM-122: placeholder propio, encima del campo vacío. Con el cursor encima o el foco adentro, va y
+   vuelve lo justo para mostrar el final: el recorrido es "ancho de la caja - ancho del texto", que
+   con 100cqw (la caja) y 100% (el propio texto) sale sin medir nada en JS. Si el texto entra, no se mueve. */
+.expenses__search-hint {
+  position: absolute;
+  inset: 0 12px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  container-type: inline-size;
+  pointer-events: none;
+  color: var(--fg-text-muted);
+  font-size: 13px;
+}
+
+.expenses__search-hint-text {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.expenses__search-box:hover .expenses__search-hint-text,
+.expenses__search-box:focus-within .expenses__search-hint-text {
+  animation: expenses-search-hint 6s ease-in-out infinite alternate;
+}
+
+@keyframes expenses-search-hint {
+  0%,
+  20% {
+    transform: translateX(0);
+  }
+  80%,
+  100% {
+    transform: translateX(min(0px, calc(100cqw - 100%)));
+  }
+}
+
+/* En alto contraste el gris propio pasa a ser color de texto: se lo devuelve al del placeholder nativo. */
+@media (forced-colors: active) {
+  .expenses__search-hint {
+    color: GrayText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expenses__search-hint-text {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .expenses__search-box:hover .expenses__search-hint-text,
+  .expenses__search-box:focus-within .expenses__search-hint-text {
+    animation: none;
+  }
 }
 
 /* Exportar CSV (CAM-108): a la altura del buscador, que es lo último que recorta el listado. */
