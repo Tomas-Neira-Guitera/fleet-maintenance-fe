@@ -348,6 +348,22 @@
   min-width: 0;
 }
 
+/* CAM-124: tocar cualquier parte de la tarjeta cambia el interruptor. Una capa del propio botón se estira
+   sobre la tarjeta: sigue siendo un solo switch para el teclado y el lector de pantalla. Con el defecto
+   desplegado cubre solo el renglón del título, para no tapar los campos de la carga. */
+.checklist-item--toggle,
+.checklist-item--toggle.checklist-item--expanded .checklist-item__head {
+  position: relative;
+}
+
+.checklist-item--toggle .outcome-switch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--fg-radius);
+  cursor: pointer;
+}
+
 .outcome-switch {
   flex-shrink: 0;
   display: inline-flex;
