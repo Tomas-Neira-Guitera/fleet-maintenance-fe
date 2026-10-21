@@ -713,6 +713,19 @@
   color: var(--fg-text-muted);
 }
 
+/* CAM-123: la fila entera abre la OT, como en Órdenes de trabajo. */
+.expenses__table-row {
+  cursor: pointer;
+}
+
+.expenses__table-row:hover {
+  background: var(--fg-bg);
+}
+
+.expenses__table-row:hover .expenses__wo-link:not(:disabled) {
+  text-decoration-color: var(--fg-text);
+}
+
 /* Link a la OT del gasto: es un botón (abre el detalle en un modal), con aspecto de link. */
 .expenses__wo-link {
   max-width: 240px;
