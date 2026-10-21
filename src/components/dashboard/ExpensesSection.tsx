@@ -570,7 +570,17 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                           </tr>
                         )}
                         {listed.slice(0, visibleRows).map((expense) => (
-                          <tr key={expense.id}>
+                          // CAM-123: toda la fila abre la OT, no solo su columna. El botón de la columna sigue siendo
+                          // el que se alcanza con el teclado; él y el del comprobante cortan el click para no abrir dos veces.
+                          <tr
+                            key={expense.id}
+                            className="expenses__table-row"
+                            onClick={() => {
+                              // Arrastrar para copiar la descripción o el N° de comprobante no abre la OT.
+                              if (window.getSelection()?.toString()) return;
+                              if (openingWorkOrderId === null) void openWorkOrder(expense.workOrderId);
+                            }}
+                          >
                             <td className="fleet-status__km">{formatShortDate(expense.date)}</td>
                             <td className="fleet-status__plate">{expense.plate ?? '—'}</td>
                             <td>{EXPENSE_CATEGORY_LABEL[expense.category]}</td>
@@ -586,7 +596,10 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                                   <button
                                     type="button"
                                     className="vehicle-maintenance-list__icon-btn expenses__receipt"
-                                    onClick={() => setViewingReceiptUrl(expense.receiptPhotoUrl)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setViewingReceiptUrl(expense.receiptPhotoUrl);
+                                    }}
                                     aria-label="Ver comprobante"
                                     title="Ver comprobante"
                                   >
@@ -599,7 +612,10 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                               <button
                                 type="button"
                                 className="expenses__wo-link"
-                                onClick={() => void openWorkOrder(expense.workOrderId)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void openWorkOrder(expense.workOrderId);
+                                }}
                                 disabled={openingWorkOrderId === expense.workOrderId}
                                 title="Abrir la orden de trabajo"
                               >
