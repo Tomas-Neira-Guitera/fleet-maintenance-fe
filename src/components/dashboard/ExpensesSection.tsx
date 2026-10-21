@@ -517,17 +517,27 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                   <div className="expenses__list-header">
                     <h2 className="chart-card__title">Detalle de gastos</h2>
                     <div className="expenses__list-actions">
-                      <input
-                        type="search"
-                        className="work-orders__filter expenses__search"
-                        placeholder="Buscar en la descripción o el N° de comprobante"
-                        value={search}
-                        onChange={(e) => {
-                          setSearch(e.target.value);
-                          setVisibleRows(TABLE_PAGE_SIZE);
-                        }}
-                        aria-label="Buscar gastos por descripción o número de comprobante"
-                      />
+                      {/* CAM-122: el placeholder no entra en el ancho del buscador. Se dibuja aparte para poder
+                          desplazarlo al pasar el cursor o al entrar al campo, y que se lea hasta el final. */}
+                      <span className="expenses__search-box">
+                        <input
+                          type="search"
+                          className="work-orders__filter expenses__search"
+                          value={search}
+                          onChange={(e) => {
+                            setSearch(e.target.value);
+                            setVisibleRows(TABLE_PAGE_SIZE);
+                          }}
+                          aria-label="Buscar gastos por descripción o número de comprobante"
+                        />
+                        {search === '' && (
+                          <span className="expenses__search-hint" aria-hidden="true">
+                            <span className="expenses__search-hint-text">
+                              Buscar en la descripción o el N° de comprobante
+                            </span>
+                          </span>
+                        )}
+                      </span>
                       <button
                         type="button"
                         className="secondary-btn expenses__export"
