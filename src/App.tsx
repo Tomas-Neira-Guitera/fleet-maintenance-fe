@@ -85,7 +85,10 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         ) : activeTab === 'usuarios' ? (
           <UsersSection onLogout={onLogout} />
         ) : activeTab === 'notificaciones' ? (
-          <NotificationSettingsSection onLogout={onLogout} />
+          <NotificationSettingsSection
+            onLogout={onLogout}
+            onGoToUsers={() => navigate({ view: 'tab', tab: 'usuarios' })}
+          />
         ) : (
           <AdminDashboard onViewDefects={() => navigate({ view: 'defects' })} />
         )}
