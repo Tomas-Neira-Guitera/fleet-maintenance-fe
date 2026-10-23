@@ -65,9 +65,10 @@ function DayItems({ items, now, onSelect }: DayItemsProps) {
             onClick={() => onSelect(item)}
             title={`${item.title} · ${SCHEDULE_STATUS_LABEL[status]} · Ver detalle`}
           >
+            {/* CAM-121: el estado lo dice el color de la tarjeta (leyenda arriba); acá queda solo para lectores de pantalla. */}
             <span className="weekly-schedule__item-top">
               <span className="weekly-schedule__item-time">{timeFormatter.format(new Date(item.scheduledAt))}</span>
-              <ScheduleStatusBadge status={status} />
+              <span className="visually-hidden">{SCHEDULE_STATUS_LABEL[status]}</span>
             </span>
             <span className="weekly-schedule__item-title">{item.title}</span>
             <span className="weekly-schedule__item-meta">
@@ -163,33 +164,43 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
     <section className="weekly-schedule">
       <header className="weekly-schedule__header">
         <h2 className="weekly-schedule__title">Mantenimientos de la semana</h2>
-        <div className="weekly-schedule__nav">
-          <button
-            type="button"
-            className="weekly-schedule__nav-btn"
-            onClick={() => setShowMonth(true)}
-            aria-label="Ver mes completo"
-            title="Ver mes completo"
-          >
-            <LayoutGridIcon width={16} height={16} />
-          </button>
-          <button
-            type="button"
-            className="weekly-schedule__nav-btn"
-            onClick={() => setWeekStart((w) => addDays(w, -7))}
-            aria-label="Semana anterior"
-          >
-            <ChevronRightIcon width={16} height={16} style={{ transform: 'rotate(180deg)' }} />
-          </button>
-          <span className="weekly-schedule__range">{rangeLabel}</span>
-          <button
-            type="button"
-            className="weekly-schedule__nav-btn"
-            onClick={() => setWeekStart((w) => addDays(w, 7))}
-            aria-label="Semana siguiente"
-          >
-            <ChevronRightIcon width={16} height={16} />
-          </button>
+        <div className="weekly-schedule__header-end">
+          {/* CAM-120: arriba de los días, al lado del mes completo, y siempre a la vista. */}
+          <ul className="weekly-schedule__legend" aria-label="Estados de los turnos">
+            {SCHEDULE_DISPLAY_STATUSES.map((status) => (
+              <li key={status}>
+                <ScheduleStatusBadge status={status} />
+              </li>
+            ))}
+          </ul>
+          <div className="weekly-schedule__nav">
+            <button
+              type="button"
+              className="weekly-schedule__nav-btn"
+              onClick={() => setShowMonth(true)}
+              aria-label="Ver mes completo"
+              title="Ver mes completo"
+            >
+              <LayoutGridIcon width={16} height={16} />
+            </button>
+            <button
+              type="button"
+              className="weekly-schedule__nav-btn"
+              onClick={() => setWeekStart((w) => addDays(w, -7))}
+              aria-label="Semana anterior"
+            >
+              <ChevronRightIcon width={16} height={16} style={{ transform: 'rotate(180deg)' }} />
+            </button>
+            <span className="weekly-schedule__range">{rangeLabel}</span>
+            <button
+              type="button"
+              className="weekly-schedule__nav-btn"
+              onClick={() => setWeekStart((w) => addDays(w, 7))}
+              aria-label="Semana siguiente"
+            >
+              <ChevronRightIcon width={16} height={16} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -213,40 +224,30 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
       )}
 
       {items && items.length > 0 && (
-        <>
-          <div className="weekly-schedule__grid">
-            {days.map((day) => {
-              const key = toLocalDateKey(day);
-              const dayItems = itemsByDay.get(key) ?? [];
-              return (
-                <div key={key} className={`weekly-schedule__day${key === todayKey ? ' weekly-schedule__day--today' : ''}`}>
-                  <div className="weekly-schedule__day-header">
-                    <span className="weekly-schedule__day-label">{DAY_LABELS[(day.getDay() + 6) % 7]}</span>
-                    <span className="weekly-schedule__day-number">{dayNumberFormatter.format(day)}</span>
-                    <button
-                      type="button"
-                      className="weekly-schedule__day-add"
-                      onClick={() => setSchedulingDay(day)}
-                      aria-label="Agendar mantenimiento este día"
-                      title="Agendar mantenimiento"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <DayItems items={dayItems} now={now} onSelect={setSelected} />
+        <div className="weekly-schedule__grid">
+          {days.map((day) => {
+            const key = toLocalDateKey(day);
+            const dayItems = itemsByDay.get(key) ?? [];
+            return (
+              <div key={key} className={`weekly-schedule__day${key === todayKey ? ' weekly-schedule__day--today' : ''}`}>
+                <div className="weekly-schedule__day-header">
+                  <span className="weekly-schedule__day-label">{DAY_LABELS[(day.getDay() + 6) % 7]}</span>
+                  <span className="weekly-schedule__day-number">{dayNumberFormatter.format(day)}</span>
+                  <button
+                    type="button"
+                    className="weekly-schedule__day-add"
+                    onClick={() => setSchedulingDay(day)}
+                    aria-label="Agendar mantenimiento este día"
+                    title="Agendar mantenimiento"
+                  >
+                    +
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-
-          <ul className="weekly-schedule__legend" aria-label="Estados de los turnos">
-            {SCHEDULE_DISPLAY_STATUSES.map((status) => (
-              <li key={status}>
-                <ScheduleStatusBadge status={status} />
-              </li>
-            ))}
-          </ul>
-        </>
+                <DayItems items={dayItems} now={now} onSelect={setSelected} />
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {showMonth && (
