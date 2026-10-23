@@ -30,16 +30,20 @@ function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 }
 
-export type EnablePushResult = 'enabled' | 'denied' | 'unavailable';
+export type EnablePushResult = 'enabled' | 'denied' | 'dismissed';
+
+/** La clave VAPID pública del servidor, o null si no tiene las push configuradas. */
+export { getPushPublicKey };
 
 /**
- * Pide el permiso, suscribe este navegador y se lo pasa al backend. 'denied' si el usuario no dio
- * el permiso; 'unavailable' si el servidor no tiene las push configuradas. Otros errores se tiran.
+ * Pide el permiso, suscribe este navegador y se lo pasa al backend. 'denied' si el usuario bloqueó
+ * las notificaciones; 'dismissed' si cerró el cartel sin elegir. Otros errores se tiran. El permiso
+ * se pide antes que cualquier otra espera: algunos navegadores solo lo muestran justo después del toque.
  */
-export async function enablePush(): Promise<EnablePushResult> {
-  const publicKey = await getPushPublicKey();
-  if (!publicKey) return 'unavailable';
-  if ((await Notification.requestPermission()) !== 'granted') return 'denied';
+export async function enablePush(publicKey: string): Promise<EnablePushResult> {
+  const permission = await Notification.requestPermission();
+  if (permission === 'denied') return 'denied';
+  if (permission !== 'granted') return 'dismissed';
 
   const registration = await navigator.serviceWorker.register(SW_URL);
   await navigator.serviceWorker.ready;

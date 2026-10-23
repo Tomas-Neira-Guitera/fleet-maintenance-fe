@@ -1,18 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { savePushSubscription, sendTestPush } from '../services/pushService';
 import { describeApiError } from '../services/apiClient';
-import { disablePush, enablePush, getCurrentSubscription, isPushSupported } from '../utils/webPush';
+import { disablePush, enablePush, getCurrentSubscription, getPushPublicKey, isPushSupported } from '../utils/webPush';
 
-type PushStatus = 'checking' | 'off' | 'on' | 'denied' | 'unavailable';
-
-function initialStatus(): PushStatus {
-  return Notification.permission === 'denied' ? 'denied' : 'checking';
-}
+type PushStatus = 'checking' | 'unavailable' | 'off' | 'on' | 'denied';
 
 /**
  * Pie del panel de avisos (CAM-119): activar o desactivar las push en este navegador, para que los
- * avisos lleguen aunque FleetGuard esté cerrado. No se muestra si el navegador no las soporta
- * (o si la página no está en HTTPS ni en localhost).
+ * avisos lleguen aunque FleetGuard esté cerrado. No se muestra si el navegador no las soporta (o si
+ * la página no está en HTTPS ni en localhost), ni si el servidor no las tiene configuradas.
  */
 export function PushToggle() {
   if (!isPushSupported()) return null;
@@ -20,28 +16,54 @@ export function PushToggle() {
 }
 
 function PushToggleSupported() {
-  const [status, setStatus] = useState<PushStatus>(initialStatus);
+  const [status, setStatus] = useState<PushStatus>('checking');
+  const [publicKey, setPublicKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // Al activar, el botón desaparece: el foco pasa a "Mandar una de prueba" en vez de perderse.
+  const testButtonRef = useRef<HTMLButtonElement>(null);
+  const focusTestRef = useRef(false);
 
   useEffect(() => {
-    if (status !== 'checking') return;
-    getCurrentSubscription().then(
-      (subscription) => {
-        setStatus(subscription ? 'on' : 'off');
-        // Si este navegador ya estaba suscripto, se reafirma que es del usuario que está ahora.
-        if (subscription) savePushSubscription(subscription.toJSON()).catch(() => undefined);
+    // La clave se pide al abrir y no al tocar "Activar": así el permiso se pide en el mismo toque.
+    Promise.all([getPushPublicKey(), getCurrentSubscription()]).then(
+      ([key, subscription]) => {
+        setPublicKey(key);
+        if (!key) {
+          setStatus('unavailable');
+        } else if (Notification.permission === 'denied') {
+          setStatus('denied');
+        } else {
+          setStatus(subscription ? 'on' : 'off');
+          // Si este navegador ya estaba suscripto, se reafirma que es del usuario que está ahora.
+          if (subscription) savePushSubscription(subscription.toJSON()).catch(() => undefined);
+        }
       },
-      () => setStatus('off'),
+      () => setStatus('unavailable'),
     );
+  }, []);
+
+  useEffect(() => {
+    if (focusTestRef.current && status === 'on') {
+      focusTestRef.current = false;
+      testButtonRef.current?.focus();
+    }
   }, [status]);
 
   async function handleEnable() {
+    if (!publicKey) return;
     setBusy(true);
     setMessage(null);
     try {
-      const result = await enablePush();
-      setStatus(result === 'enabled' ? 'on' : result);
+      const result = await enablePush(publicKey);
+      if (result === 'enabled') {
+        focusTestRef.current = true;
+        setStatus('on');
+      } else if (result === 'denied') {
+        setStatus('denied');
+      } else {
+        setMessage('No se activaron: para recibirlas, aceptá el permiso del navegador.');
+      }
     } catch (err) {
       setMessage(describeApiError(err, 'No se pudieron activar las notificaciones.'));
     } finally {
@@ -74,7 +96,7 @@ function PushToggleSupported() {
     }
   }
 
-  if (status === 'checking') return null;
+  if (status === 'checking' || status === 'unavailable') return null;
 
   return (
     <div className="push-toggle">
@@ -90,7 +112,13 @@ function PushToggleSupported() {
         <>
           <p className="push-toggle__text">Notificaciones activadas en este dispositivo.</p>
           <div className="push-toggle__actions">
-            <button type="button" className="push-toggle__button" onClick={() => void handleTest()} disabled={busy}>
+            <button
+              ref={testButtonRef}
+              type="button"
+              className="push-toggle__button"
+              onClick={() => void handleTest()}
+              disabled={busy}
+            >
               Mandar una de prueba
             </button>
             <button
@@ -109,9 +137,6 @@ function PushToggleSupported() {
           Bloqueaste las notificaciones de FleetGuard en este navegador. Para recibirlas, habilitalas desde el
           candado de la barra de direcciones.
         </p>
-      )}
-      {status === 'unavailable' && (
-        <p className="push-toggle__text">El servidor no tiene las notificaciones configuradas.</p>
       )}
       {message && (
         <p className="push-toggle__text push-toggle__message" role="status">

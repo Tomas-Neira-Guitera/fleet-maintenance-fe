@@ -45,14 +45,26 @@ export function getSession(): LoginResult | null {
  * (eso es trabajo del backend).
  */
 export function getSessionUserId(): string | null {
-  const token = getSession()?.token;
-  const payload = token?.split('.')[1];
+  const sub = sessionTokenClaims()?.sub;
+  return typeof sub === 'string' ? sub : null;
+}
+
+/**
+ * true si el JWT ya venció según su claim `exp` (CAM-119): al cerrar una sesión vencida no se dan de
+ * baja las push del dispositivo, que siguen siendo del mismo usuario.
+ */
+export function isSessionTokenExpired(): boolean {
+  const exp = sessionTokenClaims()?.exp;
+  return typeof exp === 'number' && exp * 1000 <= Date.now();
+}
+
+function sessionTokenClaims(): { sub?: unknown; exp?: unknown } | null {
+  const payload = getSession()?.token?.split('.')[1];
   if (!payload) return null;
   try {
     const base64 = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
     const json = new TextDecoder().decode(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)));
-    const sub = (JSON.parse(json) as { sub?: unknown }).sub;
-    return typeof sub === 'string' ? sub : null;
+    return JSON.parse(json) as { sub?: unknown; exp?: unknown };
   } catch {
     return null;
   }
