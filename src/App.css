@@ -92,9 +92,9 @@
   text-align: center;
 }
 
+/* Entra en celulares de 320px: el panel (padding y borde, 26px) más el margen con el borde de la pantalla (16px). */
 .notifications {
-  width: 340px;
-  max-width: 100%;
+  width: min(340px, calc(100vw - 42px));
   display: flex;
   flex-direction: column;
   gap: 8px;

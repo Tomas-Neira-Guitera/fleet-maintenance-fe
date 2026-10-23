@@ -32,14 +32,21 @@ export function NotificationBell({ onOpenLink }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<UserNotification[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Error de "Marcar todo como leído": se muestra arriba de la lista, sin taparla.
+  const [actionError, setActionError] = useState<string | null>(null);
   const anchorRef = useRef<HTMLButtonElement>(null);
+  // Con la sesión vencida (401) se deja de consultar: no va a cambiar hasta volver a entrar.
+  const sessionExpiredRef = useRef(false);
 
   // Con .then y no async/await: así el efecto que lo llama no hace un setState sincrónico (lint).
   const refreshCount = useCallback(
     () =>
       getUnreadNotificationCount().then(
         (count) => setUnread(count),
-        () => setUnread(null),
+        (err: unknown) => {
+          if (isSessionExpired(err)) sessionExpiredRef.current = true;
+          setUnread(null);
+        },
       ),
     [],
   );
@@ -47,11 +54,11 @@ export function NotificationBell({ onOpenLink }: NotificationBellProps) {
   useEffect(() => {
     void refreshCount();
     const timer = window.setInterval(() => {
-      if (!document.hidden) void refreshCount();
+      if (!document.hidden && !sessionExpiredRef.current) void refreshCount();
     }, POLL_MS);
     // Al volver a la pestaña no se espera al próximo minuto.
     function handleVisibility() {
-      if (!document.hidden) void refreshCount();
+      if (!document.hidden && !sessionExpiredRef.current) void refreshCount();
     }
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
@@ -81,6 +88,7 @@ export function NotificationBell({ onOpenLink }: NotificationBellProps) {
       return;
     }
     setOpen(true);
+    setActionError(null);
     void loadList();
     void refreshCount();
   }
@@ -98,18 +106,23 @@ export function NotificationBell({ onOpenLink }: NotificationBellProps) {
       markNotificationRead(notification.id).catch(() => void refreshCount());
     }
     if (notification.link && onOpenLink) {
-      close(false);
+      // El foco vuelve a la campanita: si no, al cerrarse el panel queda perdido en la página.
+      close(true);
       onOpenLink(notification.link);
     }
   }
 
   async function handleReadAll() {
+    const previous = items;
+    setActionError(null);
     markLocallyRead(new Set(items?.map((n) => n.id) ?? []));
     setUnread(0);
     try {
       await markAllNotificationsRead();
     } catch {
-      setError('No se pudieron marcar los avisos como leídos.');
+      // Se vuelve a como estaba: los avisos siguen sin leer en el backend.
+      setItems(previous);
+      setActionError('No se pudieron marcar los avisos como leídos.');
       void refreshCount();
     }
   }
@@ -148,6 +161,11 @@ export function NotificationBell({ onOpenLink }: NotificationBellProps) {
                 </button>
               )}
             </div>
+            {actionError && (
+              <p className="notifications__state notifications__state--error" role="alert">
+                {actionError}
+              </p>
+            )}
             {error ? (
               <p className="notifications__state notifications__state--error" role="alert">
                 {error}
