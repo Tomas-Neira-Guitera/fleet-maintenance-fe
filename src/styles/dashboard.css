@@ -2531,3 +2531,10 @@
   box-sizing: border-box;
   padding-right: 48px;
 }
+
+/* CAM-117: el email del usuario, debajo del nombre. */
+.users-section__email {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}

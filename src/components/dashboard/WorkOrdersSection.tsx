@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { isSessionExpired, SESSION_EXPIRED_MESSAGE } from '../../services/apiClient';
 import { getUsers } from '../../services/usersService';
 import { getVehicles } from '../../services/vehiclesService';
-import { getWorkOrders } from '../../services/workOrdersService';
+import { getWorkOrder, getWorkOrders } from '../../services/workOrdersService';
 import type { UserSummary, Vehicle, WorkOrder, WorkOrderStatus } from '../../types/domain';
 import { currencyFormatter } from '../../utils/maintenanceFormat';
 import { isInPeriod, presetPeriod, type Period } from '../../utils/period';
@@ -34,7 +34,14 @@ function formatDateTime(iso: string): string {
  * Se aplica sobre la lista ya cargada (GET /api/work-orders no filtra por fecha): los demás filtros
  * van al backend, este no.
  */
-export function WorkOrdersSection() {
+interface WorkOrdersSectionProps {
+  /** CAM-98: viene del link de un aviso (/ordenes-trabajo/{id}); la OT se abre sola sobre la lista. */
+  openWorkOrderId?: string;
+  /** Al cerrar ese detalle, para que la URL vuelva a la lista. */
+  onDetailClosed?: () => void;
+}
+
+export function WorkOrdersSection({ openWorkOrderId, onDetailClosed }: WorkOrdersSectionProps = {}) {
   const [workOrders, setWorkOrders] = useState<WorkOrder[] | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +77,17 @@ export function WorkOrdersSection() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, vehicleFilter, technicianFilter]);
+
+  useEffect(() => {
+    if (!openWorkOrderId) return;
+    getWorkOrder(openWorkOrderId)
+      .then((wo) => {
+        if (mountedRef.current) setSelected(wo);
+      })
+      .catch(() => {
+        if (mountedRef.current) setError('No se encontró la orden de trabajo del aviso.');
+      });
+  }, [openWorkOrderId]);
 
   useEffect(() => {
     getVehicles()
@@ -219,6 +237,7 @@ export function WorkOrdersSection() {
           onClose={() => {
             setSelected(null);
             load();
+            onDetailClosed?.();
           }}
           onUpdated={handleUpdated}
         />

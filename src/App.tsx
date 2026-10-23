@@ -14,6 +14,7 @@ import { TechnicianShell } from './components/technician/TechnicianShell';
 import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
 import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
+import { NotificationSettingsSection } from './components/dashboard/NotificationSettingsSection';
 import { adminPath, parseAdminPath, useAdminRoute } from './hooks/useAdminRoute';
 import { authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
 import { disablePush } from './utils/webPush';
@@ -33,7 +34,9 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         ? 'vehiculos'
         : route.view === 'vehicle-expenses'
           ? 'gastos'
-          : 'resumen';
+          : route.view === 'work-order'
+            ? 'ordenes-trabajo'
+            : 'resumen';
 
   // El link de un aviso (CAM-96) es una ruta del admin, la misma que se ve en la URL. Si no es una
   // conocida, tocar el aviso solo lo marca como leído.
@@ -65,6 +68,12 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         ) : route.view === 'vehicle-expenses' ? (
           // key: llegar con otro vehículo, o volver a Gastos sin filtro, arranca la pestaña de cero.
           <ExpensesSection key={route.vehicleId} onLogout={onLogout} initialVehicleId={route.vehicleId} />
+        ) : route.view === 'work-order' ? (
+          <WorkOrdersSection
+            key={route.workOrderId}
+            openWorkOrderId={route.workOrderId}
+            onDetailClosed={() => navigate({ view: 'tab', tab: 'ordenes-trabajo' })}
+          />
         ) : activeTab === 'vehiculos' ? (
           <VehiclesSection onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })} />
         ) : activeTab === 'planes' ? (
@@ -75,6 +84,8 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
           <ExpensesSection key="todos" onLogout={onLogout} />
         ) : activeTab === 'usuarios' ? (
           <UsersSection onLogout={onLogout} />
+        ) : activeTab === 'notificaciones' ? (
+          <NotificationSettingsSection onLogout={onLogout} />
         ) : (
           <AdminDashboard onViewDefects={() => navigate({ view: 'defects' })} />
         )}

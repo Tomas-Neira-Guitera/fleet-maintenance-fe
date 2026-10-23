@@ -1,0 +1,365 @@
+/* Configuración de avisos (CAM-117) y avisos de un plan (CAM-118). */
+
+.notif-settings__intro {
+  margin: 6px 0 0;
+}
+
+.notif-settings__group-title {
+  margin: 12px 0 0;
+  font-family: var(--fg-font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.notif-settings__group-hint {
+  margin: -10px 0 0;
+  font-size: 13px;
+}
+
+.notif-settings__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notif-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+}
+
+.notif-card--off .notif-card__title,
+.notif-card--off .notif-card__description {
+  color: var(--fg-text-muted);
+}
+
+.notif-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.notif-card__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.notif-card__tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.notif-card__description,
+.notif-card__recipient {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+  line-height: 1.4;
+}
+
+.notif-card__recipient {
+  color: var(--fg-text);
+}
+
+.notif-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: var(--fg-border);
+}
+
+.notif-card__row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.notif-card__label {
+  padding-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text-muted);
+}
+
+.notif-card__recipients {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notif-card__users summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.notif-card__users ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 4px 12px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.notif-card__users label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.notif-card__users input,
+.plan-notif__toggle input {
+  accent-color: var(--fg-ok);
+}
+
+.notif-card__lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 13px;
+}
+
+.notif-card__lead label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-card__number {
+  width: 96px;
+}
+
+.notif-card__hint {
+  flex-basis: 100%;
+  font-size: 12px;
+}
+
+.notif-card__warning {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-warn-bg);
+  color: var(--fg-text);
+  font-size: 13px;
+}
+
+.notif-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 16px;
+}
+
+.notif-card__error {
+  margin-right: auto;
+}
+
+.notif-card__saved {
+  margin-right: auto;
+  color: var(--fg-ok);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notif-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notif-card__link-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-text-muted);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.notif-card__save {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+/* Interruptor activo/apagado: un checkbox con role="switch". */
+.notif-switch {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.notif-switch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.notif-switch__track {
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--fg-chart-track);
+  transition: background-color 0.15s ease;
+}
+
+.notif-switch__track::after {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 3px;
+  border-radius: 50%;
+  background: var(--fg-white);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+
+.notif-switch input:checked + .notif-switch__track {
+  background: var(--fg-ok);
+}
+
+.notif-switch input:checked + .notif-switch__track::after {
+  transform: translateX(18px);
+}
+
+.notif-switch input:focus-visible + .notif-switch__track {
+  outline: 2px solid var(--fg-text);
+  outline-offset: 2px;
+}
+
+/* Chips de canales y de roles. */
+.notif-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notif-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--fg-border-color);
+  border-radius: 999px;
+  background: var(--fg-white);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.notif-chip--on {
+  border-color: var(--fg-ok);
+  background: var(--fg-ok-bg);
+}
+
+.notif-chip input {
+  margin: 0;
+  accent-color: var(--fg-ok);
+}
+
+/* Botón "Avisos" de cada plan y su modal. */
+.plan-notif__btn {
+  border-color: var(--fg-border-color);
+  background: var(--fg-white);
+  color: var(--fg-text);
+}
+
+.plan-notif__btn:hover {
+  background: var(--fg-hover);
+}
+
+.plan-notif__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.plan-notif__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  cursor: pointer;
+}
+
+.plan-notif__option--on {
+  border-color: var(--fg-ok);
+  background: var(--fg-ok-bg);
+}
+
+.plan-notif__option input {
+  margin-top: 3px;
+  accent-color: var(--fg-ok);
+}
+
+.plan-notif__summary {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.plan-notif__custom {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.plan-notif__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .notif-card__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .notif-card__label {
+    padding-top: 0;
+  }
+}
+
+@media (forced-colors: active) {
+  .notif-switch__track {
+    border: 1px solid CanvasText;
+  }
+}

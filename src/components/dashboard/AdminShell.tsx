@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import {
+  BellIcon,
   ClipboardListIcon,
   CloseIcon,
   CoinsIcon,
@@ -13,7 +14,14 @@ import {
 import { NotificationBell } from '../NotificationBell';
 import '../../styles/dashboard.css';
 
-export type AdminTab = 'resumen' | 'vehiculos' | 'planes' | 'ordenes-trabajo' | 'gastos' | 'usuarios';
+export type AdminTab =
+  | 'resumen'
+  | 'vehiculos'
+  | 'planes'
+  | 'ordenes-trabajo'
+  | 'gastos'
+  | 'usuarios'
+  | 'notificaciones';
 
 interface AdminShellProps {
   activeTab: AdminTab;
@@ -33,6 +41,7 @@ const TABS: { id: AdminTab; label: string; icon: ReactNode }[] = [
   { id: 'ordenes-trabajo', label: 'Órdenes de trabajo', icon: <ClipboardListIcon /> },
   { id: 'gastos', label: 'Gastos', icon: <CoinsIcon /> },
   { id: 'usuarios', label: 'Usuarios', icon: <UsersIcon /> },
+  { id: 'notificaciones', label: 'Notificaciones', icon: <BellIcon /> },
 ];
 
 export function AdminShell({

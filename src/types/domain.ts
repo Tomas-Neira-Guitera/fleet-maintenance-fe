@@ -165,6 +165,8 @@ export interface UserSummary {
   role: Role;
   /** false = desactivado: no puede loguearse (CAM-23). */
   active: boolean;
+  /** Para los avisos por email (CAM-117). null si no tiene. */
+  email: string | null;
 }
 
 /** Actividad de un chofer en un período -- GET /api/users/stats (CAM-91). `defects` incluye los bloqueantes. */
@@ -409,7 +411,68 @@ export type NotificationType =
   | 'work_order_assigned'
   | 'work_order_unassigned'
   | 'work_order_cancelled'
-  | 'trip_open_reminder';
+  | 'trip_open_reminder'
+  | 'blocking_defect_reported'
+  | 'work_order_finalized'
+  | 'maintenance_due_soon'
+  | 'maintenance_overdue';
+
+/** Por dónde sale un aviso (CAM-117). */
+export type NotificationChannel = 'in_app' | 'push' | 'email';
+
+/** Un tipo de aviso en GET /api/notification-settings (CAM-117). */
+export interface NotificationSetting {
+  type: NotificationType;
+  label: string;
+  description: string;
+  /** owner: le llega a la persona involucrada (recipientDescription); configurable: a los elegidos. */
+  audience: 'owner' | 'configurable';
+  recipientDescription: string | null;
+  enabled: boolean;
+  channels: NotificationChannel[];
+  recipientRoles: Role[];
+  recipientUserIds: string[];
+  /** Solo "Mantenimiento por vencer": anticipación en días y km. */
+  supportsLead: boolean;
+  leadDays: number | null;
+  leadKm: number | null;
+  /** false: rige la configuración por defecto. */
+  customized: boolean;
+}
+
+export interface NotificationSettingInput {
+  enabled: boolean;
+  channels: NotificationChannel[];
+  recipientRoles?: Role[];
+  recipientUserIds?: string[];
+  leadDays?: number | null;
+  leadKm?: number | null;
+}
+
+/** GET /api/maintenance-plans/{id}/notifications (CAM-118). custom=false: usa la configuración general. */
+export interface PlanNotificationSettings {
+  planId: string;
+  intervalType: IntervalType;
+  custom: boolean;
+  enabled: boolean | null;
+  channels: NotificationChannel[] | null;
+  leadDays: number | null;
+  leadKm: number | null;
+  general: {
+    dueSoonEnabled: boolean;
+    overdueEnabled: boolean;
+    channels: NotificationChannel[];
+    leadDays: number | null;
+    leadKm: number | null;
+  };
+}
+
+export interface PlanNotificationSettingsInput {
+  enabled: boolean;
+  channels: NotificationChannel[];
+  leadDays: number | null;
+  leadKm: number | null;
+}
 
 /** "UserNotification" y no "Notification", que es la API de notificaciones del navegador. */
 export interface UserNotification {

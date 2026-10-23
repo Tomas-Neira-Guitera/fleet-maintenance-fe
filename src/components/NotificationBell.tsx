@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BellIcon } from './icons';
+import { BellIcon, CloseIcon } from './icons';
 import { Popover } from './datetime/Popover';
 import { PushToggle } from './PushToggle';
 import {
+  dismissNotification,
   getNotifications,
   getUnreadNotificationCount,
   markAllNotificationsRead,
@@ -113,6 +114,20 @@ export function NotificationBell({ onOpenLink }: NotificationBellProps) {
     }
   }
 
+  async function handleDismiss(notification: UserNotification) {
+    const previous = items;
+    setActionError(null);
+    setItems((current) => current?.filter((n) => n.id !== notification.id) ?? null);
+    if (!notification.readAt) setUnread((count) => (count === null ? null : Math.max(0, count - 1)));
+    try {
+      await dismissNotification(notification.id);
+    } catch {
+      setItems(previous);
+      setActionError('No se pudo descartar el aviso.');
+      void refreshCount();
+    }
+  }
+
   async function handleReadAll() {
     const previous = items;
     setActionError(null);
@@ -178,7 +193,7 @@ export function NotificationBell({ onOpenLink }: NotificationBellProps) {
             ) : (
               <ul className="notifications__list">
                 {items.map((n) => (
-                  <li key={n.id}>
+                  <li key={n.id} className="notifications__row">
                     <button
                       type="button"
                       className={`notifications__item${n.readAt ? '' : ' notifications__item--unread'}`}
@@ -188,6 +203,15 @@ export function NotificationBell({ onOpenLink }: NotificationBellProps) {
                       <span className="notifications__item-title">{n.title}</span>
                       <span className="notifications__item-message">{n.message}</span>
                       <span className="notifications__item-time">{formatRelativeReportTime(n.createdAt).label}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="notifications__dismiss"
+                      onClick={() => void handleDismiss(n)}
+                      aria-label={`Descartar aviso: ${n.title}`}
+                      title="Descartar"
+                    >
+                      <CloseIcon width={14} height={14} aria-hidden="true" />
                     </button>
                   </li>
                 ))}

@@ -30,6 +30,15 @@ export async function markNotificationRead(id: string): Promise<void> {
   if (!res.ok) return throwApiError(res, 'No se pudo marcar el aviso como leído');
 }
 
+/** PATCH /api/notifications/{id}/dismiss -- la X del panel: lo saca de la campanita sin borrarlo. */
+export async function dismissNotification(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/notifications/${encodeURIComponent(id)}/dismiss`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+  });
+  if (!res.ok) return throwApiError(res, 'No se pudo descartar el aviso');
+}
+
 /** PATCH /api/notifications/read-all */
 export async function markAllNotificationsRead(): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/api/notifications/read-all`, {

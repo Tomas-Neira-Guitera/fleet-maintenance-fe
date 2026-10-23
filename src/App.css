@@ -209,6 +209,38 @@
   font-size: 13px;
 }
 
+/* La X va encima del aviso y no adentro: un botón no puede contener otro. */
+.notifications__row {
+  position: relative;
+}
+
+.notifications__row .notifications__item {
+  padding-right: 36px;
+}
+
+.notifications__dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-text-muted);
+  cursor: pointer;
+}
+
+.notifications__dismiss:hover,
+.notifications__dismiss:focus-visible {
+  background: var(--fg-hover);
+  color: var(--fg-text);
+}
+
 .notifications__list li:last-child .notifications__item {
   border-bottom: none;
 }
