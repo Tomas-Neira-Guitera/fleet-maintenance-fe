@@ -102,7 +102,7 @@ function PushToggleSupported() {
     <div className="push-toggle">
       {status === 'off' && (
         <>
-          <p className="push-toggle__text">Recibí estos avisos aunque FleetGuard esté cerrado.</p>
+          <p className="push-toggle__text">Recibí estos avisos aunque FleetMaintenance esté cerrado.</p>
           <button type="button" className="push-toggle__button" onClick={() => void handleEnable()} disabled={busy}>
             Activar en este dispositivo
           </button>
@@ -134,7 +134,7 @@ function PushToggleSupported() {
       )}
       {status === 'denied' && (
         <p className="push-toggle__text">
-          Bloqueaste las notificaciones de FleetGuard en este navegador. Para recibirlas, habilitalas desde el
+          Bloqueaste las notificaciones de FleetMaintenance en este navegador. Para recibirlas, habilitalas desde el
           candado de la barra de direcciones.
         </p>
       )}

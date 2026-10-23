@@ -15,7 +15,7 @@ self.addEventListener('push', (event) => {
     // Un mensaje que no es JSON se muestra igual, como texto.
     data = { body: event.data ? event.data.text() : '' };
   }
-  const title = data.title || 'FleetGuard';
+  const title = data.title || 'FleetMaintenance';
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || '',
