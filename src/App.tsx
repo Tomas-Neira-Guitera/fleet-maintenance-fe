@@ -15,7 +15,8 @@ import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
 import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
 import { adminPath, parseAdminPath, useAdminRoute } from './hooks/useAdminRoute';
-import { clearSession, getSession } from './services/apiClient';
+import { authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
+import { disablePush } from './utils/webPush';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
 // Pantallas del chofer. Las del admin van por URL (CAM-82, useAdminRoute); el chofer y el técnico
@@ -103,6 +104,11 @@ function App() {
   }
 
   function handleLogout() {
+    // CAM-119: el próximo que use este navegador no tiene que recibir los avisos del que se fue. Se le
+    // pasa el token ahora porque clearSession lo borra enseguida; la baja termina en segundo plano. Si
+    // la sesión solo venció (el chofer abre la app al día siguiente), las push siguen: son del mismo
+    // usuario, y si entra otro, al abrir la campanita pasan a ser suyas.
+    if (!isSessionTokenExpired()) void disablePush(authHeaders());
     clearSession();
     // El próximo que entre arranca de cero, no en la última pantalla del admin anterior.
     window.history.replaceState(null, '', '/');

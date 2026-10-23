@@ -136,11 +136,62 @@
 
 .notifications__list {
   list-style: none;
-  margin: 0 -12px -12px;
+  margin: 0 -12px;
   padding: 0;
-  max-height: min(420px, 60vh);
+  max-height: min(420px, 55vh);
   overflow-y: auto;
   border-top: var(--fg-border);
+}
+
+/* Pie del panel (CAM-119): activar las push en este dispositivo. Pegado a los bordes del panel. */
+.push-toggle {
+  margin: 0 -12px -12px;
+  padding: 10px 12px 12px;
+  border-top: var(--fg-border);
+  background: var(--fg-bg);
+  border-radius: 0 0 var(--fg-radius) var(--fg-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.push-toggle__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--fg-text-muted);
+}
+
+.push-toggle__message {
+  color: var(--fg-text);
+}
+
+.push-toggle__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.push-toggle__button {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--fg-radius);
+  border: 1px solid var(--fg-text);
+  background: var(--fg-text);
+  color: var(--fg-white);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.push-toggle__button--secondary {
+  background: var(--fg-white);
+  color: var(--fg-text);
+  border: var(--fg-border);
+}
+
+.push-toggle__button:disabled {
+  opacity: 0.6;
 }
 
 .notifications__item {

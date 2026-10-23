@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BellIcon } from './icons';
 import { Popover } from './datetime/Popover';
+import { PushToggle } from './PushToggle';
 import {
   getNotifications,
   getUnreadNotificationCount,
@@ -192,6 +193,7 @@ export function NotificationBell({ onOpenLink }: NotificationBellProps) {
                 ))}
               </ul>
             )}
+            <PushToggle />
           </div>
         </Popover>
       )}
