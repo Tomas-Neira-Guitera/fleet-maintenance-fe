@@ -4,6 +4,7 @@ import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
+import { NotificationBell } from './components/NotificationBell';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { AdminShell } from './components/dashboard/AdminShell';
 import { VehiclesSection } from './components/dashboard/VehiclesSection';
@@ -13,7 +14,7 @@ import { TechnicianShell } from './components/technician/TechnicianShell';
 import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
 import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
-import { adminPath, useAdminRoute } from './hooks/useAdminRoute';
+import { adminPath, parseAdminPath, useAdminRoute } from './hooks/useAdminRoute';
 import { clearSession, getSession } from './services/apiClient';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -33,12 +34,21 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
           ? 'gastos'
           : 'resumen';
 
+  // El link de un aviso (CAM-96) es una ruta del admin, la misma que se ve en la URL. Si no es una
+  // conocida, tocar el aviso solo lo marca como leído.
+  function openNotificationLink(link: string) {
+    const url = new URL(link, window.location.origin);
+    const next = parseAdminPath(url.pathname, url.search);
+    if (next) navigate(next);
+  }
+
   return (
     <main className="app">
       <AdminShell
         activeTab={activeTab}
         locationKey={adminPath(route)}
         onSelectTab={(tab) => navigate({ view: 'tab', tab })}
+        onOpenNotificationLink={openNotificationLink}
         onLogout={onLogout}
       >
         {route.view === 'defects' ? (
@@ -147,6 +157,7 @@ function App() {
     <main className="app mobile-shell">
       {route.view !== 'flow' && (
         <nav className="top-nav top-nav--chofer">
+          <NotificationBell />
           <button type="button" className="top-nav__logout" onClick={handleLogout}>
             Cerrar sesión
           </button>

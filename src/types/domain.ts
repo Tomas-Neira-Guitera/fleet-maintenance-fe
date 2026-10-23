@@ -401,3 +401,24 @@ export interface WorkOrder {
   updatedAt: string;
   finalizedAt: string | null;
 }
+
+// ─── Avisos in-app (CAM-96) ────────────────────────────────────────────────
+
+/** Qué originó el aviso. La campanita no lo usa para nada: el texto ya viene armado del backend. */
+export type NotificationType =
+  | 'work_order_assigned'
+  | 'work_order_unassigned'
+  | 'work_order_cancelled'
+  | 'trip_open_reminder';
+
+/** "UserNotification" y no "Notification", que es la API de notificaciones del navegador. */
+export interface UserNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  /** Ruta del front a la que lleva tocarlo ("/vehiculos/{id}", "/"); null si no lleva a ningún lado. */
+  link: string | null;
+  createdAt: string;
+  readAt: string | null;
+}

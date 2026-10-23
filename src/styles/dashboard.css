@@ -8,6 +8,10 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px 24px 0;
+  /* Menú a la izquierda, campanita de avisos (CAM-96) a la derecha. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .admin-shell__menu-toggle {
