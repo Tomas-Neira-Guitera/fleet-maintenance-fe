@@ -56,6 +56,233 @@
   font-size: 13px;
 }
 
+/* Campanita de avisos (CAM-96), la misma en los tres roles. Mismo círculo que el botón del menú del admin. */
+.notification-bell {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: var(--fg-border);
+  background: var(--fg-white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-text);
+}
+
+.notification-bell:hover {
+  border-color: rgba(62, 74, 66, 0.35);
+  box-shadow: 0 2px 6px rgba(62, 74, 66, 0.1);
+}
+
+.notification-bell__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--fg-critical);
+  color: var(--fg-white);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* Entra en celulares de 320px: el panel (padding y borde, 26px) más el margen con el borde de la pantalla (16px). */
+.notifications {
+  width: min(340px, calc(100vw - 42px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notifications__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notifications__title {
+  margin: 0;
+  font-family: var(--fg-font-display);
+  font-size: 16px;
+  outline: none;
+}
+
+.notifications__read-all {
+  border: none;
+  background: none;
+  padding: 4px 0;
+  color: var(--fg-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.notifications__state {
+  margin: 8px 0;
+  color: var(--fg-text-muted);
+  font-size: 14px;
+}
+
+.notifications__state--error {
+  color: var(--fg-critical);
+}
+
+.notifications__list {
+  list-style: none;
+  margin: 0 -12px;
+  padding: 0;
+  max-height: min(420px, 55vh);
+  overflow-y: auto;
+  border-top: var(--fg-border);
+}
+
+/* Pie del panel (CAM-119): activar las push en este dispositivo. Pegado a los bordes del panel. */
+.push-toggle {
+  margin: 0 -12px -12px;
+  padding: 10px 12px 12px;
+  border-top: var(--fg-border);
+  background: var(--fg-bg);
+  border-radius: 0 0 var(--fg-radius) var(--fg-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.push-toggle__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--fg-text-muted);
+}
+
+.push-toggle__message {
+  color: var(--fg-text);
+}
+
+.push-toggle__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.push-toggle__button {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--fg-radius);
+  border: 1px solid var(--fg-text);
+  background: var(--fg-text);
+  color: var(--fg-white);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.push-toggle__button--secondary {
+  background: var(--fg-white);
+  color: var(--fg-text);
+  border: var(--fg-border);
+}
+
+.push-toggle__button:disabled {
+  opacity: 0.6;
+}
+
+.notifications__item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px 10px 15px;
+  border: none;
+  border-bottom: var(--fg-border);
+  border-left: 3px solid transparent;
+  background: var(--fg-white);
+  color: var(--fg-text);
+  text-align: left;
+  font-size: 13px;
+}
+
+/* La X va encima del aviso y no adentro: un botón no puede contener otro. */
+.notifications__row {
+  position: relative;
+}
+
+.notifications__row .notifications__item {
+  padding-right: 36px;
+}
+
+.notifications__dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-text-muted);
+  cursor: pointer;
+}
+
+.notifications__dismiss:hover,
+.notifications__dismiss:focus-visible {
+  background: var(--fg-hover);
+  color: var(--fg-text);
+}
+
+.notifications__list li:last-child .notifications__item {
+  border-bottom: none;
+}
+
+.notifications__item:hover {
+  background: var(--fg-hover);
+}
+
+.notifications__item--unread {
+  border-left-color: var(--fg-ok);
+  background: var(--fg-ok-bg);
+}
+
+.notifications__item-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.notifications__item--unread .notifications__item-title {
+  font-weight: 700;
+}
+
+.notifications__item-message {
+  line-height: 1.4;
+}
+
+.notifications__item-time {
+  color: var(--fg-text-muted);
+  font-size: 12px;
+}
+
+/* En alto contraste el fondo del número y del aviso sin leer desaparecen: se marcan con borde. */
+@media (forced-colors: active) {
+  .notification-bell__badge {
+    border: 1px solid CanvasText;
+  }
+
+  .notifications__item--unread {
+    border-left-color: Highlight;
+  }
+}
+
 /* Botón "Volver" (detalle de vehículo, listado de defectos): blanco con borde para que se
    distinga del fondo, mismo estilo que las acciones del encabezado del vehículo. */
 .top-nav__back {
@@ -346,6 +573,22 @@
 
 .checklist-item__head .checklist-item__label {
   min-width: 0;
+}
+
+/* CAM-124: tocar cualquier parte de la tarjeta cambia el interruptor. Una capa del propio botón se estira
+   sobre la tarjeta: sigue siendo un solo switch para el teclado y el lector de pantalla. Con el defecto
+   desplegado cubre solo el renglón del título, para no tapar los campos de la carga. */
+.checklist-item--toggle,
+.checklist-item--toggle.checklist-item--expanded .checklist-item__head {
+  position: relative;
+}
+
+.checklist-item--toggle .outcome-switch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--fg-radius);
+  cursor: pointer;
 }
 
 .outcome-switch {

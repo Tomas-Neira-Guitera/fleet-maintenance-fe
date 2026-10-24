@@ -12,6 +12,9 @@ const PASSWORD_MIN_LENGTH = 6;
 // El tope de BCrypt son 72 bytes en UTF-8, no 72 caracteres: una letra con acento ocupa 2.
 const PASSWORD_MAX_BYTES = 72;
 const utf8 = new TextEncoder();
+const EMAIL_MAX_LENGTH = 254;
+// Solo frena errores de tipeo; el backend valida igual (CAM-117).
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /** Misma forma canónica que usa el backend: sin espacios en los extremos ni repetidos. */
 function normalizeUsername(value: string): string {
@@ -39,6 +42,7 @@ export function UserFormModal({ user, isSelf, onClose, onSaved }: UserFormModalP
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>(user?.role ?? 'CHOFER');
+  const [email, setEmail] = useState(user?.email ?? '');
   const [confirmingDeactivate, setConfirmingDeactivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +52,14 @@ export function UserFormModal({ user, isSelf, onClose, onSaved }: UserFormModalP
   const passwordTooShort = password.length > 0 && password.length < PASSWORD_MIN_LENGTH;
   const passwordTooLong = utf8.encode(password).length > PASSWORD_MAX_BYTES;
   const passwordInvalid = passwordTooShort || passwordTooLong;
-  const canSubmit = isEdit
-    ? Boolean(cleanUsername) && !passwordInvalid && (renamed || password.length > 0)
-    : Boolean(cleanUsername) && password.length >= PASSWORD_MIN_LENGTH && !passwordTooLong;
+  const cleanEmail = email.trim();
+  const emailInvalid = cleanEmail.length > 0 && !EMAIL_PATTERN.test(cleanEmail);
+  const emailChanged = isEdit && cleanEmail !== (user?.email ?? '');
+  const canSubmit =
+    !emailInvalid &&
+    (isEdit
+      ? Boolean(cleanUsername) && !passwordInvalid && (renamed || password.length > 0 || emailChanged)
+      : Boolean(cleanUsername) && password.length >= PASSWORD_MIN_LENGTH && !passwordTooLong);
 
   async function run(request: () => Promise<UserSummary>) {
     setSubmitting(true);
@@ -74,8 +83,9 @@ export function UserFormModal({ user, isSelf, onClose, onSaved }: UserFormModalP
         ? updateUser(user.id, {
             ...(renamed ? { username: cleanUsername } : {}),
             ...(password ? { password } : {}),
+            ...(emailChanged ? { email: cleanEmail } : {}),
           })
-        : createUser({ username: cleanUsername, password, role }),
+        : createUser({ username: cleanUsername, password, role, ...(cleanEmail ? { email: cleanEmail } : {}) }),
     );
   }
 
@@ -133,6 +143,22 @@ export function UserFormModal({ user, isSelf, onClose, onSaved }: UserFormModalP
               <span className="muted">Elegilo bien: después no se puede cambiar.</span>
             </label>
           )}
+
+          <label className="schedule-picker__field">
+            Email (opcional)
+            <input
+              type="email"
+              className="schedule-picker__input"
+              value={email}
+              maxLength={EMAIL_MAX_LENGTH}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Ej: juan@empresa.com"
+              autoComplete="off"
+            />
+            <span className={emailInvalid ? 'field-error' : 'muted'}>
+              {emailInvalid ? 'No parece un email válido.' : 'Para recibir los avisos por email.'}
+            </span>
+          </label>
 
           <div className="schedule-picker__field">
             <label htmlFor="user-form-password">{isEdit ? 'Nueva contraseña (opcional)' : 'Contraseña inicial'}</label>

@@ -102,7 +102,7 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
 
   return (
     <div
-      className={`checklist-item${hasDefect ? ' checklist-item--expanded' : ''}${invalidDefect ? ' checklist-item--invalid' : ''}`}
+      className={`checklist-item checklist-item--toggle${hasDefect ? ' checklist-item--expanded' : ''}${invalidDefect ? ' checklist-item--invalid' : ''}`}
     >
       <div className="checklist-item__head">
         <span className="checklist-item__label">{def.label}</span>

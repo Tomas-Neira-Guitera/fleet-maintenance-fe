@@ -17,6 +17,7 @@ export interface CreateUserInput {
   username: string;
   password: string;
   role: Role;
+  email?: string;
 }
 
 /** POST /api/users -- alta de un usuario, nace activo (CAM-23). */
@@ -33,7 +34,8 @@ export async function createUser(input: CreateUserInput): Promise<UserSummary> {
 /** PATCH /api/users/{id} -- renombrar, resetear contraseña, activar o desactivar. El rol no se edita (CAM-91). */
 export async function updateUser(
   id: string,
-  changes: { username?: string; password?: string; active?: boolean },
+  // email: "" lo borra (CAM-117).
+  changes: { username?: string; password?: string; active?: boolean; email?: string },
 ): Promise<UserSummary> {
   const res = await fetch(`${API_BASE_URL}/api/users/${id}`, {
     method: 'PATCH',

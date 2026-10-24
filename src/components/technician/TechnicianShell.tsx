@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { WorkOrder } from '../../types/domain';
+import { NotificationBell } from '../NotificationBell';
 import { MyWorkOrders } from './MyWorkOrders';
 import { TechnicianWorkOrder } from './TechnicianWorkOrder';
 
@@ -29,6 +30,7 @@ export function TechnicianShell({ onLogout }: TechnicianShellProps) {
   return (
     <>
       <nav className="top-nav top-nav--tecnico">
+        <NotificationBell />
         <button type="button" className="top-nav__logout" onClick={onLogout}>
           Cerrar sesión
         </button>

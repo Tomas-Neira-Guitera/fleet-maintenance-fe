@@ -162,6 +162,7 @@ export function UsersSection({ onLogout }: UsersSectionProps) {
                           {u.username}
                         </button>
                         {u.id === currentUserId && <span className="muted users-section__self"> (vos)</span>}
+                        {u.email && <span className="users-section__email">{u.email}</span>}
                       </td>
                       <td>{ROLE_LABEL[u.role]}</td>
                       <td>

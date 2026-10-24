@@ -4,6 +4,7 @@ import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
+import { NotificationBell } from './components/NotificationBell';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { AdminShell } from './components/dashboard/AdminShell';
 import { VehiclesSection } from './components/dashboard/VehiclesSection';
@@ -13,8 +14,10 @@ import { TechnicianShell } from './components/technician/TechnicianShell';
 import { WorkOrdersSection } from './components/dashboard/WorkOrdersSection';
 import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
-import { adminPath, useAdminRoute } from './hooks/useAdminRoute';
-import { clearSession, getSession } from './services/apiClient';
+import { NotificationSettingsSection } from './components/dashboard/NotificationSettingsSection';
+import { adminPath, parseAdminPath, useAdminRoute } from './hooks/useAdminRoute';
+import { authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
+import { disablePush } from './utils/webPush';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
 // Pantallas del chofer. Las del admin van por URL (CAM-82, useAdminRoute); el chofer y el técnico
@@ -31,7 +34,17 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         ? 'vehiculos'
         : route.view === 'vehicle-expenses'
           ? 'gastos'
-          : 'resumen';
+          : route.view === 'work-order'
+            ? 'ordenes-trabajo'
+            : 'resumen';
+
+  // El link de un aviso (CAM-96) es una ruta del admin, la misma que se ve en la URL. Si no es una
+  // conocida, tocar el aviso solo lo marca como leído.
+  function openNotificationLink(link: string) {
+    const url = new URL(link, window.location.origin);
+    const next = parseAdminPath(url.pathname, url.search);
+    if (next) navigate(next);
+  }
 
   return (
     <main className="app">
@@ -39,6 +52,7 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         activeTab={activeTab}
         locationKey={adminPath(route)}
         onSelectTab={(tab) => navigate({ view: 'tab', tab })}
+        onOpenNotificationLink={openNotificationLink}
         onLogout={onLogout}
       >
         {route.view === 'defects' ? (
@@ -54,6 +68,12 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         ) : route.view === 'vehicle-expenses' ? (
           // key: llegar con otro vehículo, o volver a Gastos sin filtro, arranca la pestaña de cero.
           <ExpensesSection key={route.vehicleId} onLogout={onLogout} initialVehicleId={route.vehicleId} />
+        ) : route.view === 'work-order' ? (
+          <WorkOrdersSection
+            key={route.workOrderId}
+            openWorkOrderId={route.workOrderId}
+            onDetailClosed={() => navigate({ view: 'tab', tab: 'ordenes-trabajo' })}
+          />
         ) : activeTab === 'vehiculos' ? (
           <VehiclesSection onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })} />
         ) : activeTab === 'planes' ? (
@@ -64,6 +84,11 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
           <ExpensesSection key="todos" onLogout={onLogout} />
         ) : activeTab === 'usuarios' ? (
           <UsersSection onLogout={onLogout} />
+        ) : activeTab === 'notificaciones' ? (
+          <NotificationSettingsSection
+            onLogout={onLogout}
+            onGoToUsers={() => navigate({ view: 'tab', tab: 'usuarios' })}
+          />
         ) : (
           <AdminDashboard onViewDefects={() => navigate({ view: 'defects' })} />
         )}
@@ -93,6 +118,11 @@ function App() {
   }
 
   function handleLogout() {
+    // CAM-119: el próximo que use este navegador no tiene que recibir los avisos del que se fue. Se le
+    // pasa el token ahora porque clearSession lo borra enseguida; la baja termina en segundo plano. Si
+    // la sesión solo venció (el chofer abre la app al día siguiente), las push siguen: son del mismo
+    // usuario, y si entra otro, al abrir la campanita pasan a ser suyas.
+    if (!isSessionTokenExpired()) void disablePush(authHeaders());
     clearSession();
     // El próximo que entre arranca de cero, no en la última pantalla del admin anterior.
     window.history.replaceState(null, '', '/');
@@ -147,6 +177,7 @@ function App() {
     <main className="app mobile-shell">
       {route.view !== 'flow' && (
         <nav className="top-nav top-nav--chofer">
+          <NotificationBell />
           <button type="button" className="top-nav__logout" onClick={handleLogout}>
             Cerrar sesión
           </button>
