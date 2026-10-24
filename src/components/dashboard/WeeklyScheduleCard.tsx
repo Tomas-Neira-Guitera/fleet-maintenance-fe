@@ -1,11 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { getSchedule } from '../../services/scheduleService';
 import type { ScheduledMaintenance } from '../../types/domain';
+import { localDateKeyOf, localDayRange, toLocalDateKey } from '../../utils/localDate';
+import {
+  ALL_SCHEDULE_STATUSES,
+  SCHEDULE_DISPLAY_STATUSES,
+  SCHEDULE_SOURCE_SHORT_LABEL,
+  SCHEDULE_STATUS_LABEL,
+  scheduleDisplayStatus,
+} from '../../utils/scheduleStatus';
 import { ChevronRightIcon, LayoutGridIcon } from '../icons';
 import { MonthScheduleModal } from './MonthScheduleModal';
 import { ScheduleDetailModal } from './ScheduleDetailModal';
 import { SchedulePickerModal } from './SchedulePickerModal';
+import { ScheduleStatusBadge } from './ScheduleStatusBadge';
 import '../../styles/dashboard.css';
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -29,18 +38,14 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
-function toIsoDate(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
 interface DayItemsProps {
   items: ScheduledMaintenance[];
+  now: Date;
   onSelect: (item: ScheduledMaintenance) => void;
 }
 
 /** Mantenimientos de un día: se ven 2 y el resto con scroll dentro del día. */
-function DayItems({ items, onSelect }: DayItemsProps) {
+function DayItems({ items, now, onSelect }: DayItemsProps) {
   const { ref, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_PER_DAY, items.length);
   return (
     <div
@@ -48,23 +53,31 @@ function DayItems({ items, onSelect }: DayItemsProps) {
       className="weekly-schedule__day-items scroll-list"
       style={maxHeight ? { maxHeight } : undefined}
     >
-      {items.length === 0 && <span className="weekly-schedule__empty">—</span>}
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          data-scroll-item
-          className={`weekly-schedule__item weekly-schedule__item--${item.sourceType}`}
-          onClick={() => onSelect(item)}
-          title="Ver detalle"
-        >
-          <span className="weekly-schedule__item-time">{timeFormatter.format(new Date(item.scheduledAt))}</span>
-          <span className="weekly-schedule__item-title" title={item.title}>
-            {item.title}
-          </span>
-          {item.plate && <span className="weekly-schedule__item-plate">{item.plate}</span>}
-        </button>
-      ))}
+      {items.length === 0 && <span className="weekly-schedule__empty">Sin turnos</span>}
+      {items.map((item) => {
+        const status = scheduleDisplayStatus(item, now);
+        return (
+          <button
+            key={item.id}
+            type="button"
+            data-scroll-item
+            className={`weekly-schedule__item weekly-schedule__item--${status}`}
+            onClick={() => onSelect(item)}
+            title={`${item.title} · ${SCHEDULE_STATUS_LABEL[status]} · Ver detalle`}
+          >
+            {/* CAM-121: el estado lo dice el color de la tarjeta (leyenda arriba); acá queda solo para lectores de pantalla. */}
+            <span className="weekly-schedule__item-top">
+              <span className="weekly-schedule__item-time">{timeFormatter.format(new Date(item.scheduledAt))}</span>
+              <span className="visually-hidden">{SCHEDULE_STATUS_LABEL[status]}</span>
+            </span>
+            <span className="weekly-schedule__item-title">{item.title}</span>
+            <span className="weekly-schedule__item-meta">
+              {item.plate && <span className="weekly-schedule__item-plate">{item.plate}</span>}
+              <span className="weekly-schedule__item-source">{SCHEDULE_SOURCE_SHORT_LABEL[item.sourceType]}</span>
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -81,7 +94,8 @@ interface WeeklyScheduleCardProps {
  * programados (CAM-50/CAM-51) agrupados por día. Consume GET /api/maintenance-schedule
  * -- ver CAM-42-programacion-mantenimientos.md. Un botón junto a las flechas abre la
  * vista de mes completo, y pasar el cursor sobre un día ofrece agendar una programación
- * suelta (origen manual) directo en ese día.
+ * suelta (origen manual) directo en ese día. Desde CAM-65 trae también lo hecho y lo
+ * cancelado, y cada turno muestra su estado (programado, atrasado, hecho o cancelado).
  */
 export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {}) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
@@ -93,11 +107,16 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
+  const fetchWeek = useCallback(
+    () => getSchedule({ ...localDayRange(weekStart, addDays(weekStart, 7)), status: ALL_SCHEDULE_STATUSES }),
+    [weekStart],
+  );
+
   useEffect(() => {
     let cancelled = false;
     setItems(null);
     setError(null);
-    getSchedule({ from: toIsoDate(weekStart), to: toIsoDate(addDays(weekStart, 7)) })
+    fetchWeek()
       .then((data) => {
         if (!cancelled) setItems(data);
       })
@@ -107,71 +126,107 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
     return () => {
       cancelled = true;
     };
-  }, [weekStart, refreshKey]);
+  }, [fetchWeek, refreshKey]);
 
   const itemsByDay = useMemo(() => {
     const map = new Map<string, ScheduledMaintenance[]>();
-    for (const day of days) map.set(toIsoDate(day), []);
+    for (const day of days) map.set(toLocalDateKey(day), []);
     for (const item of items ?? []) {
-      const key = item.scheduledAt.slice(0, 10);
+      const key = localDateKeyOf(item.scheduledAt);
       map.get(key)?.push(item);
     }
     for (const list of map.values()) list.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
     return map;
   }, [items, days]);
 
-  const todayKey = toIsoDate(new Date());
+  const now = new Date();
+  const todayKey = toLocalDateKey(now);
   const rangeLabel = `${dayNumberFormatter.format(weekStart)} ${monthFormatter.format(weekStart)} — ${dayNumberFormatter.format(
     addDays(weekStart, 6),
   )} ${monthFormatter.format(addDays(weekStart, 6))}`;
 
   function refreshWeek() {
-    getSchedule({ from: toIsoDate(weekStart), to: toIsoDate(addDays(weekStart, 7)) })
+    fetchWeek()
       .then(setItems)
       .catch(() => setError('No se pudo cargar el calendario de mantenimientos.'));
+  }
+
+  // Una semana que ya terminó no ofrece agendar: el backend rechaza fechas pasadas (PAST_DATE).
+  const weekIsPast = addDays(weekStart, 7).getTime() <= startOfWeek(now).getTime();
+
+  // Agendar desde el estado vacío: hoy si cae en la semana que se ve, si no el lunes.
+  function scheduleFromEmptyState() {
+    const today = days.find((day) => toLocalDateKey(day) === todayKey);
+    setSchedulingDay(today ?? weekStart);
   }
 
   return (
     <section className="weekly-schedule">
       <header className="weekly-schedule__header">
         <h2 className="weekly-schedule__title">Mantenimientos de la semana</h2>
-        <div className="weekly-schedule__nav">
-          <button
-            type="button"
-            className="weekly-schedule__nav-btn"
-            onClick={() => setShowMonth(true)}
-            aria-label="Ver mes completo"
-            title="Ver mes completo"
-          >
-            <LayoutGridIcon width={16} height={16} />
-          </button>
-          <button
-            type="button"
-            className="weekly-schedule__nav-btn"
-            onClick={() => setWeekStart((w) => addDays(w, -7))}
-            aria-label="Semana anterior"
-          >
-            <ChevronRightIcon width={16} height={16} style={{ transform: 'rotate(180deg)' }} />
-          </button>
-          <span className="weekly-schedule__range">{rangeLabel}</span>
-          <button
-            type="button"
-            className="weekly-schedule__nav-btn"
-            onClick={() => setWeekStart((w) => addDays(w, 7))}
-            aria-label="Semana siguiente"
-          >
-            <ChevronRightIcon width={16} height={16} />
-          </button>
+        <div className="weekly-schedule__header-end">
+          {/* CAM-120: arriba de los días, al lado del mes completo, y siempre a la vista. */}
+          <ul className="weekly-schedule__legend" aria-label="Estados de los turnos">
+            {SCHEDULE_DISPLAY_STATUSES.map((status) => (
+              <li key={status}>
+                <ScheduleStatusBadge status={status} />
+              </li>
+            ))}
+          </ul>
+          <div className="weekly-schedule__nav">
+            <button
+              type="button"
+              className="weekly-schedule__nav-btn"
+              onClick={() => setShowMonth(true)}
+              aria-label="Ver mes completo"
+              title="Ver mes completo"
+            >
+              <LayoutGridIcon width={16} height={16} />
+            </button>
+            <button
+              type="button"
+              className="weekly-schedule__nav-btn"
+              onClick={() => setWeekStart((w) => addDays(w, -7))}
+              aria-label="Semana anterior"
+            >
+              <ChevronRightIcon width={16} height={16} style={{ transform: 'rotate(180deg)' }} />
+            </button>
+            <span className="weekly-schedule__range">{rangeLabel}</span>
+            <button
+              type="button"
+              className="weekly-schedule__nav-btn"
+              onClick={() => setWeekStart((w) => addDays(w, 7))}
+              aria-label="Semana siguiente"
+            >
+              <ChevronRightIcon width={16} height={16} />
+            </button>
+          </div>
         </div>
       </header>
 
       {error && <p className="error-banner">{error}</p>}
       {!items && !error && <p className="muted">Cargando calendario…</p>}
 
-      {items && (
+      {items && items.length === 0 && (
+        <div className="weekly-schedule__empty-state">
+          <p className="weekly-schedule__empty-title">No hay mantenimientos esta semana</p>
+          {!weekIsPast && (
+            <>
+              <p className="weekly-schedule__empty-text">
+                Planificá uno desde "Estado de la flota", desde un defecto, o agendalo acá.
+              </p>
+              <button type="button" className="secondary-btn weekly-schedule__empty-btn" onClick={scheduleFromEmptyState}>
+                Agendar mantenimiento
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {items && items.length > 0 && (
         <div className="weekly-schedule__grid">
           {days.map((day) => {
-            const key = toIsoDate(day);
+            const key = toLocalDateKey(day);
             const dayItems = itemsByDay.get(key) ?? [];
             return (
               <div key={key} className={`weekly-schedule__day${key === todayKey ? ' weekly-schedule__day--today' : ''}`}>
@@ -188,7 +243,7 @@ export function WeeklyScheduleCard({ refreshKey }: WeeklyScheduleCardProps = {})
                     +
                   </button>
                 </div>
-                <DayItems items={dayItems} onSelect={setSelected} />
+                <DayItems items={dayItems} now={now} onSelect={setSelected} />
               </div>
             );
           })}

@@ -71,14 +71,14 @@ src/
 ├── types/domain.ts            # tipos de dominio (Vehicle, Trip, Inspection, ChecklistItem, Defect...)
 ├── checklist/checklistDefinitions.ts  # ítems fijos del checklist pre-viaje/post-viaje
 ├── services/                  # capa de datos: llamadas fetch() a la API real
-│   ├── apiClient.ts           # URL base, identidad de chofer (stub) y manejo de errores
+│   ├── apiClient.ts           # URL base, sesión (JWT) y manejo de errores
 │   ├── vehiclesService.ts     # getVehicles()
 │   ├── inspectionsService.ts  # submitInspection(vehicleId, type, answers, notes)
 │   └── photosService.ts       # uploadDefectPhoto(file)
 └── components/
     ├── VehicleList.tsx        # pantalla 1: flota, patente + estado disponible/en viaje
     ├── InspectionFlow.tsx     # pantallas 2-6: checklist, resumen (anillo de salud) y éxito
-    ├── ChecklistItemCard.tsx  # ítem OK/defecto con expansión inline (gravedad, foto, descripción)
+    ├── ChecklistItemCard.tsx  # ítem con un interruptor OK / Reportar defecto y expansión inline (gravedad, foto, descripción)
     ├── HealthRing.tsx         # anillo circular de salud (pieza de marca)
     └── icons.tsx              # set de íconos SVG stroke-based
 ```
@@ -88,5 +88,6 @@ frontend consume la API real del backend `fleet-maintenance` (Spring Boot) — n
 Para levantar el flujo completo necesitás el backend corriendo en `http://localhost:8080`
 (CORS ya está habilitado ahí para `http://localhost:5173`/`http://127.0.0.1:5173`).
 
-No hay login real todavía: las inspecciones se envían con una identidad de chofer fija
-(`driver-demo-1` / "Carlos Gómez", ver `src/services/apiClient.ts`) hasta que exista autenticación.
+Las inspecciones se envían con el JWT del chofer que inició sesión (CAM-85): el backend toma de
+ahí quién hizo la inspección y quién abrió o cerró el viaje. El panel del admin suma las secciones
+Gastos (CAM-52) y Usuarios (CAM-23, CAM-91), con gráficos propios en `src/components/charts/`.

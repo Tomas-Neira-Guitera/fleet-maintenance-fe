@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getSchedule } from '../../services/scheduleService';
 import type { ScheduledMaintenance } from '../../types/domain';
+import { localDateKeyOf, localDayRange, toLocalDateKey } from '../../utils/localDate';
+import { ALL_SCHEDULE_STATUSES, SCHEDULE_STATUS_LABEL, scheduleDisplayStatus } from '../../utils/scheduleStatus';
 import { ChevronRightIcon, CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
 
@@ -21,11 +23,6 @@ function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
-}
-
-function toIsoDate(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 /** Grilla de 6 semanas (lunes a domingo) que cubre el mes completo, con días de meses vecinos. */
@@ -59,7 +56,7 @@ export function MonthScheduleModal({ initialMonth, onClose, onSelectDay }: Month
     setError(null);
     const from = days[0];
     const to = addDays(days[days.length - 1], 1);
-    getSchedule({ from: toIsoDate(from), to: toIsoDate(to) })
+    getSchedule({ ...localDayRange(from, to), status: ALL_SCHEDULE_STATUSES })
       .then((data) => {
         if (!cancelled) setItems(data);
       })
@@ -74,15 +71,20 @@ export function MonthScheduleModal({ initialMonth, onClose, onSelectDay }: Month
   const itemsByDay = useMemo(() => {
     const map = new Map<string, ScheduledMaintenance[]>();
     for (const item of items ?? []) {
-      const key = item.scheduledAt.slice(0, 10);
+      const key = localDateKeyOf(item.scheduledAt);
       if (!map.has(key)) map.set(key, []);
       map.get(key)?.push(item);
     }
-    for (const list of map.values()) list.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+    // Cada día muestra solo 2: primero lo que sigue pendiente, para que un turno programado no quede
+    // escondido en "+N más" detrás de lo ya hecho o cancelado (CAM-65).
+    const pendingFirst = (a: ScheduledMaintenance, b: ScheduledMaintenance) =>
+      Number(a.status !== 'scheduled') - Number(b.status !== 'scheduled') || a.scheduledAt.localeCompare(b.scheduledAt);
+    for (const list of map.values()) list.sort(pendingFirst);
     return map;
   }, [items]);
 
-  const todayKey = toIsoDate(new Date());
+  const now = new Date();
+  const todayKey = toLocalDateKey(now);
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -127,7 +129,7 @@ export function MonthScheduleModal({ initialMonth, onClose, onSelectDay }: Month
 
           <div className="month-schedule__grid">
             {days.map((day) => {
-              const key = toIsoDate(day);
+              const key = toLocalDateKey(day);
               const dayItems = itemsByDay.get(key) ?? [];
               const outsideMonth = day.getMonth() !== monthStart.getMonth();
               return (
@@ -146,11 +148,18 @@ export function MonthScheduleModal({ initialMonth, onClose, onSelectDay }: Month
                   <span className="month-schedule__day-number">{dayNumberFormatter.format(day)}</span>
                   {dayItems.length > 0 && (
                     <span className="month-schedule__day-items">
-                      {dayItems.slice(0, 2).map((item) => (
-                        <span key={item.id} className="month-schedule__day-item" title={item.title}>
-                          {item.title}
-                        </span>
-                      ))}
+                      {dayItems.slice(0, 2).map((item) => {
+                        const status = scheduleDisplayStatus(item, now);
+                        return (
+                          <span
+                            key={item.id}
+                            className={`month-schedule__day-item month-schedule__day-item--${status}`}
+                            title={`${item.title} · ${SCHEDULE_STATUS_LABEL[status]}`}
+                          >
+                            {item.title}
+                          </span>
+                        );
+                      })}
                       {dayItems.length > 2 && (
                         <span className="month-schedule__day-more">+{dayItems.length - 2} más</span>
                       )}

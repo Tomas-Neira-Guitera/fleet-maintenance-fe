@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { createSchedule, getSchedule } from '../../services/scheduleService';
 import { getVehicles } from '../../services/vehiclesService';
 import { createWorkOrder } from '../../services/workOrdersService';
 import type { ScheduledMaintenance, ScheduleSourceType, Vehicle, WorkOrderExecutionType } from '../../types/domain';
 import { ApiError } from '../../services/apiClient';
+import { DateTimePicker } from '../datetime/DateTimePicker';
 import { CloseIcon } from '../icons';
 import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import '../../styles/dashboard.css';
 import { CharCounter } from '../CharCounter';
 import { TITLE_MAX_LENGTH } from '../../utils/textLimits';
+import { localDateKeyOf, localDayRange, toLocalDateKey } from '../../utils/localDate';
 
 interface SchedulePickerModalSourceProps {
   mode?: 'source';
@@ -40,11 +42,6 @@ function defaultSuggestion(initialDate?: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function toIsoDate(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
 /**
  * Modal compartido para "planificar" un mantenimiento (CAM-50, origen assignment), el
  * arreglo de un defecto (CAM-51, origen defect), o una programación suelta desde el
@@ -62,6 +59,7 @@ function toIsoDate(date: Date): string {
 export function SchedulePickerModal(props: SchedulePickerModalProps) {
   const manual = props.mode === 'manual';
   const [value, setValue] = useState(defaultSuggestion(props.initialDate));
+  const whenLabelId = useId();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,9 +111,12 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
     const from = new Date(day.getFullYear(), day.getMonth(), day.getDate());
     const to = new Date(from);
     to.setDate(to.getDate() + 1);
-    getSchedule({ from: toIsoDate(from), to: toIsoDate(to) })
+    getSchedule(localDayRange(from, to))
       .then((data) => {
-        if (!cancelled) setPreview(data);
+        // El backend incluye las dos puntas del rango: se descarta lo que cae justo a la medianoche
+        // del día siguiente, que no es "de ese día".
+        const dayKey = toLocalDateKey(from);
+        if (!cancelled) setPreview(data.filter((s) => localDateKeyOf(s.scheduledAt) === dayKey));
       })
       .catch(() => {
         if (!cancelled) setPreview(null);
@@ -230,16 +231,19 @@ export function SchedulePickerModal(props: SchedulePickerModalProps) {
             </>
           )}
 
-          <label className="schedule-picker__field">
-            Fecha y hora
-            <input
-              type="datetime-local"
+          <div className="schedule-picker__field" role="group" aria-labelledby={whenLabelId}>
+            <label id={whenLabelId} htmlFor={`${whenLabelId}-day`}>
+              Fecha y hora
+            </label>
+            <DateTimePicker
+              id={`${whenLabelId}-day`}
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={setValue}
+              min={toLocalDateKey(new Date())}
               className="schedule-picker__input"
               disabled={Boolean(createdSchedule)}
             />
-          </label>
+          </div>
 
           <label className="schedule-picker__field">
             Notas (opcional)

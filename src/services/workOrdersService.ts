@@ -105,6 +105,10 @@ export interface CreateExpenseInput {
   category: WorkOrderExpenseCategory;
   description: string;
   amount: number;
+  /** Número de la factura o el ticket, hasta 50 caracteres (CAM-107). Opcional. */
+  receiptNumber?: string;
+  /** photoUrl de POST /api/photos con la foto del comprobante (CAM-107). Opcional. */
+  receiptPhotoUrl?: string;
 }
 
 /** POST /api/work-orders/{id}/expenses -- agrega una línea de gasto. */

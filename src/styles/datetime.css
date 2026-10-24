@@ -1,0 +1,278 @@
+/* Selectores de fecha y hora propios (CAM-65), en reemplazo de los nativos del navegador. */
+
+/* El botón que muestra el valor. Toma tamaño y borde de la clase del formulario donde va
+   (.schedule-picker__input o .work-orders__filter); acá solo lo que hace falta para que sea un campo. */
+.dt-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dt-field:hover:not(:disabled) {
+  border-color: var(--fg-text-muted);
+}
+
+.dt-field:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: 1px;
+}
+
+.dt-field[aria-expanded='true'] {
+  border-color: var(--fg-text);
+}
+
+.dt-field:disabled {
+  opacity: 0.6;
+}
+
+.dt-field__icon {
+  flex-shrink: 0;
+  color: var(--fg-text-muted);
+}
+
+.dt-field__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dt-field__text::first-letter {
+  text-transform: uppercase;
+}
+
+.dt-field__text--placeholder {
+  color: var(--fg-text-muted);
+}
+
+.dt-field--time .dt-field__text {
+  font-family: var(--fg-font-mono);
+}
+
+/* Fecha y hora en un renglón: el día se estira, la hora no. */
+.dt-datetime {
+  display: flex;
+  gap: 8px;
+}
+
+.dt-datetime .dt-field:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.dt-datetime .dt-field--time {
+  flex: 0 0 auto;
+}
+
+/* Panel flotante: en un portal y con posición fija, por encima de los modales (.modal-overlay es 50). */
+.dt-popover {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  visibility: hidden;
+  max-width: calc(100vw - 16px);
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  box-shadow: var(--fg-shadow-pop);
+  padding: 12px;
+  color: var(--fg-text);
+  font-family: var(--fg-font-body);
+}
+
+/* Grilla del mes: mismo lenguaje que la vista mensual del calendario de mantenimientos. */
+.dt-calendar {
+  width: 272px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dt-calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dt-calendar__title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* Solo la primera letra: con "capitalize" quedaba "Octubre De 2026". */
+.dt-calendar__title::first-letter {
+  text-transform: uppercase;
+}
+
+.dt-calendar__nav {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dt-calendar__nav:hover:not([aria-disabled='true']) {
+  background: var(--fg-bg);
+}
+
+.dt-calendar__nav:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: 2px;
+}
+
+.dt-calendar__nav[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dt-calendar__nav-group {
+  display: flex;
+  gap: 4px;
+}
+
+/* Doble flecha de los botones de año: la segunda se monta sobre la primera. */
+.dt-calendar__nav-second {
+  margin-left: -10px;
+}
+
+.dt-calendar__weekdays,
+.dt-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.dt-calendar__weekdays span {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--fg-text-muted);
+  text-align: center;
+  padding: 4px 0;
+}
+
+.dt-calendar__day {
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-text);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dt-calendar__day:hover:not([aria-disabled='true']) {
+  background: var(--fg-bg);
+}
+
+.dt-calendar__day:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: -2px;
+}
+
+.dt-calendar__day--outside {
+  color: var(--fg-text-muted);
+}
+
+.dt-calendar__day--today {
+  box-shadow: inset 0 0 0 1px var(--fg-text);
+  font-weight: 600;
+}
+
+.dt-calendar__day--selected,
+.dt-calendar__day--selected:hover:not([aria-disabled='true']) {
+  background: var(--fg-text);
+  color: var(--fg-white);
+  font-weight: 600;
+}
+
+.dt-calendar__day--selected:focus-visible {
+  outline-color: var(--fg-text);
+  outline-offset: 2px;
+}
+
+.dt-calendar__day[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dt-calendar__footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: var(--fg-border);
+  padding-top: 8px;
+}
+
+.dt-calendar__today {
+  border: none;
+  background: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text);
+  text-decoration: underline;
+}
+
+.dt-calendar__today:hover:not(:disabled) {
+  background: var(--fg-bg);
+}
+
+.dt-calendar__today:disabled {
+  opacity: 0.35;
+}
+
+/* Lista de horarios. */
+.dt-time-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 112px;
+  max-height: 264px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dt-time-list:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.dt-time-list__option {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: var(--fg-font-mono);
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.dt-time-list__option--active {
+  background: var(--fg-bg);
+}
+
+.dt-time-list__option--selected,
+.dt-time-list__option--selected.dt-time-list__option--active {
+  background: var(--fg-text);
+  color: var(--fg-white);
+  font-weight: 600;
+}

@@ -1,0 +1,658 @@
+/* Configuración de avisos (CAM-117) y avisos de un plan (CAM-118). */
+
+.notif-settings__header {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.notif-settings__intro {
+  margin: 6px 0 0;
+}
+
+/* "Guardado: …" arriba a la derecha; aparece y se va sin mover nada. */
+.notif-settings__status {
+  margin: 4px 0 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.notif-settings__status--on {
+  opacity: 1;
+}
+
+/* Matriz: un renglón por aviso. */
+.notif-matrix-wrap {
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+  overflow: hidden;
+}
+
+.notif-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: var(--fg-text);
+}
+
+.notif-matrix thead th {
+  padding: 12px 14px;
+  border-bottom: var(--fg-border);
+  background: var(--fg-bg);
+  color: var(--fg-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.notif-matrix .notif-matrix__center {
+  width: 92px;
+  text-align: center;
+}
+
+.notif-matrix__channel-head {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: help;
+}
+
+.notif-matrix__channel-sub {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.notif-matrix__topic th {
+  padding: 18px 14px 8px;
+  border-bottom: var(--fg-border);
+  text-align: left;
+}
+
+.notif-matrix tbody:first-of-type .notif-matrix__topic th {
+  padding-top: 12px;
+}
+
+.notif-matrix__topic-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--fg-font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.notif-matrix__topic-label svg {
+  color: var(--fg-text-muted);
+}
+
+.notif-matrix__row > th,
+.notif-matrix__row > td {
+  padding: 12px 14px;
+  border-bottom: var(--fg-border);
+  vertical-align: middle;
+}
+
+.notif-matrix__row:hover > th,
+.notif-matrix__row:hover > td,
+.notif-matrix__row--open > th,
+.notif-matrix__row--open > td {
+  background: var(--fg-hover);
+}
+
+.notif-matrix__aviso {
+  text-align: left;
+  font-weight: normal;
+}
+
+.notif-matrix__name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notif-matrix__name:hover {
+  text-decoration: underline;
+}
+
+.notif-matrix__description {
+  display: block;
+  margin-top: 2px;
+  color: var(--fg-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.notif-matrix__tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.notif-matrix__check {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--fg-ok);
+  cursor: pointer;
+}
+
+.notif-matrix__check:disabled {
+  cursor: not-allowed;
+}
+
+/* Apagado: se ve lo que tenía configurado, en gris. */
+.notif-matrix__row--off .notif-matrix__name,
+.notif-matrix__row--off .notif-matrix__recipients {
+  color: var(--fg-text-muted);
+}
+
+.notif-matrix__row--off .notif-matrix__check {
+  opacity: 0.45;
+}
+
+.notif-matrix__recipients {
+  font-size: 13px;
+}
+
+.notif-matrix__warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fg-warn-bg);
+  color: var(--fg-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.notif-matrix__warn svg {
+  color: var(--fg-warn);
+}
+
+.notif-matrix__expand {
+  width: 44px;
+  text-align: right;
+}
+
+.notif-matrix__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-text-muted);
+  cursor: pointer;
+}
+
+.notif-matrix__chevron svg {
+  transition: transform 0.15s ease;
+}
+
+.notif-matrix__chevron[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+.notif-matrix__chevron:hover {
+  background: var(--fg-white);
+  color: var(--fg-text);
+}
+
+.notif-matrix__error-row td {
+  padding: 0 14px 10px;
+  border-bottom: var(--fg-border);
+}
+
+.notif-matrix__detail-row > td {
+  padding: 0;
+  border-bottom: var(--fg-border);
+  background: var(--fg-bg);
+}
+
+/* Detalle de un aviso. */
+.notif-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  padding: 16px 18px 18px;
+}
+
+.notif-detail__main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.notif-detail__block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.notif-detail__title {
+  margin: 0;
+  color: var(--fg-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.notif-detail__text {
+  margin: 0;
+  font-size: 14px;
+}
+
+.notif-detail__users summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notif-detail__users ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px 16px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.notif-detail__users label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.notif-detail__users input,
+.plan-notif__toggle input {
+  accent-color: var(--fg-ok);
+}
+
+.notif-detail__save {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 16px;
+  font-size: 14px;
+}
+
+.notif-detail__lock {
+  margin: 0;
+  color: var(--fg-text-muted);
+  font-size: 12px;
+}
+
+.notif-detail__hint {
+  margin: 0;
+  font-size: 12px;
+}
+
+.notif-detail__email-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-warn-bg);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.notif-detail__email-warning svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--fg-warn);
+}
+
+.notif-detail__email-warning p {
+  margin: 0;
+}
+
+.notif-detail__link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.notif-detail__reset {
+  color: var(--fg-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* "Así se ve": el aviso de ejemplo, con el mismo aspecto que en la campanita. */
+.notif-detail__example {
+  margin: 0;
+}
+
+.notif-detail__example figcaption {
+  margin-bottom: 8px;
+  color: var(--fg-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.notif-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px 10px 13px;
+  border: var(--fg-border);
+  border-left: 3px solid var(--fg-ok);
+  border-radius: var(--fg-radius);
+  background: var(--fg-ok-bg);
+  box-shadow: var(--fg-shadow-pop);
+  font-size: 13px;
+}
+
+.notif-preview__title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.notif-preview__message {
+  line-height: 1.4;
+}
+
+.notif-preview__time {
+  color: var(--fg-text-muted);
+  font-size: 12px;
+}
+
+/* Interruptor activo/apagado: un checkbox con role="switch". */
+.notif-switch {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.notif-switch input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.notif-switch input:disabled {
+  cursor: progress;
+}
+
+.notif-switch__track {
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--fg-chart-track);
+  box-shadow: inset 0 0 0 1px rgba(62, 74, 66, 0.22);
+  transition: background-color 0.15s ease;
+}
+
+.notif-switch__track::after {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 3px;
+  border-radius: 50%;
+  background: var(--fg-white);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+
+.notif-switch input:checked + .notif-switch__track {
+  background: var(--fg-ok);
+}
+
+.notif-switch input:checked + .notif-switch__track::after {
+  transform: translateX(18px);
+}
+
+.notif-switch input:focus-visible + .notif-switch__track {
+  outline: 2px solid var(--fg-text);
+  outline-offset: 2px;
+}
+
+/* Chips (roles, y canales en los avisos de un plan). */
+.notif-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notif-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--fg-border-color);
+  border-radius: 999px;
+  background: var(--fg-white);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.notif-chip--on {
+  border-color: var(--fg-ok);
+  background: var(--fg-ok-bg);
+}
+
+.notif-chip input {
+  margin: 0;
+  accent-color: var(--fg-ok);
+}
+
+/* Anticipación (días / km), en la matriz y en los avisos de un plan. */
+.notif-card__lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 13px;
+}
+
+.notif-card__lead label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-card__number {
+  width: 96px;
+}
+
+/* Botón "Avisos" de cada plan y su modal (CAM-118). */
+.plan-notif__btn {
+  border-color: var(--fg-border-color);
+  background: var(--fg-white);
+  color: var(--fg-text);
+}
+
+.plan-notif__btn:hover {
+  background: var(--fg-hover);
+}
+
+.plan-notif__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.plan-notif__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  cursor: pointer;
+}
+
+.plan-notif__option--on {
+  border-color: var(--fg-ok);
+  background: var(--fg-ok-bg);
+}
+
+.plan-notif__option input {
+  margin-top: 3px;
+  accent-color: var(--fg-ok);
+}
+
+.plan-notif__summary {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.plan-notif__custom {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.plan-notif__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 960px) {
+  .notif-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Celular: cada aviso pasa a ser una tarjeta; los canales quedan en fila con su nombre. */
+@media (max-width: 720px) {
+  .notif-matrix thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .notif-matrix,
+  .notif-matrix tbody,
+  .notif-matrix tr,
+  .notif-matrix th,
+  .notif-matrix td {
+    display: block;
+  }
+
+  .notif-matrix__row {
+    display: grid !important;
+    grid-template-columns: repeat(3, auto) 1fr auto;
+    align-items: center;
+    gap: 10px 14px;
+    padding: 12px 14px;
+    border-bottom: var(--fg-border);
+  }
+
+  .notif-matrix__row > th,
+  .notif-matrix__row > td {
+    padding: 0;
+    border: none;
+    background: none !important;
+  }
+
+  .notif-matrix__row > .notif-matrix__aviso {
+    grid-column: 1 / 5;
+  }
+
+  .notif-matrix__row > td:nth-of-type(1) {
+    grid-column: 5;
+    grid-row: 1;
+    width: auto;
+  }
+
+  .notif-matrix .notif-matrix__row > .notif-matrix__center:not(:nth-of-type(1)) {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    font-size: 13px;
+  }
+
+  .notif-matrix__row > .notif-matrix__center:not(:nth-of-type(1))::after {
+    content: attr(data-label);
+  }
+
+  .notif-matrix__recipients {
+    grid-column: 1 / 5;
+    color: var(--fg-text-muted);
+  }
+
+  .notif-matrix__recipients::before {
+    content: 'Le llega a: ';
+  }
+
+  .notif-matrix__expand {
+    grid-column: 5;
+    width: auto;
+  }
+
+  .notif-matrix__detail-row > td,
+  .notif-matrix__error-row td {
+    padding: 0;
+  }
+
+  .notif-detail {
+    padding: 14px;
+  }
+}
+
+@media (forced-colors: active) {
+  .notif-switch__track {
+    border: 1px solid CanvasText;
+  }
+}

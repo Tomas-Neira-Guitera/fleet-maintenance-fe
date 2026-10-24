@@ -1,24 +1,9 @@
-// Base compartida por los servicios: URL de la API, identidad del chofer (stub sin login real),
-// la sesión de CAM-43 (token + rol) y manejo de errores del backend.
+// Base compartida por los servicios: URL de la API, la sesión de CAM-43 (token + rol) y manejo
+// de errores del backend.
 
 import type { LoginResult } from '../types/domain';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
-
-/**
- * Identidad de chofer temporal (CAM-11), previa al login. Convive con la sesión
- * de CAM-43 a propósito: el backend solo valida el JWT en /api/users (CAM-23), no
- * en las inspecciones, así que esto sigue siendo lo único que el servidor
- * realmente usa para saber "quién" hace una inspección.
- */
-export const CURRENT_DRIVER = { id: 'driver-demo-1', name: 'Carlos Gómez' };
-
-export function driverHeaders(): Record<string, string> {
-  return {
-    'X-Driver-Id': CURRENT_DRIVER.id,
-    'X-Driver-Name': CURRENT_DRIVER.name,
-  };
-}
 
 const SESSION_STORAGE_KEY = 'fleetguard.session';
 const USERNAME_STORAGE_KEY = 'fleetguard.username';
@@ -32,7 +17,10 @@ export function clearSession(): void {
   localStorage.removeItem(USERNAME_STORAGE_KEY);
 }
 
-/** Nombre tipeado en el login -- no viene de `LoginResult` (el backend no lo devuelve), es solo para el saludo. */
+/**
+ * Nombre tipeado en el login -- no viene de `LoginResult` (el backend no lo devuelve). Es solo para
+ * mostrar: quién hizo cada cosa lo decide el backend con el token (CAM-85).
+ */
 export function saveUsername(username: string): void {
   localStorage.setItem(USERNAME_STORAGE_KEY, username);
 }
@@ -54,25 +42,38 @@ export function getSession(): LoginResult | null {
 /**
  * Id del usuario logueado, leído del claim `sub` del JWT (CAM-60) -- `LoginResult` no lo
  * trae aparte. Solo decodifica el payload para saber "quién soy"; no valida la firma
- * (eso es trabajo del backend: hoy solo en /api/users, CAM-23).
+ * (eso es trabajo del backend).
  */
 export function getSessionUserId(): string | null {
-  const token = getSession()?.token;
-  const payload = token?.split('.')[1];
+  const sub = sessionTokenClaims()?.sub;
+  return typeof sub === 'string' ? sub : null;
+}
+
+/**
+ * true si el JWT ya venció según su claim `exp` (CAM-119): al cerrar una sesión vencida no se dan de
+ * baja las push del dispositivo, que siguen siendo del mismo usuario.
+ */
+export function isSessionTokenExpired(): boolean {
+  const exp = sessionTokenClaims()?.exp;
+  return typeof exp === 'number' && exp * 1000 <= Date.now();
+}
+
+function sessionTokenClaims(): { sub?: unknown; exp?: unknown } | null {
+  const payload = getSession()?.token?.split('.')[1];
   if (!payload) return null;
   try {
     const base64 = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
     const json = new TextDecoder().decode(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)));
-    const sub = (JSON.parse(json) as { sub?: unknown }).sub;
-    return typeof sub === 'string' ? sub : null;
+    return JSON.parse(json) as { sub?: unknown; exp?: unknown };
   } catch {
     return null;
   }
 }
 
 /**
- * Header Authorization con el JWT de CAM-43. El backend lo exige en /api/users (CAM-23); en el
- * resto todavía no lo valida (CAM-73), pero ya lo pide el contrato.
+ * Header Authorization con el JWT de CAM-43. El backend lo exige en usuarios (CAM-23), gastos
+ * (CAM-52) e inspecciones (CAM-85); en el resto todavía no lo valida (CAM-73), pero ya lo pide
+ * el contrato.
  */
 export function authHeaders(): Record<string, string> {
   const session = getSession();
@@ -98,10 +99,7 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * true si el backend rechazó el JWT (401): sin token, vencido o de un usuario desactivado (CAM-23).
- * Hoy solo pasa en /api/users; el resto de la API todavía no valida el token (CAM-73).
- */
+/** true si el backend rechazó el JWT (401): sin token, vencido o de un usuario desactivado (CAM-23). */
 export function isSessionExpired(err: unknown): boolean {
   return err instanceof ApiError && err.status === 401;
 }

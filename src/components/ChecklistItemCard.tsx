@@ -49,20 +49,19 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
     );
   }
 
-  const outcome = state.outcome;
+  // CAM-94: un solo interruptor. Arranca en OK; al pasarlo a "con defecto" se despliega la carga.
+  const hasDefect = state.outcome === 'defect';
   const defect = state.defect;
   const invalidDefect = Boolean(showValidation && !isDefectValid(state));
-  const invalidOutcome = Boolean(showValidation && !outcome);
 
-  function setOutcomeOk() {
-    onChange({ outcome: 'ok' });
-  }
-
-  function setOutcomeDefect() {
-    onChange({
-      outcome: 'defect',
-      defect: state.defect ?? { severity: 'non-blocking', description: '' },
-    });
+  function toggleOutcome() {
+    if (hasDefect) {
+      // Lo ya cargado del defecto se conserva por si el chofer apagó el interruptor sin querer;
+      // con el ítem en OK no se envía (inspectionsService).
+      onChange({ ...state, outcome: 'ok' });
+    } else {
+      onChange({ ...state, outcome: 'defect', defect: state.defect ?? { severity: 'non-blocking', description: '' } });
+    }
   }
 
   function setSeverity(severity: DefectSeverity) {
@@ -103,31 +102,29 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
 
   return (
     <div
-      className={`checklist-item${outcome === 'defect' ? ' checklist-item--expanded' : ''}${invalidOutcome ? ' checklist-item--invalid' : ''}`}
+      className={`checklist-item checklist-item--toggle${hasDefect ? ' checklist-item--expanded' : ''}${invalidDefect ? ' checklist-item--invalid' : ''}`}
     >
-      <span className="checklist-item__label">{def.label}</span>
-      <div className="checklist-item__actions">
+      <div className="checklist-item__head">
+        <span className="checklist-item__label">{def.label}</span>
         <button
           type="button"
-          className={`outcome-btn outcome-btn--ok${outcome === 'ok' ? ' outcome-btn--active' : ''}`}
-          onClick={setOutcomeOk}
-          aria-pressed={outcome === 'ok'}
+          role="switch"
+          aria-checked={hasDefect}
+          aria-label={`${def.label}: reportar defecto`}
+          className={`outcome-switch${hasDefect ? ' outcome-switch--defect' : ''}`}
+          onClick={toggleOutcome}
         >
-          OK
-        </button>
-        <button
-          type="button"
-          className={`outcome-btn outcome-btn--defect${outcome === 'defect' ? ' outcome-btn--active' : ''}`}
-          onClick={setOutcomeDefect}
-          aria-pressed={outcome === 'defect'}
-        >
-          <AlertTriangleIcon className="outcome-btn__icon" />
-          Reportar defecto
+          <span className="outcome-switch__state">
+            {hasDefect && <AlertTriangleIcon className="outcome-switch__icon" />}
+            {hasDefect ? 'Reportar defecto' : 'OK'}
+          </span>
+          <span className="outcome-switch__track" aria-hidden="true">
+            <span className="outcome-switch__thumb" />
+          </span>
         </button>
       </div>
-      {invalidOutcome && <p className="field-error">Marcá OK o reportá un defecto.</p>}
 
-      {outcome === 'defect' && defect && (
+      {hasDefect && defect && (
         <div className="defect-panel">
           <div className="defect-panel__field">
             <span className="defect-panel__field-label">Gravedad</span>

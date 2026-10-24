@@ -11,9 +11,25 @@ export interface Vehicle {
   chassisNumber?: string | null;
   odometerKm?: number;
   active?: boolean;
+  /** true si tiene un defecto bloqueante sin resolver: no puede iniciar un viaje (CAM-89). */
+  blocked?: boolean;
+  /** El viaje abierto, si está "en viaje" (CAM-87). */
+  currentTrip?: CurrentTrip | null;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
+
+/** Un usuario, por id y nombre actual. */
+export interface UserRef {
+  id: string;
+  name: string;
+}
+
+/** Viaje abierto de un vehículo. openedBy falta en viajes anteriores a CAM-87. */
+export interface CurrentTrip {
+  startedAt: string;
+  openedBy: UserRef | null;
+}
 
 export interface Trip {
   id: string;
@@ -21,6 +37,8 @@ export interface Trip {
   status: 'open' | 'closed';
   startedAt: string;
   endedAt: string | null;
+  openedBy?: UserRef | null;
+  closedBy?: UserRef | null;
 }
 
 export type ChecklistItemType = 'check' | 'number';
@@ -147,6 +165,38 @@ export interface UserSummary {
   role: Role;
   /** false = desactivado: no puede loguearse (CAM-23). */
   active: boolean;
+  /** Para los avisos por email (CAM-117). null si no tiene. */
+  email: string | null;
+}
+
+/** Actividad de un chofer en un período -- GET /api/users/stats (CAM-91). `defects` incluye los bloqueantes. */
+export interface DriverStats {
+  userId: string;
+  username: string;
+  active: boolean;
+  trips: number;
+  inspections: number;
+  defects: number;
+  blockingDefects: number;
+}
+
+/**
+ * Actividad de un técnico -- GET /api/users/stats (CAM-91). `openWorkOrders` es la foto de hoy;
+ * el resto es del período. `avgResolutionHours` es null si no finalizó ninguna OT.
+ */
+export interface TechnicianStats {
+  userId: string;
+  username: string;
+  active: boolean;
+  openWorkOrders: number;
+  finalizedWorkOrders: number;
+  avgResolutionHours: number | null;
+  expensesTotal: number;
+}
+
+export interface UserStats {
+  drivers: DriverStats[];
+  technicians: TechnicianStats[];
 }
 
 /** Respuesta de POST /api/auth/login (CAM-43). */
@@ -275,6 +325,48 @@ export interface WorkOrderExpense {
   description: string;
   amount: number;
   createdAt: string;
+  /** Número de la factura o el ticket (CAM-107); null si no se cargó. */
+  receiptNumber: string | null;
+  /** Foto de la factura o el ticket (CAM-107); null si no se adjuntó. */
+  receiptPhotoUrl: string | null;
+}
+
+/** De dónde nació la OT de un gasto: un plan (preventivo), un defecto (correctivo) o suelta. */
+export type ExpenseOrigin = 'plan' | 'defect' | 'manual';
+
+/** Un gasto de mantenimiento con su vehículo y su OT -- GET /api/expenses (CAM-52). */
+export interface Expense {
+  id: string;
+  /** Cuándo se cargó el gasto. */
+  date: string;
+  vehicleId: string;
+  plate: string | null;
+  category: WorkOrderExpenseCategory;
+  description: string;
+  amount: number;
+  workOrderId: string;
+  workOrderTitle: string;
+  workOrderStatus: WorkOrderStatus;
+  origin: ExpenseOrigin;
+  executionType: WorkOrderExecutionType;
+  /** Número de la factura o el ticket (CAM-107); null si no se cargó. */
+  receiptNumber: string | null;
+  /** Foto del comprobante (CAM-107); null si no se adjuntó. */
+  receiptPhotoUrl: string | null;
+}
+
+/**
+ * Costo de mantenimiento de un vehículo -- GET /api/vehicles/{id}/costs (CAM-105). firstKnownKm,
+ * kmDriven y costPerKm vienen en null cuando no hay km suficientes para calcularlos.
+ */
+export interface VehicleCosts {
+  totalAmount: number;
+  last12MonthsAmount: number;
+  expenseCount: number;
+  currentKm: number;
+  firstKnownKm: number | null;
+  kmDriven: number | null;
+  costPerKm: number | null;
 }
 
 export interface WorkOrderPhoto {
@@ -310,4 +402,86 @@ export interface WorkOrder {
   createdAt: string;
   updatedAt: string;
   finalizedAt: string | null;
+}
+
+// ─── Avisos in-app (CAM-96) ────────────────────────────────────────────────
+
+/** Qué originó el aviso. La campanita no lo usa para nada: el texto ya viene armado del backend. */
+export type NotificationType =
+  | 'work_order_assigned'
+  | 'work_order_unassigned'
+  | 'work_order_cancelled'
+  | 'trip_open_reminder'
+  | 'blocking_defect_reported'
+  | 'work_order_finalized'
+  | 'maintenance_due_soon'
+  | 'maintenance_overdue';
+
+/** Por dónde sale un aviso (CAM-117). */
+export type NotificationChannel = 'in_app' | 'push' | 'email';
+
+/** Un tipo de aviso en GET /api/notification-settings (CAM-117). */
+export interface NotificationSetting {
+  type: NotificationType;
+  label: string;
+  description: string;
+  /** owner: le llega a la persona involucrada (recipientDescription); configurable: a los elegidos. */
+  audience: 'owner' | 'configurable';
+  recipientDescription: string | null;
+  enabled: boolean;
+  channels: NotificationChannel[];
+  recipientRoles: Role[];
+  recipientUserIds: string[];
+  /** Solo "Mantenimiento por vencer": anticipación en días y km. */
+  supportsLead: boolean;
+  leadDays: number | null;
+  leadKm: number | null;
+  /** false: rige la configuración por defecto. */
+  customized: boolean;
+}
+
+export interface NotificationSettingInput {
+  enabled: boolean;
+  channels: NotificationChannel[];
+  recipientRoles?: Role[];
+  recipientUserIds?: string[];
+  leadDays?: number | null;
+  leadKm?: number | null;
+}
+
+/** GET /api/maintenance-plans/{id}/notifications (CAM-118). custom=false: usa la configuración general. */
+export interface PlanNotificationSettings {
+  planId: string;
+  intervalType: IntervalType;
+  custom: boolean;
+  enabled: boolean | null;
+  channels: NotificationChannel[] | null;
+  leadDays: number | null;
+  leadKm: number | null;
+  general: {
+    dueSoonEnabled: boolean;
+    overdueEnabled: boolean;
+    channels: NotificationChannel[];
+    leadDays: number | null;
+    leadKm: number | null;
+  };
+}
+
+export interface PlanNotificationSettingsInput {
+  enabled: boolean;
+  channels: NotificationChannel[];
+  leadDays: number | null;
+  leadKm: number | null;
+}
+
+/** "UserNotification" y no "Notification", que es la API de notificaciones del navegador. */
+export interface UserNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  /** Ruta del front a la que lleva tocarlo ("/vehiculos/{id}", "/"); null si no lleva a ningún lado. */
+  link: string | null;
+  createdAt: string;
+  readAt: string | null;
 }

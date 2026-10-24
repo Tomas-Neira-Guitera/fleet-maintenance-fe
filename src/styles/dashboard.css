@@ -8,6 +8,10 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px 24px 0;
+  /* Menú a la izquierda, campanita de avisos (CAM-96) a la derecha. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .admin-shell__menu-toggle {
@@ -892,6 +896,24 @@
   font-size: 14px;
 }
 
+/* Acción secundaria que no es "guardar" (ej. "Desactivar plan", CAM-93): a la izquierda,
+   separada de Cancelar/Guardar. Con ícono, por eso inline-flex. */
+.modal__footer-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-right: auto;
+}
+
+/* Acción de baja en el pie de un modal: neutra como "Cancelar" y roja solo al pasar el mouse,
+   igual que "Dar de baja" en la ficha del vehículo, así no compite con "Guardar". */
+.modal__footer .modal__footer-danger:hover:not(:disabled) {
+  background: var(--fg-crit-bg);
+  border-color: var(--fg-critical);
+  color: var(--fg-critical);
+}
+
 /* Lista de mantenimientos dentro del modal de "Estado de la flota" (CAM-50). */
 
 .vehicle-maintenance-list {
@@ -1154,7 +1176,8 @@
   white-space: nowrap;
 }
 
-/* Calendario semanal del Resumen (CAM-42). */
+/* Calendario semanal del Resumen (CAM-42). Desde CAM-65 usa solo colores de la paleta, y el color
+   de cada turno dice su estado (programado, atrasado, hecho o cancelado); el origen va como texto. */
 
 .weekly-schedule {
   display: flex;
@@ -1178,6 +1201,15 @@
   color: var(--fg-text);
 }
 
+/* CAM-120: la leyenda de estados va al lado de la navegación, arriba de los días. */
+.weekly-schedule__header-end {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 16px;
+}
+
 .weekly-schedule__nav {
   display: flex;
   align-items: center;
@@ -1196,10 +1228,20 @@
   justify-content: center;
 }
 
+.weekly-schedule__nav-btn:hover {
+  background: var(--fg-bg);
+}
+
+.weekly-schedule__nav-btn:focus-visible,
+.weekly-schedule__day-add:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: 2px;
+}
+
 .weekly-schedule__range {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(62, 74, 66, 0.75);
+  color: var(--fg-text-muted);
   text-transform: capitalize;
   min-width: 140px;
   text-align: center;
@@ -1233,14 +1275,14 @@
   position: relative;
 }
 
-/* Botón de "agendar" que aparece al pasar el cursor sobre un día (CAM-42 mejoras). */
+/* "+" de agendar: mismo botón redondo que las flechas de la semana, en chico. */
 .weekly-schedule__day-add {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: none;
-  background: var(--fg-text);
-  color: var(--fg-white);
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
   font-size: 14px;
   line-height: 1;
   display: inline-flex;
@@ -1248,6 +1290,10 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.15s ease;
+}
+
+.weekly-schedule__day-add:hover {
+  background: var(--fg-bg);
 }
 
 .weekly-schedule__day:hover .weekly-schedule__day-add,
@@ -1266,7 +1312,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: 600;
-  color: rgba(62, 74, 66, 0.55);
+  color: var(--fg-text-muted);
 }
 
 .weekly-schedule__day-number {
@@ -1283,29 +1329,32 @@
 }
 
 .weekly-schedule__empty {
-  color: rgba(62, 74, 66, 0.35);
+  color: var(--fg-text-muted);
   font-size: 12px;
 }
 
+/* Un turno: el borde y el fondo dicen el estado, y el chip lo dice con texto. */
 .weekly-schedule__item {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
   width: 100%;
   flex-shrink: 0;
   padding: 6px 8px;
   border: none;
+  border-left: 3px solid var(--fg-text);
   border-radius: 8px;
   background: var(--fg-bg);
   font: inherit;
   font-size: 11px;
-  color: inherit;
+  color: var(--fg-text);
   text-align: left;
   cursor: pointer;
 }
 
 .weekly-schedule__item:hover {
-  background: rgba(62, 74, 66, 0.08);
+  /* Capa encima del fondo del estado, sin importar el tamaño de la tarjeta. */
+  background-image: linear-gradient(var(--fg-hover), var(--fg-hover));
 }
 
 .weekly-schedule__item:focus-visible {
@@ -1313,16 +1362,33 @@
   outline-offset: 1px;
 }
 
-.weekly-schedule__item--assignment {
-  border-left: 3px solid var(--fg-ok);
+.weekly-schedule__item--overdue {
+  border-left-color: var(--fg-critical);
+  background: var(--fg-crit-bg);
 }
 
-.weekly-schedule__item--defect {
-  border-left: 3px solid var(--fg-critical);
+.weekly-schedule__item--done {
+  border-left-color: var(--fg-ok);
+  background: var(--fg-ok-bg);
 }
 
-.weekly-schedule__item--manual {
-  border-left: 3px solid var(--fg-warn);
+.weekly-schedule__item--cancelled {
+  border-left-color: var(--fg-border-color);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--fg-border-color);
+}
+
+.weekly-schedule__item--cancelled .weekly-schedule__item-title {
+  text-decoration: line-through;
+  color: var(--fg-text-muted);
+}
+
+.weekly-schedule__item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .weekly-schedule__item-time {
@@ -1331,23 +1397,149 @@
   color: var(--fg-text);
 }
 
-/* Cancelar una programación (CAM-42): discreto por defecto, en rojo al hover. */
+/* El título entra en hasta dos líneas en vez de cortarse con "…" en la primera. */
 .weekly-schedule__item-title {
-  color: var(--fg-text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+  color: var(--fg-text);
+}
+
+.weekly-schedule__item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  color: var(--fg-text-muted);
 }
 
 .weekly-schedule__item-plate {
   font-family: var(--fg-font-mono);
-  color: rgba(62, 74, 66, 0.6);
+}
+
+.weekly-schedule__item-source {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.weekly-schedule__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Semana sin turnos: un mensaje y un botón, en vez de siete días vacíos. */
+.weekly-schedule__empty-state {
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.weekly-schedule__empty-title {
+  margin: 0;
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--fg-text);
+}
+
+.weekly-schedule__empty-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.weekly-schedule__empty-btn {
+  margin-top: 10px;
+  min-height: 40px;
+  font-size: 14px;
 }
 
 @media (max-width: 900px) {
   .weekly-schedule__grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+@media (max-width: 480px) {
+  .weekly-schedule__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .weekly-schedule__day {
+    min-height: 0;
+  }
+
+  .weekly-schedule__header-end,
+  .weekly-schedule__legend {
+    justify-content: flex-start;
+  }
+}
+
+/* Chip de estado de un turno (CAM-65). Mismo formato que .work-order-badge, pero con el texto en
+   --fg-text y el color en el punto: el rojo y el verde de la paleta no llegan a 4,5:1 como texto. */
+.schedule-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.schedule-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--schedule-badge-dot, var(--fg-text));
+}
+
+.schedule-badge--overdue {
+  --schedule-badge-dot: var(--fg-critical);
+  border-color: transparent;
+  background: var(--fg-crit-bg);
+  font-weight: 600;
+}
+
+.schedule-badge--done {
+  --schedule-badge-dot: var(--fg-ok);
+  border-color: transparent;
+  background: var(--fg-ok-bg);
+}
+
+.schedule-badge--cancelled {
+  --schedule-badge-dot: var(--fg-border-color);
+  color: var(--fg-text-muted);
+  background: transparent;
+}
+
+/* Dentro de un turno el chip va sin borde, para no cargar la tarjeta. */
+.weekly-schedule__item .schedule-badge {
+  padding: 1px 6px;
+  font-size: 10px;
+  border-color: transparent;
 }
 
 /* Modal de vista mensual del calendario (CAM-42 mejoras). */
@@ -1364,14 +1556,18 @@
   font-weight: 600;
   font-size: 15px;
   color: var(--fg-text);
-  text-transform: capitalize;
   min-width: 160px;
   text-align: center;
 }
 
+/* Solo la primera letra: con "capitalize" quedaba "Octubre De 2026" (CAM-65). */
+.month-schedule__title::first-letter {
+  text-transform: uppercase;
+}
+
 .month-schedule__weekday-row {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
   margin-top: 8px;
 }
@@ -1381,7 +1577,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: 600;
-  color: rgba(62, 74, 66, 0.55);
+  color: var(--fg-text-muted);
   text-align: center;
 }
 
@@ -1401,12 +1597,19 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
+  font: inherit;
+  color: var(--fg-text);
   text-align: left;
   cursor: pointer;
 }
 
 .month-schedule__day:hover {
   background: var(--fg-bg);
+}
+
+.month-schedule__day:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: 1px;
 }
 
 .month-schedule__day--outside {
@@ -1435,6 +1638,7 @@
   font-size: 10px;
   color: var(--fg-text);
   background: var(--fg-bg);
+  border-left: 2px solid var(--fg-text);
   border-radius: 4px;
   padding: 1px 4px;
   overflow: hidden;
@@ -1443,9 +1647,26 @@
   width: 100%;
 }
 
+.month-schedule__day-item--overdue {
+  border-left-color: var(--fg-critical);
+  background: var(--fg-crit-bg);
+}
+
+.month-schedule__day-item--done {
+  border-left-color: var(--fg-ok);
+  background: var(--fg-ok-bg);
+}
+
+.month-schedule__day-item--cancelled {
+  border-left-color: var(--fg-border-color);
+  background: transparent;
+  color: var(--fg-text-muted);
+  text-decoration: line-through;
+}
+
 .month-schedule__day-more {
   font-size: 10px;
-  color: rgba(62, 74, 66, 0.55);
+  color: var(--fg-text-muted);
 }
 
 @media (max-width: 900px) {
@@ -1608,6 +1829,78 @@
   color: var(--fg-text);
 }
 
+/* Costos del vehículo (CAM-105): tres cifras en fila, que bajan una abajo de otra en el celular. */
+.vehicle-costs__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vehicle-costs__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.vehicle-costs__link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vehicle-costs__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 24px;
+  margin: 4px 0 0;
+}
+
+.vehicle-costs__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vehicle-costs__stat dt {
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.vehicle-costs__stat dd {
+  margin: 0;
+}
+
+.vehicle-costs__value {
+  font-family: var(--fg-font-mono);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.vehicle-costs__value--empty {
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.vehicle-costs__hint {
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.vehicle-costs__empty {
+  margin: 12px 0 0;
+}
+
 /* Cuenta rápida de lo urgente escondido detrás del "Ver más" -- ej. "1 bloqueante". */
 .vehicle-detail__card-title-flag {
   font-family: var(--fg-font-body);
@@ -1731,6 +2024,24 @@
   background: var(--fg-white);
   color: var(--fg-text);
   font-size: 13px;
+}
+
+/* CAM-92: con cuatro filtros, la barra no entra al lado del título en pantallas medianas. En vez de
+   aplastar el título y cortar "+ Nueva orden", pasa a un segundo renglón, alineada a la derecha. */
+.work-orders__header {
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+
+.work-orders__filters {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.work-orders__header .fleet-status__title {
+  white-space: nowrap;
 }
 
 .work-orders__row {
@@ -1916,6 +2227,86 @@
   min-height: 40px;
 }
 
+/* Comprobante del gasto (CAM-107): segundo renglón del formulario, a todo el ancho. Número y foto,
+   los dos opcionales; en el celular la foto baja abajo del número. */
+.wo-expense-form__receipt {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.wo-expense-form__receipt-number {
+  min-height: 40px;
+  width: 240px;
+  max-width: 100%;
+}
+
+.wo-expense-form__receipt-photo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+
+.wo-expense-form__receipt-add,
+.wo-expense-form__receipt-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.wo-expense-form__receipt-add:disabled,
+.wo-expense-form__receipt-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wo-expense-form__receipt-thumb {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: var(--fg-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--fg-white);
+  cursor: zoom-in;
+  flex-shrink: 0;
+}
+
+.wo-expense-form__receipt-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wo-expense-form__receipt-label {
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.wo-expense-list__receipt {
+  flex-shrink: 0;
+}
+
+.wo-expense-list__receipt-number {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
 /* Galería de fotos de una OT (CAM-14). */
 
 .wo-photo-gallery {
@@ -1968,6 +2359,15 @@
 @media (max-width: 640px) {
   .wo-expense-form {
     grid-template-columns: 1fr;
+  }
+
+  /* En una sola columna, "Agregar" va después del comprobante: que se adjunte antes de guardar (CAM-107). */
+  .wo-expense-form__submit {
+    order: 1;
+  }
+
+  .wo-expense-form__receipt-number {
+    width: 100%;
   }
 }
 
@@ -2140,4 +2540,11 @@
   width: 100%;
   box-sizing: border-box;
   padding-right: 48px;
+}
+
+/* CAM-117: el email del usuario, debajo del nombre. */
+.users-section__email {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-text-muted);
 }

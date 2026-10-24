@@ -1,4 +1,4 @@
-import type { Vehicle, VehicleHistory } from '../types/domain';
+import type { Vehicle, VehicleCosts, VehicleHistory } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 /** GET /api/vehicles/{id} -- detalle de un vehículo, también dado de baja (CAM-22). */
@@ -13,6 +13,13 @@ export async function getVehicleHistory(id: string): Promise<VehicleHistory> {
   const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}/history`, { headers: authHeaders() });
   if (!res.ok) return throwApiError(res, 'No se pudo obtener el historial del vehículo');
   return res.json() as Promise<VehicleHistory>;
+}
+
+/** GET /api/vehicles/{id}/costs -- total de gastos y costo por km del vehículo (CAM-105). Solo ADMIN. */
+export async function getVehicleCosts(id: string): Promise<VehicleCosts> {
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}/costs`, { headers: authHeaders() });
+  if (!res.ok) return throwApiError(res, 'No se pudieron obtener los costos del vehículo');
+  return res.json() as Promise<VehicleCosts>;
 }
 
 export async function getVehicles(active = true): Promise<Vehicle[]> {

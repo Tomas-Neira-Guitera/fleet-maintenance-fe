@@ -3,11 +3,13 @@ import { ApiError } from '../../services/apiClient';
 import { deactivateVehicle, getVehicle, getVehicleHistory, updateVehicle } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
 import type { DefectSummary, Vehicle, VehicleHistory, WorkOrder, WorkOrderStatus } from '../../types/domain';
+import { formatDayAndTime } from '../../utils/dateFormat';
 import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
 import { VehicleChecklistCard } from './VehicleChecklistCard';
+import { VehicleCostsCard } from './VehicleCostsCard';
 import { VehicleFormModal } from './VehicleFormModal';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
@@ -16,10 +18,23 @@ import '../../styles/dashboard.css';
 interface VehicleDetailProps {
   vehicleId: string;
   onBack: () => void;
+  /** Abre la pestaña Gastos filtrada por este vehículo (CAM-105). */
+  onViewExpenses: () => void;
 }
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+/** CAM-87: si está en viaje, quién lo tiene y desde cuándo; CAM-89: si no puede salir, por qué. */
+function describeSituation(vehicle: Vehicle): string {
+  if (vehicle.status === 'on-trip') {
+    const trip = vehicle.currentTrip;
+    return ['En viaje', trip?.openedBy?.name, trip ? `desde ${formatDayAndTime(trip.startedAt)}` : null]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  return vehicle.blocked ? 'No disponible · defecto bloqueante sin resolver' : 'Disponible';
 }
 
 function formatKm(km: number | null | undefined): string {
@@ -90,7 +105,7 @@ function CollapsibleList<T>({ items, renderItem, limit = LIST_PREVIEW_LIMIT }: C
  * aparte de /history -- son un recurso propio (GET /api/work-orders?vehicleId=),
  * no un campo del historial.
  */
-export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
+export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDetailProps) {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [history, setHistory] = useState<VehicleHistory | null>(null);
   const [workOrders, setWorkOrders] = useState<WorkOrder[] | null>(null);
@@ -267,11 +282,13 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
             </div>
             <div>
               <dt>Situación</dt>
-              <dd>{vehicle.status === 'on-trip' ? 'En viaje' : 'Disponible'}</dd>
+              <dd>{describeSituation(vehicle)}</dd>
             </div>
           </dl>
         </>
       )}
+
+      {vehicle && <VehicleCostsCard vehicleId={vehicle.id} onViewExpenses={onViewExpenses} />}
 
       {history && (
         <div className="vehicle-detail__sections">

@@ -1,8 +1,8 @@
-import type { Role, UserSummary } from '../types/domain';
+import type { Role, UserStats, UserSummary } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
-// /api/users es el único recurso que hoy valida el JWT y exige rol ADMIN (CAM-23): sin sesión
-// válida responde 401 (ver isSessionExpired en apiClient), con otro rol 403.
+// /api/users valida el JWT y exige rol ADMIN (CAM-23): sin sesión válida responde 401 (ver
+// isSessionExpired en apiClient), con otro rol 403.
 
 /** GET /api/users -- todos los usuarios, o solo los de un rol (el selector de técnico de una OT, CAM-60). */
 export async function getUsers(role?: Role): Promise<UserSummary[]> {
@@ -17,6 +17,7 @@ export interface CreateUserInput {
   username: string;
   password: string;
   role: Role;
+  email?: string;
 }
 
 /** POST /api/users -- alta de un usuario, nace activo (CAM-23). */
@@ -30,10 +31,11 @@ export async function createUser(input: CreateUserInput): Promise<UserSummary> {
   return res.json() as Promise<UserSummary>;
 }
 
-/** PATCH /api/users/{id} -- cambiar rol, resetear contraseña, activar o desactivar (CAM-23). */
+/** PATCH /api/users/{id} -- renombrar, resetear contraseña, activar o desactivar. El rol no se edita (CAM-91). */
 export async function updateUser(
   id: string,
-  changes: { role?: Role; password?: string; active?: boolean },
+  // email: "" lo borra (CAM-117).
+  changes: { username?: string; password?: string; active?: boolean; email?: string },
 ): Promise<UserSummary> {
   const res = await fetch(`${API_BASE_URL}/api/users/${id}`, {
     method: 'PATCH',
@@ -42,4 +44,12 @@ export async function updateUser(
   });
   if (!res.ok) return throwApiError(res, 'No se pudo actualizar el usuario');
   return res.json() as Promise<UserSummary>;
+}
+
+/** GET /api/users/stats -- actividad de choferes y técnicos en [from, to) (CAM-91). */
+export async function getUserStats(period: { from: string; to: string }): Promise<UserStats> {
+  const params = new URLSearchParams(period);
+  const res = await fetch(`${API_BASE_URL}/api/users/stats?${params.toString()}`, { headers: authHeaders() });
+  if (!res.ok) return throwApiError(res, 'No se pudo obtener la actividad de los usuarios');
+  return res.json() as Promise<UserStats>;
 }

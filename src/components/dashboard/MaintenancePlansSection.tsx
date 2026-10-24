@@ -3,9 +3,10 @@ import { ApiError } from '../../services/apiClient';
 import { deleteMaintenancePlan, getMaintenancePlans, updateMaintenancePlan } from '../../services/maintenancePlansService';
 import type { MaintenancePlan } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
-import { PowerIcon, TrashIcon } from '../icons';
+import { BellIcon, PowerIcon, TrashIcon } from '../icons';
 import { MaintenancePlanFormModal } from './MaintenancePlanFormModal';
 import { PlanVehiclesModal } from './PlanVehiclesModal';
+import { PlanNotificationsModal } from './PlanNotificationsModal';
 import '../../styles/dashboard.css';
 
 function describeInterval(plan: Pick<MaintenancePlan, 'intervalType' | 'intervalKm' | 'intervalDays'>): string {
@@ -21,6 +22,9 @@ function describeInterval(plan: Pick<MaintenancePlan, 'intervalType' | 'interval
  * PlanVehiclesModal para ver a qué vehículos se le puede asignar y asignarlo.
  * Reemplaza el flujo viejo (vehículos primero, "Ver catálogo de planes" como
  * modal aparte -- MaintenancePlanCatalogModal, ahora borrado).
+ *
+ * Un plan activo solo muestra "Editar": desactivarlo se hace desde ahí (CAM-93). Uno
+ * desactivado ("Ver desactivados") muestra "Activar" y "Eliminar".
  */
 export function MaintenancePlansSection() {
   const [plans, setPlans] = useState<MaintenancePlan[] | null>(null);
@@ -28,6 +32,8 @@ export function MaintenancePlansSection() {
   const [showInactive, setShowInactive] = useState(false);
   const [formTarget, setFormTarget] = useState<'new' | MaintenancePlan | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<MaintenancePlan | null>(null);
+  // CAM-118: avisos de vencimiento propios del plan.
+  const [notificationsPlan, setNotificationsPlan] = useState<MaintenancePlan | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
@@ -54,11 +60,11 @@ export function MaintenancePlansSection() {
     load(!showInactive);
   }
 
-  async function handleToggleActive(plan: MaintenancePlan) {
+  async function handleActivate(plan: MaintenancePlan) {
     setPendingId(plan.id);
     setError(null);
     try {
-      await updateMaintenancePlan(plan.id, { active: !plan.active });
+      await updateMaintenancePlan(plan.id, { active: true });
       load(!showInactive);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo actualizar el plan. Intentá de nuevo.');
@@ -127,6 +133,20 @@ export function MaintenancePlansSection() {
                 {p.active && (
                   <button
                     type="button"
+                    className="vehicle-maintenance-list__icon-btn vehicle-maintenance-list__schedule-btn plan-notif__btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNotificationsPlan(p);
+                    }}
+                    title="Cuándo y cómo avisa los vencimientos de este plan"
+                  >
+                    <BellIcon width={14} height={14} />
+                    Avisos
+                  </button>
+                )}
+                {p.active ? (
+                  <button
+                    type="button"
                     className="secondary-btn vehicle-maintenance-list__schedule-btn"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -136,21 +156,20 @@ export function MaintenancePlansSection() {
                   >
                     Editar
                   </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="vehicle-maintenance-list__icon-btn vehicle-maintenance-list__schedule-btn vehicle-maintenance-list__icon-btn--ok"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleActivate(p);
+                    }}
+                    disabled={pendingId === p.id}
+                  >
+                    <PowerIcon width={14} height={14} />
+                    Activar
+                  </button>
                 )}
-                <button
-                  type="button"
-                  className={`vehicle-maintenance-list__icon-btn vehicle-maintenance-list__schedule-btn ${
-                    p.active ? 'vehicle-maintenance-list__icon-btn--warn' : 'vehicle-maintenance-list__icon-btn--ok'
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleToggleActive(p);
-                  }}
-                  disabled={pendingId === p.id}
-                >
-                  <PowerIcon width={14} height={14} />
-                  {p.active ? 'Desactivar' : 'Activar'}
-                </button>
                 {!p.active && (
                   <button
                     type="button"
@@ -180,6 +199,8 @@ export function MaintenancePlansSection() {
       )}
 
       {selectedPlan && <PlanVehiclesModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />}
+
+      {notificationsPlan && <PlanNotificationsModal plan={notificationsPlan} onClose={() => setNotificationsPlan(null)} />}
     </section>
   );
 }
