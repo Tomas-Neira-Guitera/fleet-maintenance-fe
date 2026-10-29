@@ -48,9 +48,26 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Acordate de cerrar el viaje',
     message: 'Tenés abierto el viaje de AB123CD desde el 23/10 a las 07:30. Acordate de hacer el post-viaje.',
   },
+  document_due_soon: {
+    title: 'Documento por vencer',
+    message: 'VTV / RTO de AB123CD: vence el 08/11/2026 (faltan 10 días).',
+  },
+  document_expired: {
+    title: 'Documento vencido',
+    message: 'Seguro de AB123CD: venció el 28/10/2026. El vehículo queda no disponible hasta que se cargue la renovación.',
+  },
+  vehicle_unavailable: {
+    title: 'Tu vehículo no está disponible',
+    message:
+      'AB123CD quedó no disponible (VTV / RTO: venció el 28/10/2026). Cuando cierres el viaje no lo vas a poder volver a sacar hasta que se renueve.',
+  },
+  vehicle_available: {
+    title: 'Tu vehículo vuelve a estar disponible',
+    message: 'AB123CD ya puede salir. Se resolvió con la orden de trabajo «Pérdida de aire en frenos».',
+  },
 };
 
-export type NotificationTopic = 'defects' | 'work_orders' | 'maintenance' | 'trips';
+export type NotificationTopic = 'defects' | 'work_orders' | 'maintenance' | 'documents' | 'trips';
 
 /** Temas de la pantalla de configuración, en orden, con sus avisos. */
 export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types: NotificationType[] }[] = [
@@ -61,5 +78,10 @@ export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types:
     types: ['work_order_finalized', 'work_order_assigned', 'work_order_unassigned', 'work_order_cancelled'],
   },
   { id: 'maintenance', label: 'Mantenimiento preventivo', types: ['maintenance_due_soon', 'maintenance_overdue'] },
-  { id: 'trips', label: 'Viajes', types: ['trip_open_reminder'] },
+  { id: 'documents', label: 'Documentación', types: ['document_due_soon', 'document_expired'] },
+  {
+    id: 'trips',
+    label: 'Viajes y disponibilidad',
+    types: ['trip_open_reminder', 'vehicle_unavailable', 'vehicle_available'],
+  },
 ];

@@ -11,13 +11,21 @@ export interface Vehicle {
   chassisNumber?: string | null;
   odometerKm?: number;
   active?: boolean;
-  /** true si tiene un defecto bloqueante sin resolver: no puede iniciar un viaje (CAM-89). */
+  /** true si no puede iniciar un viaje: defecto bloqueante abierto o documento vencido (CAM-89, CAM-127). */
   blocked?: boolean;
+  /** Por qué no puede salir (CAM-127); vacío si puede. */
+  blockReasons?: BlockReason[];
   /** El viaje abierto, si está "en viaje" (CAM-87). */
   currentTrip?: CurrentTrip | null;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
+
+/** Un motivo de "No disponible" (CAM-127), con el texto ya armado por el backend. */
+export interface BlockReason {
+  type: 'blocking_defect' | 'expired_document';
+  message: string;
+}
 
 /** Un usuario, por id y nombre actual. */
 export interface UserRef {
@@ -232,6 +240,9 @@ export interface FleetStatusRow {
   healthScore: number;
   status: MaintenanceRowStatus;
   nextMaintenance: NextMaintenanceSummary | null;
+  /** CAM-127: si no puede salir y por qué. */
+  blocked?: boolean;
+  blockReasons?: BlockReason[];
 }
 
 export interface FleetStatusPage {
@@ -252,6 +263,8 @@ export interface MaintenancePlan {
   intervalKm: number | null;
   intervalDays: number | null;
   active: boolean;
+  /** CAM-127: el documento que renueva este plan (solo planes por tiempo). */
+  documentType?: VehicleDocumentType | null;
 }
 
 /** Un plan asignado a un vehículo puntual -- GET /api/vehicles/{id}/maintenance-assignments (CAM-40). */
@@ -267,6 +280,9 @@ export interface MaintenanceAssignment {
   nextDueDate: string | null;
   status: MaintenanceRowStatus;
   active: boolean;
+  /** CAM-127: el documento que renueva el plan, y si el vencimiento sale de ese documento cargado. */
+  documentType?: VehicleDocumentType | null;
+  dueDateFromDocument?: boolean;
 }
 
 /** Subconjunto de MaintenanceAssignment que devuelve un completion para refrescar el chip de estado. */
@@ -415,7 +431,11 @@ export type NotificationType =
   | 'blocking_defect_reported'
   | 'work_order_finalized'
   | 'maintenance_due_soon'
-  | 'maintenance_overdue';
+  | 'maintenance_overdue'
+  | 'document_due_soon'
+  | 'document_expired'
+  | 'vehicle_unavailable'
+  | 'vehicle_available';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';
@@ -432,8 +452,9 @@ export interface NotificationSetting {
   channels: NotificationChannel[];
   recipientRoles: Role[];
   recipientUserIds: string[];
-  /** Solo "Mantenimiento por vencer": anticipación en días y km. */
+  /** "Mantenimiento por vencer" (días y km) y "Documento por vencer" (solo días, CAM-127). */
   supportsLead: boolean;
+  supportsLeadKm?: boolean;
   leadDays: number | null;
   leadKm: number | null;
   /** false: rige la configuración por defecto. */
@@ -484,4 +505,57 @@ export interface UserNotification {
   link: string | null;
   createdAt: string;
   readAt: string | null;
+}
+
+// ─── Documentación del vehículo (CAM-127) ──────────────────────────────────
+
+export type VehicleDocumentType =
+  | 'vtv'
+  | 'seguro'
+  | 'cedula_azul'
+  | 'habilitacion_carga'
+  | 'cedula_verde'
+  | 'titulo'
+  | 'otro';
+
+/** al_dia / por_vencer / vencido (desde el día siguiente al vencimiento) / sin_vencimiento. */
+export type VehicleDocumentStatus = 'al_dia' | 'por_vencer' | 'vencido' | 'sin_vencimiento';
+
+export interface VehicleDocument {
+  id: string;
+  vehicleId: string;
+  type: VehicleDocumentType;
+  typeLabel: string;
+  /** Solo en el tipo "otro". */
+  name: string | null;
+  displayName: string;
+  number: string | null;
+  issuedAt: string | null;
+  expiresAt: string | null;
+  /** Comprobante (foto o PDF), de POST /api/photos?purpose=document. */
+  fileUrl: string | null;
+  status: VehicleDocumentStatus;
+  /** Días que faltan; negativo si venció. */
+  daysToExpiry: number | null;
+  /** false: ya se renovó (historial). */
+  current: boolean;
+  replacedById: string | null;
+  createdAt: string;
+}
+
+/** GET /api/vehicles/{id}/documents. */
+export interface VehicleDocuments {
+  items: VehicleDocument[];
+  history: VehicleDocument[];
+  /** Obligatorios (VTV, seguro) sin documento vigente: se marcan, no bloquean. */
+  missingRequired: VehicleDocumentType[];
+  /** Anticipación de "por vencer", en días. */
+  leadDays: number;
+}
+
+/** El documento renovado que se carga junto con el mantenimiento de un plan vinculado (CAM-127). */
+export interface DocumentInput {
+  number?: string;
+  expiresAt: string;
+  fileUrl?: string;
 }

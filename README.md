@@ -36,6 +36,10 @@ VITE_API_BASE_URL=http://localhost:8080
 Necesitás el backend `fleet-maintenance` corriendo en esa URL para que la app funcione
 (listado de vehículos, subida de fotos y envío de inspecciones).
 
+`VITE_PUBLIC_APP_URL` es la dirección pública de la app (por ejemplo `https://flota.miempresa.com`).
+Es la que queda impresa en el QR de cada vehículo (CAM-133), así que hay que definirla antes de
+imprimir los QR definitivos. Si queda vacía se usa la dirección desde la que se abre la app.
+
 ## Probar desde un celular
 
 El dictado por voz (CAM-32) usa el micrófono, y el navegador solo lo habilita en una página

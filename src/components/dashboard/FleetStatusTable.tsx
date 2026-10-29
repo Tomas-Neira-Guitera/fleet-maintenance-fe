@@ -88,6 +88,12 @@ export function FleetStatusTable({ onFleetChanged }: FleetStatusTableProps) {
                         {row.brand} {row.model}
                       </span>
                       {row.vehicleType && <span className="fleet-status__vehicle-type">{row.vehicleType}</span>}
+                      {/* CAM-127: no puede salir, y por qué (defecto bloqueante o documento vencido). */}
+                      {row.blocked && (
+                        <span className="fleet-status__blocked" title={(row.blockReasons ?? []).map((r) => r.message).join('\n')}>
+                          No disponible · {(row.blockReasons ?? []).map((r) => r.message).join('; ')}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td>

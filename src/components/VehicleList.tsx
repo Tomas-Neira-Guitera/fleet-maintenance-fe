@@ -60,6 +60,8 @@ export function VehicleList({ onSelectVehicle, notice }: VehicleListProps) {
           // CAM-86: un viaje abierto se tiene que poder cerrar aunque el vehículo esté bloqueado.
           const isBlocked = Boolean(vehicle.blocked) && !onTrip;
           const tripLine = describeTrip(vehicle, currentUserId);
+          // CAM-127: por qué no puede salir (defecto bloqueante o documento vencido), tal como lo arma el backend.
+          const reasons = isBlocked ? (vehicle.blockReasons ?? []).map((r) => r.message) : [];
           // El viaje propio es lo que el chofer tiene pendiente de cerrar: no se atenúa como los ajenos.
           const isMine = onTrip && vehicle.currentTrip?.openedBy?.id === currentUserId;
           return (
@@ -76,6 +78,11 @@ export function VehicleList({ onSelectVehicle, notice }: VehicleListProps) {
                     {vehicle.brand} {vehicle.model}
                   </span>
                   {tripLine && <span className="vehicle-card__trip">{tripLine}</span>}
+                  {reasons.map((reason) => (
+                    <span key={reason} className="vehicle-card__reason">
+                      {reason}
+                    </span>
+                  ))}
                 </div>
                 {isBlocked ? (
                   <span className="status-pill status-pill--crit">

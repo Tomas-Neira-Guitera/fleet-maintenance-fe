@@ -27,7 +27,7 @@ interface InspectionFlowProps {
 
 // 409 del envío: otro chofer (o el admin) cambió el estado del vehículo mientras tanto.
 const UNAVAILABLE_MESSAGES: Record<string, string> = {
-  VEHICLE_BLOCKED: 'tiene un defecto bloqueante sin resolver y no puede salir.',
+  VEHICLE_BLOCKED: 'no puede salir: tiene un defecto bloqueante o un documento vencido.',
   VEHICLE_INACTIVE: 'fue dado de baja.',
   VEHICLE_ON_TRIP: 'ya tiene un viaje abierto.',
   NO_OPEN_TRIP: 'ya no tiene un viaje abierto: alguien lo cerró.',
@@ -158,8 +158,10 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     } catch (err) {
       const unavailable = err instanceof ApiError && err.status === 409 && UNAVAILABLE_MESSAGES[err.errorCode ?? ''];
       if (unavailable) {
-        // CAM-89: no tiene sentido reintentar; se avisa y se vuelve a la flota, ya actualizada.
-        onUnavailable(`No se envió la inspección: ${vehicle.plate} ${unavailable}`);
+        // CAM-89: no tiene sentido reintentar; se avisa y se vuelve a la flota, ya actualizada. Si está
+        // bloqueado, el backend dice por qué (CAM-127: defecto o documento vencido).
+        const blockedByServer = err.errorCode === 'VEHICLE_BLOCKED' && err.message.startsWith(vehicle.plate);
+        onUnavailable(`No se envió la inspección: ${blockedByServer ? err.message : `${vehicle.plate} ${unavailable}`}`);
       } else if (isSessionExpired(err)) {
         // CAM-85: el chofer de la inspección sale del token, así que sin sesión no se puede enviar.
         setSessionExpired(true);

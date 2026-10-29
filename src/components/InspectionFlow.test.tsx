@@ -218,16 +218,32 @@ describe('InspectionFlow — pre-viaje', () => {
 });
 
 describe('InspectionFlow — errores al enviar', () => {
-  it('si el vehículo quedó bloqueado vuelve a la flota con el motivo', async () => {
+  it('si el vehículo quedó bloqueado vuelve a la flota con el motivo que da el servidor', async () => {
     const user = userEvent.setup();
-    submitMock.mockRejectedValue(new ApiError(409, 'Bloqueado', 'VEHICLE_BLOCKED'));
+    submitMock.mockRejectedValue(
+      new ApiError(409, 'AB123CD no puede salir: VTV / RTO: venció el 12/10/2026.', 'VEHICLE_BLOCKED'),
+    );
+    const { onUnavailable } = renderFlow();
+    await goToSummary(user);
+
+    await confirmAndSend(user);
+
+    // CAM-127: el motivo puede ser un defecto bloqueante o un documento vencido.
+    expect(onUnavailable).toHaveBeenCalledWith(
+      'No se envió la inspección: AB123CD no puede salir: VTV / RTO: venció el 12/10/2026.',
+    );
+  });
+
+  it('si el servidor no da el motivo del bloqueo usa un texto genérico', async () => {
+    const user = userEvent.setup();
+    submitMock.mockRejectedValue(new ApiError(409, 'Conflict', 'VEHICLE_BLOCKED'));
     const { onUnavailable } = renderFlow();
     await goToSummary(user);
 
     await confirmAndSend(user);
 
     expect(onUnavailable).toHaveBeenCalledWith(
-      'No se envió la inspección: AB123CD tiene un defecto bloqueante sin resolver y no puede salir.',
+      'No se envió la inspección: AB123CD no puede salir: tiene un defecto bloqueante o un documento vencido.',
     );
   });
 

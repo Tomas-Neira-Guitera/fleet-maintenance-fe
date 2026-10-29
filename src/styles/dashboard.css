@@ -524,6 +524,16 @@
   text-transform: capitalize;
 }
 
+.fleet-status__blocked {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-critical);
+}
+
 .fleet-status__maintenance {
   display: flex;
   flex-direction: column;
@@ -2547,4 +2557,457 @@
   display: block;
   font-size: 12px;
   color: var(--fg-text-muted);
+}
+
+/* CAM-127: el detalle del vehículo en pestañas. Subrayado en el color de texto, no en verde: verde,
+   ámbar y rojo son estados. */
+.vehicle-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: var(--fg-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.vehicle-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-text-muted);
+  white-space: nowrap;
+}
+
+.vehicle-tabs__tab:hover {
+  color: var(--fg-text);
+}
+
+.vehicle-tabs__tab--active {
+  color: var(--fg-text);
+  font-weight: 600;
+  border-bottom-color: var(--fg-text);
+}
+
+.vehicle-tabs__tab:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: -2px;
+  border-radius: 8px 8px 0 0;
+}
+
+.vehicle-tabs__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fg-critical);
+}
+
+.vehicle-detail__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Por qué no puede salir: defecto bloqueante o documento vencido. */
+.vehicle-detail__blocked {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--fg-critical);
+  border-radius: var(--fg-radius);
+  background: var(--fg-crit-bg);
+  color: var(--fg-text);
+}
+
+.vehicle-detail__blocked > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--fg-critical);
+}
+
+.vehicle-detail__blocked-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--fg-critical);
+}
+
+.vehicle-detail__blocked ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+.vehicle-detail__situation--blocked {
+  color: var(--fg-critical);
+}
+
+/* Botón con aspecto de link, para acciones chicas dentro de una fila o un aviso. */
+.doc-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.doc-link-btn:hover:not(:disabled) {
+  color: var(--fg-ok);
+}
+
+.doc-link-btn:disabled {
+  opacity: 0.5;
+}
+
+.doc-link-btn--danger:hover:not(:disabled) {
+  color: var(--fg-critical);
+}
+
+/* CAM-133: QR del vehículo. */
+.vehicle-qr__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vehicle-qr__body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.vehicle-qr__code {
+  flex-shrink: 0;
+  width: 148px;
+  height: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+}
+
+.vehicle-qr__code span,
+.vehicle-qr__code svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.vehicle-qr__info {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vehicle-qr__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.vehicle-qr__url {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+  word-break: break-all;
+}
+
+.vehicle-qr__warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-text);
+}
+
+.vehicle-qr__warning svg {
+  flex-shrink: 0;
+  color: var(--fg-warn);
+}
+
+.vehicle-qr__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* CAM-127: pestaña Documentación. */
+.vehicle-docs__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.vehicle-docs__header .vehicle-detail__card-title {
+  margin: 0;
+}
+
+.vehicle-docs__lead {
+  display: block;
+  margin: 4px 0 12px;
+}
+
+.vehicle-docs__missing {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-warn-bg);
+  font-size: 14px;
+}
+
+.vehicle-docs__missing > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--fg-warn);
+}
+
+.vehicle-docs__missing > span:first-of-type {
+  flex: 1;
+  min-width: 200px;
+}
+
+.vehicle-docs__missing-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.vehicle-docs__item {
+  align-items: flex-start;
+}
+
+.vehicle-docs__icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--fg-text-muted);
+}
+
+.vehicle-docs__item--vencido .vehicle-docs__icon {
+  color: var(--fg-critical);
+}
+
+.vehicle-docs__item--por_vencer .vehicle-docs__icon {
+  color: var(--fg-warn);
+}
+
+.vehicle-docs__main {
+  flex: 1;
+}
+
+.vehicle-docs__number {
+  font-family: var(--fg-font-mono);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.vehicle-docs__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.vehicle-docs__no-file {
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.vehicle-docs__history {
+  margin-top: 4px;
+}
+
+.doc-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Mismo lenguaje que .fleet-status-badge; "sin vencimiento" en neutro. */
+.doc-status__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.doc-status__chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.doc-status__chip--al_dia {
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+}
+
+.doc-status__chip--por_vencer {
+  background: var(--fg-warn-bg);
+  color: var(--fg-text);
+}
+
+.doc-status__chip--por_vencer::before {
+  background: var(--fg-warn);
+}
+
+.doc-status__chip--vencido {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+}
+
+.doc-status__chip--sin_vencimiento {
+  background: var(--fg-hover);
+  color: var(--fg-text-muted);
+}
+
+.doc-status__when {
+  font-family: var(--fg-font-mono);
+  font-size: 12px;
+  color: var(--fg-text-muted);
+  white-space: nowrap;
+}
+
+/* Formulario de documento. */
+.doc-form__subtitle {
+  font-family: var(--fg-font-body);
+}
+
+.doc-form__dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.doc-form__clear {
+  display: flex;
+  gap: 16px;
+  margin-top: -4px;
+}
+
+.doc-form__hint {
+  margin: 0;
+  font-size: 13px;
+}
+
+.doc-form__file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+}
+
+.doc-form__file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--fg-text);
+}
+
+.doc-form__file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  padding: 0 14px;
+  min-height: 40px;
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .doc-form__dates {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicle-docs__item {
+    flex-wrap: wrap;
+  }
+
+  .doc-status {
+    align-items: flex-start;
+    flex-direction: row;
+  }
+}
+
+/* CAM-127: aclaración debajo del vínculo plan ↔ documento. */
+.plan-form__hint {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+/* CAM-127: el documento renovado dentro de "Marcar como hecho" y "Finalizar". */
+.renewed-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-bg);
+}
+
+.renewed-doc__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.renewed-doc__hint {
+  margin: 0;
+  font-size: 13px;
+}
+
+.renewed-doc__clear {
+  align-self: flex-start;
+}
+
+
+/* El número de un documento va en mono; el texto de ayuda, no. */
+.vehicle-detail__mono::placeholder {
+  font-family: var(--fg-font-body);
 }
