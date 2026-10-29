@@ -59,6 +59,7 @@ En `npm run dev` normal el dictado funciona en la propia máquina (`http://local
 - `npm run build` — build de producción (`tsc -b && vite build`)
 - `npm run preview` — sirve el build de producción localmente
 - `npm run lint` — corre Oxlint
+- `npm test` — corre los tests (Vitest + Testing Library sobre jsdom); `npm run test:watch` los deja escuchando cambios
 
 ## Estructura
 
