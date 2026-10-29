@@ -106,7 +106,7 @@ export function RenewedDocumentFields({
             Número (opcional)
             <input
               type="text"
-              className="schedule-picker__input vehicle-detail__mono"
+              className="schedule-picker__input doc-form__mono"
               maxLength={60}
               value={number}
               onChange={(e) => changeNumber(e.target.value)}

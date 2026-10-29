@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { describeApiError } from '../../services/apiClient';
 import { deleteVehicleDocument, getVehicleDocuments } from '../../services/vehicleDocumentsService';
-import type { VehicleDocument, VehicleDocuments, VehicleDocumentType } from '../../types/domain';
+import type { VehicleDocument, VehicleDocuments, VehicleDocumentStatus } from '../../types/domain';
 import { DOCUMENT_STATUS_LABELS, DOCUMENT_TYPE_LABELS, describeExpiry } from '../../utils/documentLabels';
 import { formatDate } from '../../utils/maintenanceFormat';
-import { AlertTriangleIcon, ChevronRightIcon, FileTextIcon, PaperclipIcon, PencilIcon, PlusIcon, RefreshIcon, TrashIcon } from '../icons';
+import { AlertTriangleIcon, ChevronRightIcon, PaperclipIcon, PencilIcon, PlusIcon, RefreshIcon, TrashIcon } from '../icons';
 import { DocumentFormModal, type DocumentFormMode } from './DocumentFormModal';
 
 interface VehicleDocumentsTabProps {
@@ -15,33 +15,143 @@ interface VehicleDocumentsTabProps {
   onChanged: () => void;
 }
 
-function Dates({ document: d }: { document: VehicleDocument }) {
-  const parts = [d.issuedAt ? `Emitido el ${formatDate(d.issuedAt)}` : null, d.expiresAt ? `vence el ${formatDate(d.expiresAt)}` : null]
-    .filter(Boolean)
-    .join(' · ');
-  return parts ? <span className="vehicle-detail__item-meta">{parts.charAt(0).toUpperCase() + parts.slice(1)}</span> : null;
+// Lo que requiere atención primero; lo que no vence, al final.
+const STATUS_ORDER: Record<VehicleDocumentStatus, number> = { vencido: 0, por_vencer: 1, al_dia: 2, sin_vencimiento: 3 };
+
+interface DocumentCardProps {
+  document: VehicleDocument;
+  previous: VehicleDocument[];
+  readOnly: boolean;
+  busy: boolean;
+  onRenew: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-function StatusChip({ document: d }: { document: VehicleDocument }) {
+function DocumentCard({ document: d, previous, readOnly, busy, onRenew, onEdit, onDelete }: DocumentCardProps) {
+  const [showPrevious, setShowPrevious] = useState(false);
   const expiry = describeExpiry(d.daysToExpiry);
+
   return (
-    <span className="doc-status">
-      <span className={`doc-status__chip doc-status__chip--${d.status}`}>{DOCUMENT_STATUS_LABELS[d.status]}</span>
-      {expiry && d.status !== 'al_dia' && <span className="doc-status__when">{expiry}</span>}
-    </span>
+    <li className={`doc-card doc-card--${d.status}`}>
+      <div className="doc-card__top">
+        <div className="doc-card__identity">
+          <h3 className="doc-card__name">{d.displayName}</h3>
+          {d.number && <span className="doc-card__number">N° {d.number}</span>}
+        </div>
+        <span className={`doc-status__chip doc-status__chip--${d.status}`}>{DOCUMENT_STATUS_LABELS[d.status]}</span>
+      </div>
+
+      <div className="doc-card__expiry">
+        {d.expiresAt ? (
+          <>
+            <span className="doc-card__expiry-label">{d.status === 'vencido' ? 'Venció el' : 'Vence el'}</span>
+            <span className="doc-card__date">{formatDate(d.expiresAt)}</span>
+            {expiry && <span className="doc-card__relative">{expiry}</span>}
+          </>
+        ) : (
+          <span className="doc-card__no-expiry">No vence</span>
+        )}
+      </div>
+
+      <div className="doc-card__footer">
+        {d.fileUrl ? (
+          <a href={d.fileUrl} target="_blank" rel="noreferrer" className="doc-card__file">
+            <PaperclipIcon width={14} height={14} aria-hidden="true" />
+            Comprobante
+          </a>
+        ) : (
+          <span className="doc-card__file doc-card__file--none">Sin comprobante</span>
+        )}
+        {!readOnly && (
+          <div className="doc-card__actions">
+            {d.expiresAt && (
+              <button type="button" className="doc-card__renew" onClick={onRenew} disabled={busy}>
+                <RefreshIcon width={14} height={14} aria-hidden="true" />
+                Renovar
+              </button>
+            )}
+            <button
+              type="button"
+              className="doc-card__icon-btn"
+              onClick={onEdit}
+              disabled={busy}
+              aria-label={`Editar ${d.displayName}`}
+              title="Editar"
+            >
+              <PencilIcon width={15} height={15} />
+            </button>
+            <button
+              type="button"
+              className="doc-card__icon-btn doc-card__icon-btn--danger"
+              onClick={onDelete}
+              disabled={busy}
+              aria-label={`Dar de baja ${d.displayName}`}
+              title="Dar de baja"
+            >
+              <TrashIcon width={15} height={15} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {previous.length > 0 && (
+        <div className="doc-card__previous">
+          <button
+            type="button"
+            className="doc-card__previous-toggle"
+            aria-expanded={showPrevious}
+            onClick={() => setShowPrevious((s) => !s)}
+          >
+            <ChevronRightIcon
+              width={13}
+              height={13}
+              className={`vehicle-detail__toggle-icon${showPrevious ? ' vehicle-detail__toggle-icon--expanded' : ''}`}
+            />
+            {previous.length === 1 ? '1 versión anterior' : `${previous.length} versiones anteriores`}
+          </button>
+          {showPrevious && (
+            <ul className="doc-card__previous-list">
+              {previous.map((p) => (
+                <li key={p.id}>
+                  <span>{p.expiresAt ? `Venció el ${formatDate(p.expiresAt)}` : formatDate(p.createdAt.slice(0, 10))}</span>
+                  {p.number && <span className="doc-card__number">N° {p.number}</span>}
+                  {p.fileUrl && (
+                    <a href={p.fileUrl} target="_blank" rel="noreferrer" className="doc-link-btn">
+                      Comprobante
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </li>
   );
 }
 
+/** Cadena de renovaciones de un documento vigente, del más nuevo al más viejo. */
+function previousVersions(current: VehicleDocument, history: VehicleDocument[]): VehicleDocument[] {
+  const chain: VehicleDocument[] = [];
+  let id = current.id;
+  for (;;) {
+    const older = history.find((h) => h.replacedById === id);
+    if (!older) return chain;
+    chain.push(older);
+    id = older.id;
+  }
+}
+
 /**
- * Pestaña "Documentación" del vehículo (CAM-127): los documentos vigentes por vencimiento, los obligatorios
- * que faltan (se marcan, no bloquean) y el historial de renovaciones.
+ * Pestaña "Documentación" del vehículo (CAM-127): una tarjeta por documento vigente, ordenadas por lo que
+ * requiere atención, los obligatorios que faltan y las versiones anteriores de cada uno.
  */
 export function VehicleDocumentsTab({ vehicleId, readOnly, onChanged }: VehicleDocumentsTabProps) {
   const [data, setData] = useState<VehicleDocuments | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [form, setForm] = useState<DocumentFormMode | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -97,159 +207,79 @@ export function VehicleDocumentsTab({ vehicleId, readOnly, onChanged }: VehicleD
   }
   if (!data) return <p className="muted">Cargando documentación…</p>;
 
-  const loadedTypes = data.items.map((d) => d.type);
-  const attention = data.items.filter((d) => d.status === 'vencido' || d.status === 'por_vencer').length;
+  const items = [...data.items].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+  const expired = items.filter((d) => d.status === 'vencido').length;
+  const dueSoon = items.filter((d) => d.status === 'por_vencer').length;
+  const summary = [
+    `${items.length} ${items.length === 1 ? 'documento' : 'documentos'}`,
+    expired ? `${expired} ${expired === 1 ? 'vencido' : 'vencidos'}` : null,
+    dueSoon ? `${dueSoon} por vencer` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
-    <section className="vehicle-detail__card vehicle-docs">
+    <section className="vehicle-docs">
       <header className="vehicle-docs__header">
-        <h2 className="vehicle-detail__card-title">
-          Documentación ({data.items.length})
-          {attention > 0 && (
-            <span className="vehicle-detail__card-title-flag">
-              {' '}
-              · {attention} {attention === 1 ? 'requiere' : 'requieren'} atención
-            </span>
-          )}
-        </h2>
+        <div>
+          <h2 className="vehicle-docs__title">Documentación</h2>
+          <p className="vehicle-docs__summary">
+            {summary}. Avisa {data.leadDays} días antes de que venza cada uno.
+          </p>
+        </div>
         {!readOnly && (
-          <button type="button" className="vehicle-detail__action-btn" onClick={() => setForm({ kind: 'create' })}>
-            <PlusIcon width={14} height={14} />
-            Cargar documento
+          <button type="button" className="primary-btn vehicle-docs__add" onClick={() => setForm({ kind: 'create' })}>
+            <PlusIcon width={16} height={16} aria-hidden="true" />
+            Agregar documento
           </button>
         )}
       </header>
-      <p className="vehicle-detail__item-meta vehicle-docs__lead">
-        “Por vencer” desde {data.leadDays} días antes. Un documento vencido deja el vehículo no disponible desde el día
-        siguiente al vencimiento.
-      </p>
-
-      {data.missingRequired.length > 0 && (
-        <div className="vehicle-docs__missing" role="status">
-          <AlertTriangleIcon width={16} height={16} aria-hidden="true" />
-          <span>
-            Falta cargar: {data.missingRequired.map((t) => DOCUMENT_TYPE_LABELS[t]).join(' y ')}. Es obligatorio, pero
-            no bloquea el vehículo.
-          </span>
-          {!readOnly && (
-            <span className="vehicle-docs__missing-actions">
-              {data.missingRequired.map((t: VehicleDocumentType) => (
-                <button key={t} type="button" className="doc-link-btn" onClick={() => setForm({ kind: 'create', type: t })}>
-                  Cargar {DOCUMENT_TYPE_LABELS[t]}
-                </button>
-              ))}
-            </span>
-          )}
-        </div>
-      )}
 
       {actionError && <p className="error-banner">{actionError}</p>}
 
-      {data.items.length === 0 ? (
-        <p className="muted">Sin documentos cargados.</p>
-      ) : (
-        <ul className="vehicle-detail__list">
-          {data.items.map((d) => (
-            <li key={d.id} className={`vehicle-detail__item vehicle-docs__item vehicle-docs__item--${d.status}`}>
-              <FileTextIcon width={18} height={18} className="vehicle-docs__icon" aria-hidden="true" />
-              <div className="vehicle-detail__item-main vehicle-docs__main">
-                <span className="vehicle-detail__item-label">
-                  {d.displayName}
-                  {d.number && <span className="vehicle-docs__number"> · N° {d.number}</span>}
-                </span>
-                <Dates document={d} />
-                <span className="vehicle-docs__actions">
-                  {d.fileUrl ? (
-                    <a href={d.fileUrl} target="_blank" rel="noreferrer" className="doc-link-btn">
-                      <PaperclipIcon width={13} height={13} aria-hidden="true" />
-                      Ver comprobante
-                    </a>
-                  ) : (
-                    <span className="vehicle-docs__no-file">Sin comprobante</span>
-                  )}
-                  {!readOnly && (
-                    <>
-                      <button
-                        type="button"
-                        className="doc-link-btn"
-                        onClick={() => setForm({ kind: 'renew', document: d })}
-                        disabled={busyId === d.id}
-                      >
-                        <RefreshIcon width={13} height={13} aria-hidden="true" />
-                        Renovar
-                      </button>
-                      <button
-                        type="button"
-                        className="doc-link-btn"
-                        onClick={() => setForm({ kind: 'correct', document: d })}
-                        disabled={busyId === d.id}
-                      >
-                        <PencilIcon width={13} height={13} aria-hidden="true" />
-                        Corregir
-                      </button>
-                      <button
-                        type="button"
-                        className="doc-link-btn doc-link-btn--danger"
-                        onClick={() => void handleDelete(d)}
-                        disabled={busyId === d.id}
-                        aria-label={`Dar de baja ${d.displayName}`}
-                      >
-                        <TrashIcon width={13} height={13} aria-hidden="true" />
-                        Dar de baja
-                      </button>
-                    </>
-                  )}
-                </span>
-              </div>
-              <StatusChip document={d} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="vehicle-docs__grid">
+        {items.map((d) => (
+          <DocumentCard
+            key={d.id}
+            document={d}
+            previous={previousVersions(d, data.history)}
+            readOnly={readOnly}
+            busy={busyId === d.id}
+            onRenew={() => setForm({ kind: 'renew', document: d })}
+            onEdit={() => setForm({ kind: 'correct', document: d })}
+            onDelete={() => void handleDelete(d)}
+          />
+        ))}
+        {data.missingRequired.map((t) => (
+          <li key={t} className="doc-card doc-card--missing">
+            <div className="doc-card__top">
+              <h3 className="doc-card__name">{DOCUMENT_TYPE_LABELS[t]}</h3>
+              <span className="doc-status__chip doc-status__chip--falta">Falta</span>
+            </div>
+            <p className="doc-card__missing-text">Es obligatorio. No bloquea el vehículo, pero conviene tenerlo cargado.</p>
+            {!readOnly && (
+              <button
+                type="button"
+                className="doc-card__renew doc-card__missing-btn"
+                onClick={() => setForm({ kind: 'create', name: DOCUMENT_TYPE_LABELS[t] })}
+              >
+                <PlusIcon width={14} height={14} aria-hidden="true" />
+                Cargar {DOCUMENT_TYPE_LABELS[t]}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
 
-      {data.history.length > 0 && (
-        <>
-          <button
-            type="button"
-            className="vehicle-detail__toggle"
-            aria-expanded={historyOpen}
-            onClick={() => setHistoryOpen((o) => !o)}
-          >
-            <ChevronRightIcon
-              width={14}
-              height={14}
-              className={`vehicle-detail__toggle-icon${historyOpen ? ' vehicle-detail__toggle-icon--expanded' : ''}`}
-            />
-            {historyOpen ? 'Ocultar renovaciones anteriores' : `Renovaciones anteriores (${data.history.length})`}
-          </button>
-          {historyOpen && (
-            <ul className="vehicle-detail__list vehicle-docs__history">
-              {data.history.map((d) => (
-                <li key={d.id} className="vehicle-detail__item vehicle-detail__item--resolved">
-                  <div className="vehicle-detail__item-main">
-                    <span className="vehicle-detail__item-label">
-                      {d.displayName}
-                      {d.number && <span className="vehicle-docs__number"> · N° {d.number}</span>}
-                    </span>
-                    <Dates document={d} />
-                  </div>
-                  {d.fileUrl && (
-                    <a href={d.fileUrl} target="_blank" rel="noreferrer" className="doc-link-btn">
-                      Ver comprobante
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
+      {items.length === 0 && data.missingRequired.length === 0 && (
+        <p className="muted">Todavía no hay documentos cargados.</p>
       )}
 
       {form && (
         <DocumentFormModal
           vehicleId={vehicleId}
           mode={form}
-          loadedTypes={loadedTypes}
+          current={data.items}
           onClose={() => setForm(null)}
           onSaved={handleSaved}
         />

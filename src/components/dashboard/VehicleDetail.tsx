@@ -367,8 +367,10 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
             </div>
           </dl>
 
-          <VehicleCostsCard vehicleId={vehicle.id} onViewExpenses={onViewExpenses} />
-          <VehicleQrCard vehicle={vehicle} />
+          <div className="vehicle-detail__summary-row">
+            <VehicleCostsCard vehicleId={vehicle.id} onViewExpenses={onViewExpenses} />
+            <VehicleQrCard vehicle={vehicle} />
+          </div>
         </div>
       )}
 

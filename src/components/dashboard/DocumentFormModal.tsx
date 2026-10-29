@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useId, useRef, useState, type DragEvent } from 'react';
 import { ApiError, describeApiError } from '../../services/apiClient';
 import { ACCEPTED_DOCUMENT_TYPES, uploadDocumentFile } from '../../services/photosService';
 import {
@@ -7,63 +7,75 @@ import {
   renewVehicleDocument,
 } from '../../services/vehicleDocumentsService';
 import type { VehicleDocument, VehicleDocumentType } from '../../types/domain';
-import { DOCUMENT_TYPE_LABELS, DOCUMENT_TYPES } from '../../utils/documentLabels';
+import { DOCUMENT_SUGGESTIONS, DOCUMENT_TYPE_LABELS, inferDocumentType } from '../../utils/documentLabels';
+import { formatDate } from '../../utils/maintenanceFormat';
 import { DatePicker } from '../datetime/DatePicker';
 import { CloseIcon, PaperclipIcon } from '../icons';
 
 export type DocumentFormMode =
-  | { kind: 'create'; type?: VehicleDocumentType }
+  | { kind: 'create'; name?: string }
   | { kind: 'renew'; document: VehicleDocument }
   | { kind: 'correct'; document: VehicleDocument };
 
 interface DocumentFormModalProps {
   vehicleId: string;
   mode: DocumentFormMode;
-  /** Tipos que ya tienen un vigente: no se ofrecen al cargar (se renuevan). "otro" se puede repetir. */
-  loadedTypes: VehicleDocumentType[];
+  /** Los vigentes del vehículo: para sugerir solo lo que falta y avisar si ya está cargado. */
+  current: VehicleDocument[];
   onClose: () => void;
   onSaved: (saved: VehicleDocument) => void;
 }
 
 const TEXT_MAX = 60;
+const REQUIRED: VehicleDocumentType[] = ['vtv', 'seguro'];
 
 function titleOf(mode: DocumentFormMode): string {
-  if (mode.kind === 'create') return 'Cargar documento';
-  return mode.kind === 'renew' ? `Renovar ${mode.document.displayName}` : `Corregir ${mode.document.displayName}`;
+  if (mode.kind === 'create') return 'Agregar documento';
+  return mode.kind === 'renew' ? `Renovar ${mode.document.displayName}` : `Editar ${mode.document.displayName}`;
 }
 
 /**
- * CAM-127: cargar un documento, renovar el vigente (el anterior queda en el historial) o corregir un dato
- * mal cargado (no cuenta como renovación). El comprobante se sube apenas se elige, igual que las fotos.
+ * CAM-127: agregar un documento (nombre libre: el backend reconoce si es la VTV, el seguro…), renovar el
+ * vigente (el anterior queda en el historial) o corregir un dato mal cargado. El comprobante se sube apenas
+ * se elige o se suelta sobre el recuadro.
  */
-export function DocumentFormModal({ vehicleId, mode, loadedTypes, onClose, onSaved }: DocumentFormModalProps) {
-  const current = mode.kind === 'create' ? null : mode.document;
+export function DocumentFormModal({ vehicleId, mode, current, onClose, onSaved }: DocumentFormModalProps) {
+  const existing = mode.kind === 'create' ? null : mode.document;
   const correcting = mode.kind === 'correct';
-  const availableTypes = DOCUMENT_TYPES.filter((t) => t === 'otro' || !loadedTypes.includes(t));
-  const initialType: VehicleDocumentType =
-    mode.kind === 'create' ? (mode.type ?? availableTypes[0] ?? 'otro') : (current?.type ?? 'otro');
+  const renewing = mode.kind === 'renew';
 
-  const [type, setType] = useState<VehicleDocumentType>(initialType);
-  const [name, setName] = useState(current?.name ?? '');
-  // Al renovar, número y fechas arrancan vacíos: son los del documento nuevo.
-  const [number, setNumber] = useState(correcting ? (current?.number ?? '') : '');
-  const [issuedAt, setIssuedAt] = useState(correcting ? (current?.issuedAt ?? '') : '');
-  const [expiresAt, setExpiresAt] = useState(correcting ? (current?.expiresAt ?? '') : '');
-  const [fileUrl, setFileUrl] = useState<string | null>(correcting ? (current?.fileUrl ?? null) : null);
+  const [name, setName] = useState(mode.kind === 'create' ? (mode.name ?? '') : (existing?.displayName ?? ''));
+  // Al renovar, número, fechas y comprobante arrancan vacíos: son los del documento nuevo.
+  const [number, setNumber] = useState(correcting ? (existing?.number ?? '') : '');
+  const [expires, setExpires] = useState(correcting ? existing?.expiresAt != null : true);
+  const [issuedAt, setIssuedAt] = useState(correcting ? (existing?.issuedAt ?? '') : '');
+  const [expiresAt, setExpiresAt] = useState(correcting ? (existing?.expiresAt ?? '') : '');
+  const [fileUrl, setFileUrl] = useState<string | null>(correcting ? (existing?.fileUrl ?? null) : null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  const ids = { type: useId(), issued: useId(), expires: useId() };
+  const ids = { title: useId(), name: useId(), issued: useId(), expires: useId() };
 
-  const needsName = type === 'otro';
-  const datesProblem = issuedAt && expiresAt && expiresAt < issuedAt ? 'El vencimiento no puede ser anterior a la emisión.' : null;
-  const canSubmit = !uploading && !submitting && !datesProblem && (!needsName || name.trim().length > 0);
+  const trimmed = name.trim();
+  const recognized = inferDocumentType(trimmed);
+  // Otro documento vigente con el mismo tipo reconocido (una sola VTV) o el mismo nombre.
+  const duplicate = renewing
+    ? null
+    : (current.find(
+        (d) =>
+          d.id !== existing?.id &&
+          (recognized !== 'otro' ? d.type === recognized : d.displayName.trim().toLowerCase() === trimmed.toLowerCase()),
+      ) ?? null);
+  const suggestions = DOCUMENT_SUGGESTIONS.filter((s) => !current.some((d) => d.type === s.type));
+  const datesProblem = expires && issuedAt && expiresAt && expiresAt < issuedAt ? 'El vencimiento no puede ser anterior a la emisión.' : null;
+  const missingExpiry = expires && !expiresAt;
+  const canSubmit =
+    !uploading && !submitting && !datesProblem && !missingExpiry && !duplicate && (renewing || trimmed.length > 0);
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function upload(file: File) {
     setUploading(true);
     setError(null);
     try {
@@ -78,34 +90,40 @@ export function DocumentFormModal({ vehicleId, mode, loadedTypes, onClose, onSav
     }
   }
 
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && !uploading) void upload(file);
+  }
+
   async function handleSubmit() {
     setSubmitting(true);
     setError(null);
+    const dates = expires ? { issuedAt, expiresAt } : { issuedAt: '', expiresAt: '' };
     try {
       let saved: VehicleDocument;
       if (mode.kind === 'create') {
         saved = await createVehicleDocument(vehicleId, {
-          type,
-          name: needsName ? name.trim() : undefined,
+          name: trimmed,
           number: number.trim() || undefined,
-          issuedAt: issuedAt || undefined,
-          expiresAt: expiresAt || undefined,
+          issuedAt: dates.issuedAt || undefined,
+          expiresAt: dates.expiresAt || undefined,
           fileUrl: fileUrl ?? undefined,
         });
       } else if (mode.kind === 'renew') {
         saved = await renewVehicleDocument(vehicleId, mode.document.id, {
           number: number.trim() || undefined,
-          issuedAt: issuedAt || undefined,
-          expiresAt: expiresAt || undefined,
+          issuedAt: dates.issuedAt || undefined,
+          expiresAt: dates.expiresAt || undefined,
           fileUrl: fileUrl ?? undefined,
         });
       } else {
         // "" borra el dato en el servidor.
         saved = await correctVehicleDocument(vehicleId, mode.document.id, {
-          ...(needsName ? { name: name.trim() } : {}),
+          name: trimmed,
           number: number.trim(),
-          issuedAt,
-          expiresAt,
+          ...dates,
           fileUrl: fileUrl ?? '',
         });
       }
@@ -118,15 +136,20 @@ export function DocumentFormModal({ vehicleId, mode, loadedTypes, onClose, onSav
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby={`${ids.type}-title`}>
-      <div className="modal modal--narrow">
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby={ids.title}>
+      <div className="modal doc-form">
         <header className="modal__header">
           <div>
-            <h2 className="modal__title" id={`${ids.type}-title`}>
+            <h2 className="modal__title" id={ids.title}>
               {titleOf(mode)}
             </h2>
-            {mode.kind === 'renew' && (
-              <p className="modal__subtitle doc-form__subtitle">El documento actual pasa al historial.</p>
+            {renewing && existing && (
+              <p className="doc-form__context">
+                {existing.expiresAt
+                  ? `El actual ${existing.status === 'vencido' ? 'venció' : 'vence'} el ${formatDate(existing.expiresAt)}. `
+                  : ''}
+                Pasa al historial cuando guardes el nuevo.
+              </p>
             )}
           </div>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Cerrar">
@@ -134,129 +157,165 @@ export function DocumentFormModal({ vehicleId, mode, loadedTypes, onClose, onSav
           </button>
         </header>
 
-        <div className="modal__body">
-          {mode.kind === 'create' && (
-            <label className="schedule-picker__field" htmlFor={ids.type}>
-              Tipo
-              <select
-                id={ids.type}
-                className="schedule-picker__input"
-                value={type}
-                onChange={(e) => setType(e.target.value as VehicleDocumentType)}
-              >
-                {availableTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {DOCUMENT_TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          {needsName && mode.kind !== 'renew' && (
-            <label className="schedule-picker__field">
-              Qué documento es
+        <div className="modal__body doc-form__body">
+          {!renewing && (
+            <div className="schedule-picker__field">
+              <label htmlFor={ids.name}>Documento</label>
               <input
+                id={ids.name}
                 type="text"
                 className="schedule-picker__input"
                 maxLength={TEXT_MAX}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ej: Permiso municipal de carga"
+                placeholder="Ej: VTV, Póliza La Segunda, Permiso municipal"
+                autoFocus
               />
-            </label>
+              {mode.kind === 'create' && !trimmed && suggestions.length > 0 && (
+                <div className="doc-form__suggestions" aria-label="Sugerencias">
+                  {suggestions.map((s) => (
+                    <button key={s.type} type="button" className="doc-form__suggestion" onClick={() => setName(s.name)}>
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {trimmed && duplicate && (
+                <p className="field-error">
+                  Este vehículo ya tiene cargado {duplicate.displayName}. Renovalo o editalo desde su tarjeta.
+                </p>
+              )}
+              {trimmed && !duplicate && recognized !== 'otro' && (
+                <p className="doc-form__recognized">
+                  Cuenta como {DOCUMENT_TYPE_LABELS[recognized]}
+                  {REQUIRED.includes(recognized) ? ', uno de los obligatorios' : ''}.
+                </p>
+              )}
+            </div>
           )}
 
           <label className="schedule-picker__field">
-            Número (opcional)
+            <span>
+              Número <span className="doc-form__optional">(opcional)</span>
+            </span>
             <input
               type="text"
-              className="schedule-picker__input vehicle-detail__mono"
+              className="schedule-picker__input doc-form__mono"
               maxLength={TEXT_MAX}
               value={number}
               onChange={(e) => setNumber(e.target.value)}
-              placeholder="Ej: N° de póliza u oblea"
+              placeholder="N° de póliza, oblea, cédula…"
             />
           </label>
 
-          <div className="doc-form__dates">
-            <div className="schedule-picker__field">
-              <label htmlFor={ids.issued}>Emisión (opcional)</label>
-              <DatePicker
-                id={ids.issued}
-                value={issuedAt}
-                onChange={setIssuedAt}
-                label="Fecha de emisión"
-                className="schedule-picker__input"
-              />
+          <div className="doc-form__expiry">
+            <div className="doc-form__segmented" role="radiogroup" aria-label="Vencimiento">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={expires}
+                className={`doc-form__segment${expires ? ' doc-form__segment--on' : ''}`}
+                onClick={() => setExpires(true)}
+              >
+                Tiene vencimiento
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!expires}
+                className={`doc-form__segment${!expires ? ' doc-form__segment--on' : ''}`}
+                onClick={() => setExpires(false)}
+              >
+                No vence
+              </button>
             </div>
-            <div className="schedule-picker__field">
-              <label htmlFor={ids.expires}>Vencimiento</label>
-              <DatePicker
-                id={ids.expires}
-                value={expiresAt}
-                onChange={setExpiresAt}
-                min={issuedAt || undefined}
-                label="Fecha de vencimiento"
-                className="schedule-picker__input"
-              />
-            </div>
+            {expires ? (
+              <>
+                <div className="doc-form__dates">
+                  <div className="schedule-picker__field">
+                    <label htmlFor={ids.expires}>Vence el</label>
+                    <DatePicker
+                      id={ids.expires}
+                      value={expiresAt}
+                      onChange={setExpiresAt}
+                      min={issuedAt || undefined}
+                      label="Fecha de vencimiento"
+                      className="schedule-picker__input"
+                    />
+                  </div>
+                  <div className="schedule-picker__field">
+                    <label htmlFor={ids.issued}>
+                      Emitido el <span className="doc-form__optional">(opcional)</span>
+                    </label>
+                    <DatePicker
+                      id={ids.issued}
+                      value={issuedAt}
+                      onChange={setIssuedAt}
+                      label="Fecha de emisión"
+                      className="schedule-picker__input"
+                    />
+                  </div>
+                </div>
+                <p className="doc-form__hint">
+                  Avisa antes de vencer. Desde el día siguiente al vencimiento el vehículo no puede salir.
+                </p>
+              </>
+            ) : (
+              <p className="doc-form__hint">No avisa ni bloquea nada. Por ejemplo, el título o la cédula verde.</p>
+            )}
+            {datesProblem && <p className="field-error">{datesProblem}</p>}
           </div>
-          {(issuedAt || expiresAt) && (
-            <div className="doc-form__clear">
-              {issuedAt && (
-                <button type="button" className="doc-link-btn" onClick={() => setIssuedAt('')}>
-                  Quitar emisión
-                </button>
-              )}
-              {expiresAt && (
-                <button type="button" className="doc-link-btn" onClick={() => setExpiresAt('')}>
-                  Quitar vencimiento
-                </button>
-              )}
-            </div>
-          )}
-          <p className="muted doc-form__hint">
-            {expiresAt
-              ? 'Desde el día siguiente al vencimiento el vehículo queda no disponible hasta que se renueve.'
-              : 'Sin vencimiento no avisa ni bloquea nada.'}
-          </p>
-          {datesProblem && <p className="field-error">{datesProblem}</p>}
 
           <div className="schedule-picker__field">
-            <span>Comprobante (opcional)</span>
-            <div className="doc-form__file" aria-live="polite">
-              {uploading ? (
-                <span className="muted">Subiendo…</span>
-              ) : fileUrl ? (
-                <>
-                  <a href={fileUrl} target="_blank" rel="noreferrer" className="doc-form__file-link">
-                    <PaperclipIcon width={14} height={14} aria-hidden="true" />
-                    {fileName ?? 'Ver comprobante'}
-                  </a>
-                  <button type="button" className="doc-link-btn" onClick={() => setFileUrl(null)} disabled={submitting}>
-                    Quitar
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  className="secondary-btn doc-form__file-btn"
-                  onClick={() => fileInput.current?.click()}
-                  disabled={submitting}
-                >
-                  <PaperclipIcon width={14} height={14} aria-hidden="true" />
-                  Adjuntar foto o PDF
+            <span>
+              Comprobante <span className="doc-form__optional">(opcional)</span>
+            </span>
+            {fileUrl ? (
+              <div className="doc-form__file">
+                <PaperclipIcon width={16} height={16} aria-hidden="true" />
+                <a href={fileUrl} target="_blank" rel="noreferrer" className="doc-form__file-name">
+                  {fileName ?? 'Comprobante cargado'}
+                </a>
+                <button type="button" className="doc-link-btn" onClick={() => setFileUrl(null)} disabled={submitting}>
+                  Quitar
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div
+                className={`doc-form__drop${dragging ? ' doc-form__drop--over' : ''}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+              >
+                {uploading ? (
+                  <span className="muted">Subiendo…</span>
+                ) : (
+                  <>
+                    <PaperclipIcon width={18} height={18} aria-hidden="true" />
+                    <span>
+                      Soltá una foto o un PDF acá, o{' '}
+                      <button type="button" className="doc-link-btn" onClick={() => fileInput.current?.click()}>
+                        elegí un archivo
+                      </button>
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
             <input
               ref={fileInput}
               type="file"
               accept={ACCEPTED_DOCUMENT_TYPES}
               className="visually-hidden"
               aria-label="Comprobante: foto o PDF"
-              onChange={handleFile}
+              tabIndex={-1}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void upload(file);
+              }}
             />
           </div>
 
@@ -268,7 +327,7 @@ export function DocumentFormModal({ vehicleId, mode, loadedTypes, onClose, onSav
             Cancelar
           </button>
           <button type="button" className="primary-btn" onClick={handleSubmit} disabled={!canSubmit}>
-            {submitting ? 'Guardando…' : mode.kind === 'renew' ? 'Renovar' : 'Guardar'}
+            {submitting ? 'Guardando…' : renewing ? 'Guardar renovación' : 'Guardar'}
           </button>
         </footer>
       </div>

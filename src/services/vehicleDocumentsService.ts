@@ -11,9 +11,10 @@ export interface VehicleDocumentInput {
 }
 
 export interface NewVehicleDocument extends VehicleDocumentInput {
-  type: VehicleDocumentType;
-  /** Solo para el tipo "otro". */
-  name?: string;
+  /** Nombre libre: el backend reconoce de ahí si es la VTV, el seguro, etc. */
+  name: string;
+  /** Opcional: fuerza el tipo en vez de deducirlo del nombre. */
+  type?: VehicleDocumentType;
 }
 
 /** En una corrección, "" borra el dato y lo ausente no cambia. */

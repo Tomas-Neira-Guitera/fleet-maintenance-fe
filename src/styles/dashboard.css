@@ -2426,15 +2426,12 @@
   margin: 0;
 }
 
-/* Muestra 4 ítems (useVisibleRows) y el resto con scroll; el título de sección queda fijo arriba. */
-.vehicle-checklist__scroll {
+/* CAM-127: en su pestaña se ven todos los ítems, sin scroll interno. */
+.vehicle-checklist__sections {
   border-top: var(--fg-border);
 }
 
 .vehicle-checklist__section-title {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   margin: 0;
   padding: 8px 0 4px;
   background: var(--fg-white);
@@ -2675,188 +2672,352 @@
   color: var(--fg-critical);
 }
 
-/* CAM-133: QR del vehículo. */
-.vehicle-qr__title {
+/* CAM-133: QR del vehículo, al lado de los costos. Solo el código; "Descargar" aparece al pasar el
+   cursor o con el foco (y siempre en pantallas táctiles, que no tienen hover). */
+.vehicle-detail__summary-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 16px;
+  align-items: stretch;
 }
 
-.vehicle-qr__body {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+.vehicle-detail__summary-row > :first-child {
+  flex: 1;
+  min-width: 0;
 }
 
-.vehicle-qr__code {
+.vehicle-qr {
+  position: relative;
   flex-shrink: 0;
   width: 148px;
-  height: 148px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
+  aspect-ratio: 1;
+  align-self: flex-start;
+  padding: 10px;
   border: var(--fg-border);
   border-radius: var(--fg-radius);
   background: var(--fg-white);
+  overflow: hidden;
 }
 
-.vehicle-qr__code span,
+.vehicle-qr__code,
 .vehicle-qr__code svg {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.vehicle-qr__info {
-  flex: 1;
-  min-width: 220px;
+.vehicle-qr__download {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.vehicle-qr__text {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.vehicle-qr__url {
-  margin: 0;
-  font-size: 12px;
-  color: var(--fg-text-muted);
-  word-break: break-all;
-}
-
-.vehicle-qr__warning {
-  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  margin: 0;
+  border: 0;
+  background: rgba(255, 255, 255, 0.88);
   font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.vehicle-qr:hover .vehicle-qr__download,
+.vehicle-qr__download:focus-visible {
+  opacity: 1;
+}
+
+.vehicle-qr__download:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: -2px;
+  border-radius: var(--fg-radius);
+}
+
+@media (hover: none) {
+  .vehicle-qr__download {
+    inset: auto 0 0 0;
+    flex-direction: row;
+    padding: 6px 0;
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .vehicle-detail__summary-row {
+    flex-direction: column;
+  }
+}
+
+/* CAM-127: pestaña Documentación. Una tarjeta por documento; el estado lo dicen el chip y el filete de
+   arriba (rojo vencido, ámbar por vencer), siempre con texto. */
+.vehicle-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vehicle-docs__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.vehicle-docs__title {
+  margin: 0;
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 20px;
   color: var(--fg-text);
 }
 
-.vehicle-qr__warning svg {
-  flex-shrink: 0;
-  color: var(--fg-warn);
+.vehicle-docs__summary {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--fg-text-muted);
 }
 
-.vehicle-qr__actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-
-/* CAM-127: pestaña Documentación. */
-.vehicle-docs__header {
-  display: flex;
+.vehicle-docs__add {
+  flex: 0 0 auto;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.vehicle-docs__header .vehicle-detail__card-title {
-  margin: 0;
-}
-
-.vehicle-docs__lead {
-  display: block;
-  margin: 4px 0 12px;
-}
-
-.vehicle-docs__missing {
-  display: flex;
-  align-items: flex-start;
   gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  border-radius: var(--fg-radius);
-  background: var(--fg-warn-bg);
+  width: auto;
+  min-height: 40px;
+  padding: 0 18px;
   font-size: 14px;
 }
 
-.vehicle-docs__missing > svg {
-  flex-shrink: 0;
-  margin-top: 1px;
-  color: var(--fg-warn);
+.vehicle-docs__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
 }
 
-.vehicle-docs__missing > span:first-of-type {
-  flex: 1;
-  min-width: 200px;
-}
-
-.vehicle-docs__missing-actions {
+.doc-card {
+  position: relative;
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 18px 14px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+  overflow: hidden;
 }
 
-.vehicle-docs__item {
+.doc-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: transparent;
+}
+
+.doc-card--vencido::before {
+  background: var(--fg-critical);
+}
+
+.doc-card--por_vencer::before {
+  background: var(--fg-warn);
+}
+
+.doc-card__top {
+  display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.vehicle-docs__icon {
-  flex-shrink: 0;
-  margin-top: 2px;
+.doc-card__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.doc-card__name {
+  margin: 0;
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--fg-text);
+  overflow-wrap: anywhere;
+}
+
+.doc-card__number {
+  font-family: var(--fg-font-mono);
+  font-size: 12px;
   color: var(--fg-text-muted);
 }
 
-.vehicle-docs__item--vencido .vehicle-docs__icon {
+.doc-card__expiry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.doc-card__expiry-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-text-muted);
+}
+
+.doc-card__date {
+  font-family: var(--fg-font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.doc-card--vencido .doc-card__date {
   color: var(--fg-critical);
 }
 
-.vehicle-docs__item--por_vencer .vehicle-docs__icon {
-  color: var(--fg-warn);
-}
-
-.vehicle-docs__main {
-  flex: 1;
-}
-
-.vehicle-docs__number {
-  font-family: var(--fg-font-mono);
-  font-weight: 400;
+.doc-card__relative {
   font-size: 13px;
   color: var(--fg-text-muted);
 }
 
-.vehicle-docs__actions {
+.doc-card__no-expiry {
+  font-size: 14px;
+  color: var(--fg-text-muted);
+}
+
+.doc-card__footer {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-top: 4px;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: var(--fg-border);
 }
 
-.vehicle-docs__no-file {
+.doc-card__file {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.doc-card__file--none {
+  font-weight: 400;
+  color: var(--fg-text-muted);
+}
+
+.doc-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.doc-card__renew {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: var(--fg-border);
+  border-radius: 999px;
+  background: var(--fg-white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.doc-card__renew:hover:not(:disabled),
+.doc-card__icon-btn:hover:not(:disabled) {
+  background: var(--fg-bg);
+}
+
+.doc-card__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-text-muted);
+}
+
+.doc-card__icon-btn--danger:hover:not(:disabled) {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+}
+
+.doc-card__previous {
+  margin-top: -4px;
+}
+
+.doc-card__previous-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
+.doc-card__previous-toggle:hover {
+  color: var(--fg-text);
+}
+
+.doc-card__previous-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   font-size: 13px;
   color: var(--fg-text-muted);
 }
 
-.vehicle-docs__history {
-  margin-top: 4px;
-}
-
-.doc-status {
+.doc-card__previous-list li {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
 }
 
-/* Mismo lenguaje que .fleet-status-badge; "sin vencimiento" en neutro. */
+/* Un obligatorio que falta: lugar reservado, punteado. */
+.doc-card--missing {
+  border-style: dashed;
+  border-color: rgba(62, 74, 66, 0.3);
+  background: transparent;
+}
+
+.doc-card__missing-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--fg-text-muted);
+}
+
+.doc-card__missing-btn {
+  align-self: flex-start;
+}
+
+/* Mismo lenguaje que .fleet-status-badge; "sin vencimiento" y "falta" en neutro. */
 .doc-status__chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -2891,21 +3052,95 @@
   color: var(--fg-critical);
 }
 
-.doc-status__chip--sin_vencimiento {
+.doc-status__chip--sin_vencimiento,
+.doc-status__chip--falta {
   background: var(--fg-hover);
   color: var(--fg-text-muted);
 }
 
-.doc-status__when {
-  font-family: var(--fg-font-mono);
-  font-size: 12px;
-  color: var(--fg-text-muted);
-  white-space: nowrap;
+/* Formulario de documento. */
+.doc-form {
+  max-width: 460px;
 }
 
-/* Formulario de documento. */
-.doc-form__subtitle {
+.doc-form__body {
+  gap: 16px;
+}
+
+.doc-form__context {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.doc-form__optional {
+  font-weight: 400;
+  color: var(--fg-text-muted);
+}
+
+.doc-form__mono {
+  font-family: var(--fg-font-mono);
+}
+
+.doc-form__mono::placeholder {
   font-family: var(--fg-font-body);
+}
+
+.doc-form__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.doc-form__suggestion {
+  padding: 5px 12px;
+  border: var(--fg-border);
+  border-radius: 999px;
+  background: var(--fg-white);
+  font-size: 13px;
+  color: var(--fg-text);
+}
+
+.doc-form__suggestion:hover {
+  background: var(--fg-bg);
+}
+
+.doc-form__recognized {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--fg-ok);
+}
+
+.doc-form__expiry {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.doc-form__segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-hover);
+}
+
+.doc-form__segment {
+  min-height: 36px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-text-muted);
+}
+
+.doc-form__segment--on {
+  background: var(--fg-white);
+  color: var(--fg-text);
+  box-shadow: 0 1px 2px rgba(62, 74, 66, 0.12);
 }
 
 .doc-form__dates {
@@ -2914,33 +3149,52 @@
   gap: 12px;
 }
 
-.doc-form__clear {
-  display: flex;
-  gap: 16px;
-  margin-top: -4px;
-}
-
 .doc-form__hint {
   margin: 0;
   font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.doc-form__drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 72px;
+  padding: 12px 16px;
+  border: 1.5px dashed rgba(62, 74, 66, 0.28);
+  border-radius: var(--fg-radius);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--fg-text-muted);
+  text-align: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.doc-form__drop--over {
+  border-color: var(--fg-ok);
+  background: var(--fg-ok-bg);
 }
 
 .doc-form__file {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-height: 40px;
 }
 
+.doc-form__file-name,
 .doc-form__file-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  max-width: 220px;
+  min-width: 0;
+  max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 14px;
+  font-weight: 500;
   color: var(--fg-text);
 }
 
@@ -2957,15 +3211,6 @@
 @media (max-width: 640px) {
   .doc-form__dates {
     grid-template-columns: 1fr;
-  }
-
-  .vehicle-docs__item {
-    flex-wrap: wrap;
-  }
-
-  .doc-status {
-    align-items: flex-start;
-    flex-direction: row;
   }
 }
 
@@ -3006,8 +3251,3 @@
   align-self: flex-start;
 }
 
-
-/* El número de un documento va en mono; el texto de ayuda, no. */
-.vehicle-detail__mono::placeholder {
-  font-family: var(--fg-font-body);
-}

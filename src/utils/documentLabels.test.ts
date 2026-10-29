@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeExpiry } from './documentLabels';
+import { describeExpiry, inferDocumentType } from './documentLabels';
 
 describe('describeExpiry (CAM-127)', () => {
   it('dice cuánto falta o hace cuánto venció', () => {
@@ -11,3 +11,16 @@ describe('describeExpiry (CAM-127)', () => {
     expect(describeExpiry(-29)).toBe('Venció hace 29 días');
   });
 });
+
+describe('inferDocumentType (CAM-127)', () => {
+  it('reconoce los documentos conocidos igual que el backend', () => {
+    expect(inferDocumentType('VTV')).toBe('vtv');
+    expect(inferDocumentType('Revisión técnica obligatoria (RTO)')).toBe('vtv');
+    expect(inferDocumentType('Póliza La Segunda')).toBe('seguro');
+    expect(inferDocumentType('cédula AZUL de Juan')).toBe('cedula_azul');
+    expect(inferDocumentType('Habilitación de carga RUTA')).toBe('habilitacion_carga');
+    expect(inferDocumentType('Permiso municipal')).toBe('otro');
+    expect(inferDocumentType('Subtitulo')).toBe('otro');
+  });
+});
+

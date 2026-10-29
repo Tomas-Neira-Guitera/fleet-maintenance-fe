@@ -526,7 +526,7 @@ export interface VehicleDocument {
   vehicleId: string;
   type: VehicleDocumentType;
   typeLabel: string;
-  /** Solo en el tipo "otro". */
+  /** El nombre que le puso el admin; el tipo sale de ahí. */
   name: string | null;
   displayName: string;
   number: string | null;

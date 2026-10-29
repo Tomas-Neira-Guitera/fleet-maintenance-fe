@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { ApiError } from '../../services/apiClient';
 import {
   deleteVehicleChecklistItem,
@@ -11,8 +10,6 @@ import { CHECKLIST_SECTIONS } from '../../utils/checklistSections';
 import { TrashIcon } from '../icons';
 import { AddChecklistItemModal } from './AddChecklistItemModal';
 import '../../styles/dashboard.css';
-
-const VISIBLE_ITEMS = 4;
 
 interface VehicleChecklistCardProps {
   vehicleId: string;
@@ -28,7 +25,6 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const { ref: scrollRef, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_ITEMS, items?.length ?? 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,7 +87,8 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
       {!items && !error && <p className="muted">Cargando checklist…</p>}
 
       {items && (
-        <div ref={scrollRef} className="vehicle-checklist__scroll scroll-list" style={maxHeight ? { maxHeight } : undefined}>
+        // Con su propia pestaña (CAM-127) se ven todos los ítems, sin scroll interno.
+        <div className="vehicle-checklist__sections">
           {CHECKLIST_SECTIONS.map(({ key, label: sectionLabel }) => {
             const sectionItems = items.filter((i) => i.section === key);
             if (sectionItems.length === 0) return null;
