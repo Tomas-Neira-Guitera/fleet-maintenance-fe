@@ -128,6 +128,34 @@ export interface DefectSummary {
   details?: string | null;
 }
 
+/** Una falla de un control recurrente (CAM-135). */
+export interface RecurringDefectOccurrence {
+  defectId: string;
+  reportedAt: string;
+  severity: DefectSeverity;
+  status: DefectStatus;
+  description: string;
+}
+
+/** Un control que falló al menos `threshold` veces en el mismo vehículo dentro de la ventana (CAM-135). */
+export interface RecurringDefect {
+  vehicleId: string;
+  plate: string;
+  itemId: string;
+  itemLabel: string;
+  count: number;
+  lastReportedAt: string;
+  /** Más reciente primero. */
+  occurrences: RecurringDefectOccurrence[];
+}
+
+/** GET /api/defects/recurring (CAM-135). */
+export interface RecurringDefects {
+  threshold: number;
+  windowDays: number;
+  items: RecurringDefect[];
+}
+
 /** Item de `inspections` en GET /api/vehicles/{id}/history (CAM-22). */
 export interface InspectionHistoryItem {
   id: string;
@@ -415,7 +443,8 @@ export type NotificationType =
   | 'blocking_defect_reported'
   | 'work_order_finalized'
   | 'maintenance_due_soon'
-  | 'maintenance_overdue';
+  | 'maintenance_overdue'
+  | 'recurring_defect';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';

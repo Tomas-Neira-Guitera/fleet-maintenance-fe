@@ -20,6 +20,10 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Defecto bloqueante en AB123CD',
     message: 'Neumático cortado. Reportado en el pre-viaje por Juan Pérez. El vehículo no puede salir hasta resolverlo.',
   },
+  recurring_defect: {
+    title: 'Defecto recurrente en AB123CD',
+    message: 'Frenos de AB123CD: 3 defectos en 30 días.',
+  },
   work_order_finalized: {
     title: 'Orden de trabajo finalizada',
     message: 'Cambio de pastillas (AB123CD), hecha por Javier Romero.',
@@ -54,7 +58,7 @@ export type NotificationTopic = 'defects' | 'work_orders' | 'maintenance' | 'tri
 
 /** Temas de la pantalla de configuración, en orden, con sus avisos. */
 export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types: NotificationType[] }[] = [
-  { id: 'defects', label: 'Defectos', types: ['blocking_defect_reported'] },
+  { id: 'defects', label: 'Defectos', types: ['blocking_defect_reported', 'recurring_defect'] },
   {
     id: 'work_orders',
     label: 'Órdenes de trabajo',

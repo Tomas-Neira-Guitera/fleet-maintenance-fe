@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { getFleetStatus } from '../../services/fleetStatusService';
 import type { FleetStatusRow } from '../../types/domain';
 import { describeNextMaintenance } from '../../utils/maintenanceFormat';
@@ -8,6 +9,8 @@ import '../../styles/dashboard.css';
 /** No hay endpoint de conteos agregados (ver ROADMAP) -- alcanza con traer toda la flota. */
 const FLEET_STATUS_PAGE_SIZE = 500;
 const MAX_PER_BUCKET = 5;
+// En el Resumen comparte columna con "Estado de la flota": con un tope, las dos columnas quedan parejas.
+const VISIBLE_ITEMS = 3;
 
 /**
  * Franjas por `remainingDays` (siempre en días, comparables entre sí -- a diferencia de
@@ -56,6 +59,8 @@ export function UpcomingMaintenanceCard({ refreshKey }: UpcomingMaintenanceCardP
           .slice(0, MAX_PER_BUCKET),
       })).filter((group) => group.items.length > 0)
     : null;
+  const itemCount = bucketedGroups?.reduce((total, group) => total + group.items.length, 0) ?? 0;
+  const { ref: scrollRef, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_ITEMS, itemCount);
 
   return (
     <section className="upcoming-maintenance-card">
@@ -68,13 +73,17 @@ export function UpcomingMaintenanceCard({ refreshKey }: UpcomingMaintenanceCardP
       {bucketedGroups && bucketedGroups.length === 0 && <p className="muted">No hay vencimientos próximos.</p>}
 
       {bucketedGroups && bucketedGroups.length > 0 && (
-        <div className="upcoming-maintenance-card__groups">
+        <div
+          ref={scrollRef}
+          className="upcoming-maintenance-card__groups scroll-list"
+          style={maxHeight ? { maxHeight } : undefined}
+        >
           {bucketedGroups.map((group) => (
             <div key={group.label} className="upcoming-maintenance-card__group">
               <h3 className="upcoming-maintenance-card__group-title">{group.label.toUpperCase()}</h3>
               <div className="upcoming-maintenance-card__list">
                 {group.items.map((row) => (
-                  <div key={row.vehicleId} className="upcoming-maintenance-card__item">
+                  <div key={row.vehicleId} data-scroll-item className="upcoming-maintenance-card__item">
                     <div className="upcoming-maintenance-card__top-line">
                       <StatusBadge status={row.status} />
                       <span className="fleet-status__plate">{row.plate}</span>
