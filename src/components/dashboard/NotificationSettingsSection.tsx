@@ -28,6 +28,7 @@ import {
   BellIcon,
   ChevronRightIcon,
   ClipboardListIcon,
+  FileTextIcon,
   TruckIcon,
   WrenchIcon,
 } from '../icons';
@@ -40,6 +41,7 @@ const TOPIC_ICON: Record<NotificationTopic, ReactNode> = {
   defects: <AlertOctagonIcon width={16} height={16} />,
   work_orders: <ClipboardListIcon width={16} height={16} />,
   maintenance: <WrenchIcon width={16} height={16} />,
+  documents: <FileTextIcon width={16} height={16} />,
   trips: <TruckIcon width={16} height={16} />,
 };
 
@@ -49,7 +51,7 @@ function toInput(s: NotificationSetting): NotificationSettingInput {
     enabled: s.enabled,
     channels: s.channels,
     ...(s.audience === 'configurable' ? { recipientRoles: s.recipientRoles, recipientUserIds: s.recipientUserIds } : {}),
-    ...(s.supportsLead ? { leadDays: s.leadDays, leadKm: s.leadKm } : {}),
+    ...(s.supportsLead ? { leadDays: s.leadDays, ...(s.supportsLeadKm !== false ? { leadKm: s.leadKm } : {}) } : {}),
   };
 }
 
@@ -394,13 +396,15 @@ function SettingDetail({ setting: s, users, saving, withoutEmail, onUpdate, onRe
   const [leadDays, setLeadDays] = useState(s.leadDays?.toString() ?? '');
   const [leadKm, setLeadKm] = useState(s.leadKm?.toString() ?? '');
 
-  const leadDirty = leadDays !== (s.leadDays?.toString() ?? '') || leadKm !== (s.leadKm?.toString() ?? '');
+  // CAM-127: los documentos se anticipan solo en días.
+  const withKm = s.supportsLeadKm !== false;
+  const leadDirty = leadDays !== (s.leadDays?.toString() ?? '') || (withKm && leadKm !== (s.leadKm?.toString() ?? ''));
   const days = Number(leadDays);
   const km = Number(leadKm);
   const leadProblem =
     !Number.isInteger(days) || days < 1 || days > 365
       ? 'Los días van de 1 a 365.'
-      : !Number.isInteger(km) || km < 1 || km > 100000
+      : withKm && (!Number.isInteger(km) || km < 1 || km > 100000)
         ? 'Los km van de 1 a 100.000.'
         : null;
 
@@ -499,24 +503,26 @@ function SettingDetail({ setting: s, users, saving, withoutEmail, onUpdate, onRe
                 />
                 días antes
               </label>
-              <label>
-                <input
-                  type="number"
-                  min={1}
-                  max={100000}
-                  inputMode="numeric"
-                  className="schedule-picker__input notif-card__number"
-                  value={leadKm}
-                  onChange={(e) => setLeadKm(e.target.value)}
-                />
-                km antes
-              </label>
+              {withKm && (
+                <label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100000}
+                    inputMode="numeric"
+                    className="schedule-picker__input notif-card__number"
+                    value={leadKm}
+                    onChange={(e) => setLeadKm(e.target.value)}
+                  />
+                  km antes
+                </label>
+              )}
               {leadDirty && (
                 <button
                   type="button"
                   className="primary-btn notif-detail__save"
                   disabled={saving || leadProblem !== null}
-                  onClick={() => onUpdate({ leadDays: days, leadKm: km })}
+                  onClick={() => onUpdate(withKm ? { leadDays: days, leadKm: km } : { leadDays: days })}
                 >
                   Guardar anticipación
                 </button>
@@ -524,8 +530,9 @@ function SettingDetail({ setting: s, users, saving, withoutEmail, onUpdate, onRe
             </div>
             {leadDirty && leadProblem && <p className="field-error">{leadProblem}</p>}
             <p className="muted notif-detail__hint">
-              Cada plan puede tener la suya desde Planes de mantenimiento. No cambia cuándo el dashboard marca un plan como
-              “por vencer”.
+              {withKm
+                ? 'Cada plan puede tener la suya desde Planes de mantenimiento. No cambia cuándo el dashboard marca un plan como “por vencer”.'
+                : 'Es la misma con la que la Documentación de cada vehículo marca un documento como “por vencer”. Además, avisa el día que vence.'}
             </p>
           </div>
         )}

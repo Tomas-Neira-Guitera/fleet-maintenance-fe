@@ -446,6 +446,12 @@
   white-space: nowrap;
 }
 
+/* CAM-127: por qué un vehículo no está disponible. */
+.vehicle-card__reason {
+  font-size: 13px;
+  color: var(--fg-critical);
+}
+
 /* CAM-87: quién tiene el vehículo en viaje, debajo del modelo. */
 .vehicle-card__trip {
   font-size: 12px;

@@ -1,12 +1,4 @@
-import type {
-  WorkOrder,
-  WorkOrderExecutionType,
-  WorkOrderExpense,
-  WorkOrderExpenseCategory,
-  WorkOrderPhoto,
-  WorkOrderSourceType,
-  WorkOrderStatus,
-} from '../types/domain';
+import type { DocumentInput, WorkOrder, WorkOrderExecutionType, WorkOrderExpense, WorkOrderExpenseCategory, WorkOrderPhoto, WorkOrderSourceType, WorkOrderStatus } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 export interface GetWorkOrdersOptions {
@@ -88,6 +80,8 @@ export interface UpdateWorkOrderInput {
   executionType?: WorkOrderExecutionType;
   externalProvider?: string;
   description?: string;
+  /** CAM-127: al finalizar una OT de un plan que renueva un documento, el documento nuevo. */
+  document?: DocumentInput;
 }
 
 /** PATCH /api/work-orders/{id} -- avanzar/cancelar estado, o editar datos mientras está abierta. */

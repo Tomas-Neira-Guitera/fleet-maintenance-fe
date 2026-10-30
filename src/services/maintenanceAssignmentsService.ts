@@ -1,4 +1,4 @@
-import type { CompletionResult, MaintenanceAssignment } from '../types/domain';
+import type { CompletionResult, DocumentInput, MaintenanceAssignment } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 /** GET /api/vehicles/{vehicleId}/maintenance-assignments -- ver CAM-40-maintenance-api-contract.md. */
@@ -50,6 +50,8 @@ export interface CreateCompletionData {
   completedKm?: number;
   workOrderId?: string;
   notes?: string;
+  /** CAM-127: el documento renovado, si el plan renueva uno. */
+  document?: DocumentInput;
 }
 
 /** POST .../maintenance-assignments/{assignmentId}/completions -- marca el mantenimiento como hecho. */
