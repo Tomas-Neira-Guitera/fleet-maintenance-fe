@@ -11,6 +11,7 @@ import { SeverityBadge } from '../SeverityBadge';
 import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleCostsCard } from './VehicleCostsCard';
 import { VehicleFormModal } from './VehicleFormModal';
+import { VehicleRecurringDefectsCard } from './VehicleRecurringDefectsCard';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import '../../styles/dashboard.css';
@@ -289,6 +290,7 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
       )}
 
       {vehicle && <VehicleCostsCard vehicleId={vehicle.id} onViewExpenses={onViewExpenses} />}
+      {vehicle && <VehicleRecurringDefectsCard vehicleId={vehicle.id} />}
 
       {history && (
         <div className="vehicle-detail__sections">
