@@ -724,14 +724,39 @@
   color: rgba(62, 74, 66, 0.6);
 }
 
-/* En el Resumen ocupa el ancho de "Estado de la flota": con lugar, cada vencimiento va en un renglón. */
+/* En el Resumen ocupa el ancho de "Estado de la flota". Con un ancho intermedio, el estado y la patente van a la
+   izquierda y el plan con su detalle a la derecha, uno abajo del otro; con lugar de sobra, todo en un renglón. Sin
+   el paso intermedio, el detalle le sacaba el ancho al plan y lo partía en tres líneas. */
 @media (min-width: 641px) {
   .upcoming-maintenance-card__item {
     display: grid;
-    grid-template-columns: 190px minmax(0, 1fr) auto;
+    grid-template-columns: 170px minmax(0, 1fr);
+    grid-template-areas:
+      'top description'
+      'top meta';
     align-items: center;
-    gap: 16px;
+    gap: 2px 16px;
     padding: 10px 16px;
+  }
+
+  .upcoming-maintenance-card__top-line {
+    grid-area: top;
+  }
+
+  .upcoming-maintenance-card__description {
+    grid-area: description;
+  }
+
+  .upcoming-maintenance-card__meta {
+    grid-area: meta;
+  }
+}
+
+@media (min-width: 1280px) {
+  .upcoming-maintenance-card__item {
+    grid-template-columns: 170px minmax(0, 1fr) auto;
+    grid-template-areas: 'top description meta';
+    gap: 16px;
   }
 
   .upcoming-maintenance-card__meta {
