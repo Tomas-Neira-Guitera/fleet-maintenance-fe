@@ -8,6 +8,7 @@ import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
 import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
+import { VehicleAvailabilityCard } from './VehicleAvailabilityCard';
 import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleCostsCard } from './VehicleCostsCard';
 import { VehicleFormModal } from './VehicleFormModal';
@@ -290,6 +291,7 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
       )}
 
       {vehicle && <VehicleCostsCard vehicleId={vehicle.id} onViewExpenses={onViewExpenses} />}
+      {vehicle && <VehicleAvailabilityCard vehicleId={vehicle.id} />}
       {vehicle && <VehicleRecurringDefectsCard vehicleId={vehicle.id} />}
 
       {history && (

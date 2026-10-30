@@ -2687,3 +2687,109 @@
   flex-direction: column;
   gap: 2px;
 }
+
+/* CAM-134: disponibilidad y tiempo de reparación -- Resumen del admin y detalle del vehículo. */
+.availability__header,
+.availability-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.availability__header .vehicle-detail__card-title {
+  margin: 0;
+}
+
+.availability .vehicle-costs__stats {
+  margin-top: 12px;
+}
+
+.availability-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.availability-card__body {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding: 16px 20px;
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+}
+
+.availability-card__body > .error-banner,
+.availability-card__body > .muted {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.availability-card__ranking .upcoming-maintenance-card__group-title {
+  margin-bottom: 4px;
+}
+
+.availability-card__empty {
+  margin: 0;
+  font-size: 13px;
+}
+
+.availability-card__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    'plate downtime chevron'
+    'meta meta chevron';
+  align-items: center;
+  gap: 2px 12px;
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.availability-card__item:hover {
+  background: var(--fg-hover);
+}
+
+.availability-card__item:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: -2px;
+}
+
+.availability-card__item .vehicle-meta__plate {
+  grid-area: plate;
+}
+
+.availability-card__downtime {
+  grid-area: downtime;
+  justify-self: end;
+  font-family: var(--fg-font-mono);
+  font-weight: 500;
+}
+
+.availability-card__meta {
+  grid-area: meta;
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.availability-card__item svg {
+  grid-area: chevron;
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 900px) {
+  .availability-card__body {
+    grid-template-columns: 1fr;
+  }
+}

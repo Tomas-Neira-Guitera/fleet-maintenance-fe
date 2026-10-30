@@ -128,6 +128,37 @@ export interface DefectSummary {
   details?: string | null;
 }
 
+/** Promedio de horas entre la creación y la finalización de OTs (CAM-134); null si no hay ninguna. */
+export interface RepairAverage {
+  avgHours: number | null;
+  count: number;
+}
+
+export interface RepairTimes extends RepairAverage {
+  internal: RepairAverage;
+  external: RepairAverage;
+}
+
+/** Un vehículo en GET /api/downtime (CAM-134). */
+export interface VehicleDowntime {
+  vehicleId: string;
+  plate: string;
+  /** null si el período todavía no empezó. */
+  availabilityPct: number | null;
+  downtimeHours: number;
+  stops: number;
+  repairs: RepairTimes;
+}
+
+/** GET /api/downtime (CAM-134): disponibilidad y reparaciones en un período, cortado en el momento actual. */
+export interface Downtime {
+  from: string;
+  to: string;
+  fleet: Omit<VehicleDowntime, 'vehicleId' | 'plate'>;
+  /** De más horas fuera de servicio a menos. */
+  vehicles: VehicleDowntime[];
+}
+
 /** Una falla de un control recurrente (CAM-135). */
 export interface RecurringDefectOccurrence {
   defectId: string;
