@@ -10,7 +10,7 @@ import '../../styles/dashboard.css';
 const FLEET_STATUS_PAGE_SIZE = 500;
 const MAX_PER_BUCKET = 5;
 // En el Resumen comparte columna con "Estado de la flota": con un tope, las dos columnas quedan parejas.
-const VISIBLE_ITEMS = 3;
+const VISIBLE_ITEMS = 5;
 
 /**
  * Franjas por `remainingDays` (siempre en días, comparables entre sí -- a diferencia de
