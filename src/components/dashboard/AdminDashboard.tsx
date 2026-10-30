@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FleetAvailabilityCard } from './FleetAvailabilityCard';
 import { FleetKpiCards } from './FleetKpiCards';
 import { FleetStatusTable } from './FleetStatusTable';
 import { RecentDefectsCard } from './RecentDefectsCard';
@@ -39,6 +40,7 @@ export function AdminDashboard({ onViewDefects, onOpenVehicle }: AdminDashboardP
             <RecurringDefectsCard onOpenVehicle={onOpenVehicle} />
           </div>
         </div>
+        <FleetAvailabilityCard onOpenVehicle={onOpenVehicle} />
       </div>
     </div>
   );
