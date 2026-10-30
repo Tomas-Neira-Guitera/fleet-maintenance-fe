@@ -724,6 +724,21 @@
   color: rgba(62, 74, 66, 0.6);
 }
 
+/* En el Resumen ocupa el ancho de "Estado de la flota": con lugar, cada vencimiento va en un renglón. */
+@media (min-width: 641px) {
+  .upcoming-maintenance-card__item {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px;
+  }
+
+  .upcoming-maintenance-card__meta {
+    text-align: right;
+  }
+}
+
 /* Widget "Defectos abiertos recientes" del dashboard de admin (CAM-37). */
 
 .recent-defects-card {
