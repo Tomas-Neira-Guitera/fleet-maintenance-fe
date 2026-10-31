@@ -16,12 +16,15 @@ import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
 import { NotificationSettingsSection } from './components/dashboard/NotificationSettingsSection';
 import { adminPath, parseAdminPath, useAdminRoute } from './hooks/useAdminRoute';
-import { authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
+import { ApiError, authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
+import { getVehicle } from './services/vehiclesService';
+import { parseInspectionPath } from './utils/publicUrl';
 import { disablePush } from './utils/webPush';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
 // Pantallas del chofer. Las del admin van por URL (CAM-82, useAdminRoute); el chofer y el técnico
-// siguen en "/" porque sus flujos tienen datos a medio cargar que una recarga perdería igual.
+// siguen en "/" porque sus flujos tienen datos a medio cargar que una recarga perdería igual. La
+// excepción es /inspeccion/{vehicleId}, la dirección del QR del camión (CAM-133): abre su inspección.
 type Route = { view: 'list' } | { view: 'flow'; vehicle: Vehicle; type: InspectionType };
 
 /** Vista del admin, aparte para que el hook de ruteo solo corra con ese rol. */
@@ -62,6 +65,8 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             // key: pasar de un vehículo a otro (atrás/adelante) remonta el detalle en vez de mezclar datos.
             key={route.vehicleId}
             vehicleId={route.vehicleId}
+            tab={route.tab}
+            onSelectTab={(tab) => navigate({ view: 'vehicle', vehicleId: route.vehicleId, tab })}
             onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
             onViewExpenses={() => navigate({ view: 'vehicle-expenses', vehicleId: route.vehicleId })}
           />
@@ -103,6 +108,10 @@ function App() {
   const [listKey, setListKey] = useState(0);
   // Por qué el chofer volvió a la flota sin poder enviar la inspección (CAM-89).
   const [listNotice, setListNotice] = useState<string | null>(null);
+  // CAM-133: el vehículo del QR escaneado. Sobrevive al login: sin sesión se entra y se sigue a ese vehículo.
+  const [scannedVehicleId, setScannedVehicleId] = useState<string | null>(() =>
+    parseInspectionPath(window.location.pathname),
+  );
 
   // Sin sesión se deja la URL como está: si era el link a un vehículo, el admin cae ahí al
   // loguearse. El chofer y el técnico no tienen rutas, así que no se quedan con una del admin.
@@ -111,6 +120,48 @@ function App() {
       window.history.replaceState(null, '', '/');
     }
   }, [role]);
+
+  // CAM-133: el chofer va directo a la inspección del QR, con la misma regla que la lista: con un
+  // viaje abierto, post-viaje. Un técnico va a su vista; el admin, al detalle del vehículo (useAdminRoute).
+  useEffect(() => {
+    if (role !== 'CHOFER' || !scannedVehicleId) return;
+    let cancelled = false;
+    getVehicle(scannedVehicleId)
+      .then((vehicle) => {
+        if (cancelled) return;
+        if (vehicle.active === false) {
+          setListNotice(`${vehicle.plate} está dado de baja.`);
+        } else if (vehicle.blocked && vehicle.status !== 'on-trip') {
+          const reasons = (vehicle.blockReasons ?? []).map((r) => r.message).join('; ');
+          setListNotice(`${vehicle.plate} no puede salir${reasons ? `: ${reasons}` : ''}.`);
+        } else {
+          handleSelectVehicle(vehicle);
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setListNotice(
+          err instanceof ApiError && err.status === 404
+            ? 'El código QR no corresponde a ningún vehículo de la flota.'
+            : 'No se pudo abrir el vehículo del código QR. Elegilo de la lista.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setScannedVehicleId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [role, scannedVehicleId]);
+
+  /** Aviso del chofer (CAM-102/103): su link lleva a la inspección del vehículo, igual que el QR. */
+  function handleDriverNotificationLink(link: string) {
+    const vehicleId = parseInspectionPath(new URL(link, window.location.origin).pathname);
+    if (vehicleId) {
+      setRoute({ view: 'list' });
+      setScannedVehicleId(vehicleId);
+    }
+  }
 
   function handleLogin(loggedRole: Role, _username: string) {
     setRole(loggedRole);
@@ -128,6 +179,7 @@ function App() {
     window.history.replaceState(null, '', '/');
     setRole(null);
     setListNotice(null);
+    setScannedVehicleId(null);
     setRoute({ view: 'list' });
   }
 
@@ -177,7 +229,7 @@ function App() {
     <main className="app mobile-shell">
       {route.view !== 'flow' && (
         <nav className="top-nav top-nav--chofer">
-          <NotificationBell />
+          <NotificationBell onOpenLink={handleDriverNotificationLink} />
           <button type="button" className="top-nav__logout" onClick={handleLogout}>
             Cerrar sesión
           </button>

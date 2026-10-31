@@ -1,9 +1,10 @@
 import { useId, useState } from 'react';
 import { ApiError } from '../../services/apiClient';
 import { createMaintenanceCompletion } from '../../services/maintenanceAssignmentsService';
-import type { CompletionResult, MaintenanceAssignment } from '../../types/domain';
+import type { CompletionResult, DocumentInput, MaintenanceAssignment } from '../../types/domain';
 import { DatePicker } from '../datetime/DatePicker';
 import { CloseIcon } from '../icons';
+import { RenewedDocumentFields } from './RenewedDocumentFields';
 import '../../styles/dashboard.css';
 
 interface CompleteMaintenanceModalProps {
@@ -34,10 +35,13 @@ export function CompleteMaintenanceModal({ vehicleId, assignment, onClose, onCom
   );
   const [workOrderId, setWorkOrderId] = useState('');
   const [notes, setNotes] = useState('');
+  // CAM-127: si el plan renueva un documento, el documento nuevo (opcional).
+  const [document, setDocument] = useState<DocumentInput | null>(null);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = Boolean(completedAt) && (!needsKm || completedKm.trim());
+  const canSubmit = Boolean(completedAt) && (!needsKm || completedKm.trim()) && !uploadingDocument;
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -48,6 +52,7 @@ export function CompleteMaintenanceModal({ vehicleId, assignment, onClose, onCom
         completedKm: needsKm ? Number(completedKm) : undefined,
         workOrderId: workOrderId.trim() || undefined,
         notes: notes.trim() || undefined,
+        document: document ?? undefined,
       });
       onCompleted(result);
     } catch (err) {
@@ -116,6 +121,16 @@ export function CompleteMaintenanceModal({ vehicleId, assignment, onClose, onCom
               rows={2}
             />
           </label>
+
+          {assignment.documentType && (
+            <RenewedDocumentFields
+              documentType={assignment.documentType}
+              minDate={completedAt}
+              disabled={submitting}
+              onChange={setDocument}
+              onUploadingChange={setUploadingDocument}
+            />
+          )}
 
           {error && <p className="error-banner">{error}</p>}
         </div>

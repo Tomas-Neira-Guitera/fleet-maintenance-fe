@@ -1,11 +1,13 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiError, describeApiError } from '../../services/apiClient';
 import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../../services/photosService';
+import { getVehicleMaintenanceAssignments } from '../../services/maintenanceAssignmentsService';
 import { addWorkOrderPhoto, deleteWorkOrderPhoto, updateWorkOrder } from '../../services/workOrdersService';
-import type { WorkOrder } from '../../types/domain';
+import type { DocumentInput, VehicleDocumentType, WorkOrder } from '../../types/domain';
 import { isValidCompletedKm } from '../../utils/workOrderFormat';
 import { CameraIcon, CloseIcon, TrashIcon } from '../icons';
 import { PhotoViewer } from '../PhotoViewer';
+import { RenewedDocumentFields } from './RenewedDocumentFields';
 import '../../styles/dashboard.css';
 
 interface FinalizeWorkOrderModalProps {
@@ -30,12 +32,32 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
   const [removingPhotoId, setRemovingPhotoId] = useState<string | null>(null);
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // CAM-127: si la OT viene de un plan que renueva un documento (la RTO renueva la VTV), se puede cargar acá.
+  const [documentType, setDocumentType] = useState<VehicleDocumentType | null>(null);
+  const [document, setDocument] = useState<DocumentInput | null>(null);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+
+  useEffect(() => {
+    if (!workOrder.assignmentId) return;
+    let cancelled = false;
+    getVehicleMaintenanceAssignments(workOrder.vehicleId)
+      .then((assignments) => {
+        const linked = assignments.find((a) => a.id === workOrder.assignmentId)?.documentType ?? null;
+        if (!cancelled) setDocumentType(linked);
+      })
+      .catch(() => {
+        // Sin el plan no se ofrece el documento; se puede cargar después desde Documentación.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workOrder.assignmentId, workOrder.vehicleId]);
 
   const needsKm = wo.assignmentId != null;
   const kmValid = isValidCompletedKm(completedKm);
   // CAM-74: mientras sube o quita una foto no se puede finalizar, porque el backend podría
   // contar otra cantidad de fotos que la que muestra la pantalla.
-  const busy = submitting || uploadingPhoto || removingPhotoId !== null;
+  const busy = submitting || uploadingPhoto || removingPhotoId !== null || uploadingDocument;
   const canFinalize =
     closingDescription.trim().length > 0 && wo.photos.length > 0 && (!needsKm || kmValid) && !busy;
 
@@ -81,6 +103,7 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
         status: 'finalizada',
         closingDescription: closingDescription.trim(),
         completedKm: needsKm ? Number(completedKm.trim()) : undefined,
+        document: document ?? undefined,
       });
       onFinalized(updated);
     } catch (err) {
@@ -131,6 +154,15 @@ export function FinalizeWorkOrderModal({ workOrder, onClose, onFinalized }: Fina
                 <span className="field-error">Ingresá los kilómetros como un número entero, sin decimales.</span>
               )}
             </label>
+          )}
+
+          {documentType && (
+            <RenewedDocumentFields
+              documentType={documentType}
+              disabled={submitting}
+              onChange={setDocument}
+              onUploadingChange={setUploadingDocument}
+            />
           )}
 
           <div className="schedule-picker__field">

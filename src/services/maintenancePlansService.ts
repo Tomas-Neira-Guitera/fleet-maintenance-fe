@@ -1,4 +1,4 @@
-import type { IntervalType, MaintenancePlan } from '../types/domain';
+import type { IntervalType, MaintenancePlan, VehicleDocumentType } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 /** GET /api/maintenance-plans -- catálogo de planes, ver CAM-40-maintenance-api-contract.md. */
@@ -17,6 +17,8 @@ export interface CreateMaintenancePlanData {
   intervalType: IntervalType;
   intervalKm?: number;
   intervalDays?: number;
+  /** CAM-127: el documento que renueva el plan; "" lo quita al editar. */
+  documentType?: VehicleDocumentType | '';
 }
 
 /** POST /api/maintenance-plans -- crea un plan nuevo en el catálogo. */
