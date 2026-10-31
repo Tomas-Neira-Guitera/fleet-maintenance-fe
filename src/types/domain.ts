@@ -377,6 +377,9 @@ export type WorkOrderSourceType = 'scheduled_maintenance' | 'defect' | 'manual';
 export type WorkOrderExecutionType = 'interno' | 'externo';
 export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'finalizada' | 'cancelada';
 export type WorkOrderExpenseCategory = 'repuesto' | 'mano_de_obra' | 'otro';
+/** Categoría de un gasto operativo del vehículo, que no sale de una OT (CAM-109). */
+export type VehicleExpenseCategory = 'combustible' | 'seguro' | 'patente' | 'vtv' | 'peajes' | 'otro';
+export type ExpenseCategory = WorkOrderExpenseCategory | VehicleExpenseCategory;
 
 export interface WorkOrderExpense {
   id: string;
@@ -390,24 +393,30 @@ export interface WorkOrderExpense {
   receiptPhotoUrl: string | null;
 }
 
-/** De dónde nació la OT de un gasto: un plan (preventivo), un defecto (correctivo) o suelta. */
-export type ExpenseOrigin = 'plan' | 'defect' | 'manual';
+/**
+ * De dónde nació un gasto: una OT de un plan (preventivo), de un defecto (correctivo) o suelta, o
+ * ninguna OT, si es un gasto operativo del vehículo (CAM-109).
+ */
+export type ExpenseOrigin = 'plan' | 'defect' | 'manual' | 'operating';
 
-/** Un gasto de mantenimiento con su vehículo y su OT -- GET /api/expenses (CAM-52). */
+/**
+ * Un gasto con su vehículo y, si sale de una, su OT -- GET /api/expenses (CAM-52, CAM-109). En un gasto
+ * operativo (`origin: 'operating'`) los campos de la OT, `executionType` y el comprobante vienen en null.
+ */
 export interface Expense {
   id: string;
-  /** Cuándo se cargó el gasto. */
+  /** En un gasto de OT, cuándo se cargó; en uno operativo, la medianoche argentina de su día. */
   date: string;
   vehicleId: string;
   plate: string | null;
-  category: WorkOrderExpenseCategory;
+  category: ExpenseCategory;
   description: string;
   amount: number;
-  workOrderId: string;
-  workOrderTitle: string;
-  workOrderStatus: WorkOrderStatus;
+  workOrderId: string | null;
+  workOrderTitle: string | null;
+  workOrderStatus: WorkOrderStatus | null;
   origin: ExpenseOrigin;
-  executionType: WorkOrderExecutionType;
+  executionType: WorkOrderExecutionType | null;
   /** Número de la factura o el ticket (CAM-107); null si no se cargó. */
   receiptNumber: string | null;
   /** Foto del comprobante (CAM-107); null si no se adjuntó. */

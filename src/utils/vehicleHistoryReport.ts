@@ -5,13 +5,13 @@
 import type {
   DefectSummary,
   Expense,
+  ExpenseCategory,
   ExpenseOrigin,
   InspectionHistoryItem,
   MaintenanceHistoryItem,
   Vehicle,
   VehicleHistory,
   WorkOrder,
-  WorkOrderExpenseCategory,
 } from '../types/domain';
 import { EXPENSE_CATEGORY_LABEL, EXPENSE_ORIGIN_LABEL } from './expenseFormat';
 import { toLocalDateKey } from './localDate';
@@ -96,10 +96,13 @@ function linesBy<K extends string>(
   labels: Record<K, string>,
   keyOf: (expense: Expense) => K,
 ): CostLine[] {
-  return (Object.keys(labels) as K[]).map((key) => ({
-    label: labels[key],
-    amount: sumAmounts(expenses.filter((expense) => keyOf(expense) === key)),
-  }));
+  // Sin los que dan cero: con gastos operativos (CAM-109) son ocho categorías, casi siempre vacías.
+  return (Object.keys(labels) as K[])
+    .map((key) => ({
+      label: labels[key],
+      amount: sumAmounts(expenses.filter((expense) => keyOf(expense) === key)),
+    }))
+    .filter((line) => line.amount > 0);
 }
 
 /**
@@ -139,7 +142,7 @@ export function buildVehicleHistoryReport(
     costs: {
       total: sumAmounts(expenses),
       count: expenses.length,
-      byCategory: linesBy<WorkOrderExpenseCategory>(expenses, EXPENSE_CATEGORY_LABEL, (expense) => expense.category),
+      byCategory: linesBy<ExpenseCategory>(expenses, EXPENSE_CATEGORY_LABEL, (expense) => expense.category),
       byOrigin: linesBy<ExpenseOrigin>(expenses, EXPENSE_ORIGIN_LABEL, (expense) => expense.origin),
     },
   };
