@@ -1,4 +1,11 @@
-import type { WorkOrder } from '../types/domain';
+import type { WorkOrder, WorkOrderStatus } from '../types/domain';
+
+export const WORK_ORDER_STATUS_LABEL: Record<WorkOrderStatus, string> = {
+  asignada: 'Asignada',
+  en_proceso: 'En proceso',
+  finalizada: 'Finalizada',
+  cancelada: 'Cancelada',
+};
 
 /**
  * Quién está a cargo de una OT, para mostrar (CAM-60). En las internas manda el técnico
