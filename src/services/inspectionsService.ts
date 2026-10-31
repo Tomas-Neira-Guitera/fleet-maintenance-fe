@@ -8,7 +8,7 @@ interface WireAnswer {
   defect?: { severity: 'non-blocking' | 'blocking'; description: string; details?: string; photoUrl?: string };
 }
 
-function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
+export function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
   return answers.map((a) => ({
     itemId: a.itemId,
     outcome: a.outcome,
