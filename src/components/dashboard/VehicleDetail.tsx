@@ -7,13 +7,16 @@ import type { DefectSummary, Vehicle, VehicleHistory, WorkOrder, WorkOrderStatus
 import { formatDayAndTime } from '../../utils/dateFormat';
 import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
-import { AlertOctagonIcon, AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, PencilIcon, PowerIcon } from '../icons';
+import { AlertOctagonIcon, AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, HistoryIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
+import { ExportHistoryModal } from './ExportHistoryModal';
+import { VehicleAvailabilityCard } from './VehicleAvailabilityCard';
 import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleCostsCard } from './VehicleCostsCard';
 import { VehicleDocumentsTab } from './VehicleDocumentsTab';
 import { VehicleFormModal } from './VehicleFormModal';
 import { VehicleQrCard } from './VehicleQrCard';
+import { VehicleRecurringDefectsCard } from './VehicleRecurringDefectsCard';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import '../../styles/dashboard.css';
@@ -127,6 +130,7 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [exportingHistory, setExportingHistory] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -259,6 +263,11 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
             {/* Mismo estilo neutro para las dos acciones; "Dar de baja" solo se tiñe al pasar el
                 mouse (y pide confirmación), así no compite visualmente con el resto de la ficha. */}
             <div className="vehicle-detail__header-actions">
+              {/* También para un vehículo dado de baja: es cuando más se lo pide (venta, auditoría). */}
+              <button type="button" className="vehicle-detail__action-btn" onClick={() => setExportingHistory(true)}>
+                <HistoryIcon width={14} height={14} />
+                Exportar historial
+              </button>
               {!inactive && (
                 <button
                   type="button"
@@ -368,9 +377,12 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
           </dl>
 
           <div className="vehicle-detail__summary-row">
-            <VehicleCostsCard vehicleId={vehicle.id} onViewExpenses={onViewExpenses} />
+            <VehicleCostsCard vehicle={vehicle} onViewExpenses={onViewExpenses} />
             <VehicleQrCard vehicle={vehicle} />
           </div>
+
+          <VehicleAvailabilityCard vehicleId={vehicle.id} />
+          <VehicleRecurringDefectsCard vehicleId={vehicle.id} />
         </div>
       )}
 
@@ -545,6 +557,10 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
             void reloadVehicle();
           }}
         />
+      )}
+
+      {exportingHistory && vehicle && (
+        <ExportHistoryModal vehicle={vehicle} onClose={() => setExportingHistory(false)} />
       )}
 
       {selectedWorkOrder && (

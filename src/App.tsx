@@ -95,7 +95,10 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             onGoToUsers={() => navigate({ view: 'tab', tab: 'usuarios' })}
           />
         ) : (
-          <AdminDashboard onViewDefects={() => navigate({ view: 'defects' })} />
+          <AdminDashboard
+            onViewDefects={() => navigate({ view: 'defects' })}
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
+          />
         )}
       </AdminShell>
     </main>
