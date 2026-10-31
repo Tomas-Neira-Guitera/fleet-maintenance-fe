@@ -6,11 +6,14 @@ import type { DefectSummary, Vehicle, VehicleHistory, WorkOrder, WorkOrderStatus
 import { formatDayAndTime } from '../../utils/dateFormat';
 import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
 import { workOrderResponsible } from '../../utils/workOrderFormat';
-import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, PencilIcon, PowerIcon } from '../icons';
+import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, HistoryIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
+import { ExportHistoryModal } from './ExportHistoryModal';
+import { VehicleAvailabilityCard } from './VehicleAvailabilityCard';
 import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleCostsCard } from './VehicleCostsCard';
 import { VehicleFormModal } from './VehicleFormModal';
+import { VehicleRecurringDefectsCard } from './VehicleRecurringDefectsCard';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import '../../styles/dashboard.css';
@@ -113,6 +116,7 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [exportingHistory, setExportingHistory] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -233,6 +237,11 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
             {/* Mismo estilo neutro para las dos acciones; "Dar de baja" solo se tiñe al pasar el
                 mouse (y pide confirmación), así no compite visualmente con el resto de la ficha. */}
             <div className="vehicle-detail__header-actions">
+              {/* También para un vehículo dado de baja: es cuando más se lo pide (venta, auditoría). */}
+              <button type="button" className="vehicle-detail__action-btn" onClick={() => setExportingHistory(true)}>
+                <HistoryIcon width={14} height={14} />
+                Exportar historial
+              </button>
               {!inactive && (
                 <button
                   type="button"
@@ -288,7 +297,9 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
         </>
       )}
 
-      {vehicle && <VehicleCostsCard vehicleId={vehicle.id} onViewExpenses={onViewExpenses} />}
+      {vehicle && <VehicleCostsCard vehicle={vehicle} onViewExpenses={onViewExpenses} />}
+      {vehicle && <VehicleAvailabilityCard vehicleId={vehicle.id} />}
+      {vehicle && <VehicleRecurringDefectsCard vehicleId={vehicle.id} />}
 
       {history && (
         <div className="vehicle-detail__sections">
@@ -444,6 +455,10 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
             void reloadVehicle();
           }}
         />
+      )}
+
+      {exportingHistory && vehicle && (
+        <ExportHistoryModal vehicle={vehicle} onClose={() => setExportingHistory(false)} />
       )}
 
       {selectedWorkOrder && (

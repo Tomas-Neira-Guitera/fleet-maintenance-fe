@@ -128,6 +128,65 @@ export interface DefectSummary {
   details?: string | null;
 }
 
+/** Promedio de horas entre la creación y la finalización de OTs (CAM-134); null si no hay ninguna. */
+export interface RepairAverage {
+  avgHours: number | null;
+  count: number;
+}
+
+export interface RepairTimes extends RepairAverage {
+  internal: RepairAverage;
+  external: RepairAverage;
+}
+
+/** Un vehículo en GET /api/downtime (CAM-134). */
+export interface VehicleDowntime {
+  vehicleId: string;
+  plate: string;
+  /** null si el período todavía no empezó. */
+  availabilityPct: number | null;
+  downtimeHours: number;
+  stops: number;
+  repairs: RepairTimes;
+}
+
+/** GET /api/downtime (CAM-134): disponibilidad y reparaciones en un período, cortado en el momento actual. */
+export interface Downtime {
+  from: string;
+  to: string;
+  fleet: Omit<VehicleDowntime, 'vehicleId' | 'plate'>;
+  /** De más horas fuera de servicio a menos. */
+  vehicles: VehicleDowntime[];
+}
+
+/** Una falla de un control recurrente (CAM-135). */
+export interface RecurringDefectOccurrence {
+  defectId: string;
+  reportedAt: string;
+  severity: DefectSeverity;
+  status: DefectStatus;
+  description: string;
+}
+
+/** Un control que falló al menos `threshold` veces en el mismo vehículo dentro de la ventana (CAM-135). */
+export interface RecurringDefect {
+  vehicleId: string;
+  plate: string;
+  itemId: string;
+  itemLabel: string;
+  count: number;
+  lastReportedAt: string;
+  /** Más reciente primero. */
+  occurrences: RecurringDefectOccurrence[];
+}
+
+/** GET /api/defects/recurring (CAM-135). */
+export interface RecurringDefects {
+  threshold: number;
+  windowDays: number;
+  items: RecurringDefect[];
+}
+
 /** Item de `inspections` en GET /api/vehicles/{id}/history (CAM-22). */
 export interface InspectionHistoryItem {
   id: string;
@@ -318,6 +377,9 @@ export type WorkOrderSourceType = 'scheduled_maintenance' | 'defect' | 'manual';
 export type WorkOrderExecutionType = 'interno' | 'externo';
 export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'finalizada' | 'cancelada';
 export type WorkOrderExpenseCategory = 'repuesto' | 'mano_de_obra' | 'otro';
+/** Categoría de un gasto operativo del vehículo, que no sale de una OT (CAM-109). */
+export type VehicleExpenseCategory = 'combustible' | 'seguro' | 'patente' | 'vtv' | 'peajes' | 'otro';
+export type ExpenseCategory = WorkOrderExpenseCategory | VehicleExpenseCategory;
 
 export interface WorkOrderExpense {
   id: string;
@@ -331,24 +393,30 @@ export interface WorkOrderExpense {
   receiptPhotoUrl: string | null;
 }
 
-/** De dónde nació la OT de un gasto: un plan (preventivo), un defecto (correctivo) o suelta. */
-export type ExpenseOrigin = 'plan' | 'defect' | 'manual';
+/**
+ * De dónde nació un gasto: una OT de un plan (preventivo), de un defecto (correctivo) o suelta, o
+ * ninguna OT, si es un gasto operativo del vehículo (CAM-109).
+ */
+export type ExpenseOrigin = 'plan' | 'defect' | 'manual' | 'operating';
 
-/** Un gasto de mantenimiento con su vehículo y su OT -- GET /api/expenses (CAM-52). */
+/**
+ * Un gasto con su vehículo y, si sale de una, su OT -- GET /api/expenses (CAM-52, CAM-109). En un gasto
+ * operativo (`origin: 'operating'`) los campos de la OT, `executionType` y el comprobante vienen en null.
+ */
 export interface Expense {
   id: string;
-  /** Cuándo se cargó el gasto. */
+  /** En un gasto de OT, cuándo se cargó; en uno operativo, la medianoche argentina de su día. */
   date: string;
   vehicleId: string;
   plate: string | null;
-  category: WorkOrderExpenseCategory;
+  category: ExpenseCategory;
   description: string;
   amount: number;
-  workOrderId: string;
-  workOrderTitle: string;
-  workOrderStatus: WorkOrderStatus;
+  workOrderId: string | null;
+  workOrderTitle: string | null;
+  workOrderStatus: WorkOrderStatus | null;
   origin: ExpenseOrigin;
-  executionType: WorkOrderExecutionType;
+  executionType: WorkOrderExecutionType | null;
   /** Número de la factura o el ticket (CAM-107); null si no se cargó. */
   receiptNumber: string | null;
   /** Foto del comprobante (CAM-107); null si no se adjuntó. */
@@ -415,7 +483,8 @@ export type NotificationType =
   | 'blocking_defect_reported'
   | 'work_order_finalized'
   | 'maintenance_due_soon'
-  | 'maintenance_overdue';
+  | 'maintenance_overdue'
+  | 'recurring_defect';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';

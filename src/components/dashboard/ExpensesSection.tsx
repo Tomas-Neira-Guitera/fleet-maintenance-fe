@@ -3,7 +3,7 @@ import { isSessionExpired, SESSION_EXPIRED_MESSAGE } from '../../services/apiCli
 import { getExpenses } from '../../services/expensesService';
 import { getVehicles } from '../../services/vehiclesService';
 import { getWorkOrder } from '../../services/workOrdersService';
-import type { Expense, ExpenseOrigin, Vehicle, WorkOrder, WorkOrderExpenseCategory } from '../../types/domain';
+import type { Expense, ExpenseCategory, ExpenseOrigin, Vehicle, WorkOrder } from '../../types/domain';
 import { formatShortDate } from '../../utils/dateFormat';
 import { EXPENSE_CATEGORY_LABEL, EXPENSE_ORIGIN_LABEL } from '../../utils/expenseFormat';
 import { buildExpensesCsv, downloadCsv } from '../../utils/expensesCsv';
@@ -23,6 +23,7 @@ import { DonutChart, type DonutSegment } from '../charts/DonutChart';
 import { ReceiptIcon } from '../icons';
 import { PhotoViewer } from '../PhotoViewer';
 import { PeriodFilter } from './PeriodFilter';
+import { VehicleExpenseFormModal } from './VehicleExpenseFormModal';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import '../../styles/dashboard.css';
 import '../../styles/charts.css';
@@ -39,15 +40,24 @@ interface ExpensesSectionProps {
 
 interface Filters {
   vehicleId: string;
-  category: WorkOrderExpenseCategory | '';
+  category: ExpenseCategory | '';
   origin: ExpenseOrigin | '';
 }
 
 const NO_FILTERS: Filters = { vehicleId: '', category: '', origin: '' };
-const CATEGORIES: WorkOrderExpenseCategory[] = ['repuesto', 'mano_de_obra', 'otro'];
-const ORIGINS: ExpenseOrigin[] = ['plan', 'defect', 'manual'];
-// El color sigue a la categoría, no a su posición: filtrar no repinta las que quedan.
-const SERIES_COLORS = ['var(--fg-chart-1)', 'var(--fg-chart-2)', 'var(--fg-chart-3)'];
+const CATEGORIES: ExpenseCategory[] = [
+  'repuesto',
+  'mano_de_obra',
+  'combustible',
+  'seguro',
+  'patente',
+  'vtv',
+  'peajes',
+  'otro',
+];
+const ORIGINS: ExpenseOrigin[] = ['plan', 'defect', 'manual', 'operating'];
+// El color sigue al origen, no a su posición: filtrar no repinta los que quedan.
+const SERIES_COLORS = ['var(--fg-chart-1)', 'var(--fg-chart-2)', 'var(--fg-chart-3)', 'var(--fg-chart-4)'];
 const TABLE_PAGE_SIZE = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -124,9 +134,9 @@ function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
 }
 
 /**
- * Sección "Gastos" (CAM-52): todos los gastos cargados en las órdenes de trabajo, en un solo
- * lugar. El período se pide al backend; vehículo, categoría y origen se filtran acá, y cada
- * gráfico sirve también de filtro (se elige tocando un segmento o una barra).
+ * Sección "Gastos" (CAM-52): todos los gastos, los de las órdenes de trabajo y los operativos del
+ * vehículo (CAM-109), en un solo lugar. El período se pide al backend; vehículo, categoría y origen
+ * se filtran acá, y cada gráfico sirve también de filtro (se elige tocando un segmento o una barra).
  */
 export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionProps) {
   const [period, setPeriod] = useState<Period>(() => (initialVehicleId ? lastTwelveMonths() : presetPeriod('year')));
@@ -143,6 +153,8 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [openingWorkOrderId, setOpeningWorkOrderId] = useState<string | null>(null);
   const [viewingReceiptUrl, setViewingReceiptUrl] = useState<string | null>(null);
+  // Formulario de gasto operativo (CAM-109): 'new' carga uno, un gasto lo edita.
+  const [expenseForm, setExpenseForm] = useState<'new' | Expense | null>(null);
 
   const requestKey = `${period.from.getTime()}-${period.to.getTime()}-${reloadKey}`;
   const expenses = loaded?.expenses ?? null;
@@ -206,16 +218,27 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
     const all = expenses ?? [];
     const filtered = all.filter((expense) => matches(expense, filters));
     const total = sum(filtered);
+    // Lo que habla de órdenes de trabajo (promedio, quién la hizo) no cuenta los gastos operativos.
+    const fromWorkOrders = filtered.filter((expense) => expense.workOrderId !== null);
+    const workOrdersTotal = sum(fromWorkOrders);
 
     // Cada gráfico muestra el reparto de su propia dimensión con los OTROS filtros aplicados:
-    // así, al elegir una categoría, la dona sigue mostrando las tres y resalta la elegida.
+    // así, al elegir una categoría, siguen viéndose todas y se resalta la elegida. Barras y no dona:
+    // son ocho categorías (CAM-109). Solo las que tienen gastos, de mayor a menor.
     const forCategories = all.filter((expense) => matches(expense, filters, 'category'));
-    const categorySegments: DonutSegment[] = CATEGORIES.map((category, i) => ({
-      key: category,
-      label: EXPENSE_CATEGORY_LABEL[category],
-      value: sum(forCategories.filter((expense) => expense.category === category)),
-      color: SERIES_COLORS[i],
-    }));
+    const categoriesTotal = sum(forCategories);
+    const categoryBars: BarListItem[] = CATEGORIES.map((category) => ({
+      category,
+      amount: sum(forCategories.filter((expense) => expense.category === category)),
+    }))
+      .filter(({ amount }) => amount > 0)
+      .sort((a, b) => b.amount - a.amount)
+      .map(({ category, amount }) => ({
+        key: category,
+        label: EXPENSE_CATEGORY_LABEL[category],
+        segments: [{ label: 'Gasto', value: amount, color: 'var(--fg-chart-1)' }],
+        valueLabel: `${currencyFormatter.format(amount)} · ${Math.round((amount / categoriesTotal) * 100)}%`,
+      }));
 
     const forOrigins = all.filter((expense) => matches(expense, filters, 'origin'));
     const originSegments: DonutSegment[] = ORIGINS.map((origin, i) => ({
@@ -248,34 +271,38 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
       });
 
     const byWorkOrder = new Map<string, { title: string; plate: string; amount: number }>();
-    for (const expense of filtered) {
-      const entry = byWorkOrder.get(expense.workOrderId) ?? {
-        title: expense.workOrderTitle,
+    for (const expense of fromWorkOrders) {
+      const workOrderId = expense.workOrderId as string;
+      const entry = byWorkOrder.get(workOrderId) ?? {
+        title: expense.workOrderTitle ?? '',
         plate: expense.plate ?? '—',
         amount: 0,
       };
       entry.amount += expense.amount;
-      byWorkOrder.set(expense.workOrderId, entry);
+      byWorkOrder.set(workOrderId, entry);
     }
     const workOrders = [...byWorkOrder.entries()]
       .map(([id, entry]) => ({ id, ...entry }))
       .sort((a, b) => b.amount - a.amount);
 
     const executionBars: BarListItem[] = (['interno', 'externo'] as const).map((executionType) => {
-      const amount = sum(filtered.filter((expense) => expense.executionType === executionType));
+      const amount = sum(fromWorkOrders.filter((expense) => expense.executionType === executionType));
+      const share = workOrdersTotal > 0 ? Math.round((amount / workOrdersTotal) * 100) : 0;
       return {
         key: executionType,
         label: executionType === 'interno' ? 'Personal propio' : 'Taller externo',
         segments: [{ label: 'Gasto', value: amount, color: 'var(--fg-chart-1)' }],
-        valueLabel: `${currencyFormatter.format(amount)} · ${total > 0 ? Math.round((amount / total) * 100) : 0}%`,
+        valueLabel: `${currencyFormatter.format(amount)} · ${share}%`,
       };
     });
 
     return {
       filtered,
       total,
+      workOrdersTotal,
+      workOrderExpenses: fromWorkOrders.length,
       executionBars,
-      categorySegments,
+      categoryBars,
       originSegments,
       vehicleBars,
       workOrders,
@@ -371,6 +398,9 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                 Limpiar filtros
               </button>
             )}
+            <button type="button" className="primary-btn vehicles-section__new-btn" onClick={() => setExpenseForm('new')}>
+              Cargar gasto
+            </button>
           </div>
         )}
       </header>
@@ -400,13 +430,13 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                   <span className="fleet-kpi__label">Órdenes con gastos</span>
                   <span className="expenses__kpi-value">{view.workOrders.length}</span>
                   <span className="fleet-kpi__sublabel">
-                    {view.filtered.length} {view.filtered.length === 1 ? 'gasto cargado' : 'gastos cargados'}
+                    {view.workOrderExpenses} {view.workOrderExpenses === 1 ? 'gasto cargado' : 'gastos cargados'}
                   </span>
                 </div>
                 <div className="fleet-kpi expenses__kpi">
                   <span className="fleet-kpi__label">Promedio por orden</span>
                   <span className="expenses__kpi-value">
-                    {currencyFormatter.format(view.workOrders.length ? view.total / view.workOrders.length : 0)}
+                    {currencyFormatter.format(view.workOrders.length ? view.workOrdersTotal / view.workOrders.length : 0)}
                   </span>
                   <span className="fleet-kpi__sublabel">Entre las órdenes con gastos</span>
                 </div>
@@ -435,17 +465,15 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                       <div className="chart-card__header">
                         <h2 className="chart-card__title">Por categoría</h2>
                       </div>
-                      <DonutChart
-                        segments={view.categorySegments}
-                        formatValue={currencyFormatter.format}
-                        formatCompact={compactCurrencyFormatter.format}
+                      <BarList
+                        items={view.categoryBars}
                         selectedKey={filters.category || null}
                         onSelect={(key) => updateFilters({ category: (key ?? '') as Filters['category'] })}
                       />
                     </div>
                     <div className="chart-card">
                       <div className="chart-card__header">
-                        <h2 className="chart-card__title">Preventivo y correctivo</h2>
+                        <h2 className="chart-card__title">Por origen</h2>
                       </div>
                       <DonutChart
                         segments={view.originSegments}
@@ -464,7 +492,7 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                         data={view.timeline}
                         formatValue={currencyFormatter.format}
                         formatCompact={compactCurrencyFormatter.format}
-                        ariaLabel={`Gasto del ${periodLabel}, partido por origen: preventivo, correctivo y órdenes sueltas. ${currencyFormatter.format(view.total)} en total. El detalle está en el listado de gastos.`}
+                        ariaLabel={`Gasto del ${periodLabel}, partido por origen: preventivo, correctivo, órdenes sueltas y operativo. ${currencyFormatter.format(view.total)} en total. El detalle está en el listado de gastos.`}
                       />
                     </div>
                   </div>
@@ -570,15 +598,17 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                           </tr>
                         )}
                         {listed.slice(0, visibleRows).map((expense) => (
-                          // CAM-123: toda la fila abre la OT, no solo su columna. El botón de la columna sigue siendo
-                          // el que se alcanza con el teclado; él y el del comprobante cortan el click para no abrir dos veces.
+                          // CAM-123: toda la fila abre la OT, no solo su columna (o edita el gasto, si es operativo).
+                          // El botón de la columna sigue siendo el que se alcanza con el teclado; él y el del
+                          // comprobante cortan el click para no abrir dos veces.
                           <tr
                             key={expense.id}
                             className="expenses__table-row"
                             onClick={() => {
                               // Arrastrar para copiar la descripción o el N° de comprobante no abre la OT.
                               if (window.getSelection()?.toString()) return;
-                              if (openingWorkOrderId === null) void openWorkOrder(expense.workOrderId);
+                              if (expense.workOrderId === null) setExpenseForm(expense);
+                              else if (openingWorkOrderId === null) void openWorkOrder(expense.workOrderId);
                             }}
                           >
                             <td className="fleet-status__km">{formatShortDate(expense.date)}</td>
@@ -609,18 +639,32 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                               </span>
                             </td>
                             <td>
-                              <button
-                                type="button"
-                                className="expenses__wo-link"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  void openWorkOrder(expense.workOrderId);
-                                }}
-                                disabled={openingWorkOrderId === expense.workOrderId}
-                                title="Abrir la orden de trabajo"
-                              >
-                                {expense.workOrderTitle}
-                              </button>
+                              {expense.workOrderId === null ? (
+                                <button
+                                  type="button"
+                                  className="expenses__wo-link"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpenseForm(expense);
+                                  }}
+                                  title="Editar el gasto operativo"
+                                >
+                                  Gasto operativo
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="expenses__wo-link"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void openWorkOrder(expense.workOrderId as string);
+                                  }}
+                                  disabled={openingWorkOrderId === expense.workOrderId}
+                                  title="Abrir la orden de trabajo"
+                                >
+                                  {expense.workOrderTitle}
+                                </button>
+                              )}
                             </td>
                             <td className="fleet-status__km expenses__amount-col">{currencyFormatter.format(expense.amount)}</td>
                           </tr>
@@ -656,6 +700,19 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
 
       {viewingReceiptUrl && (
         <PhotoViewer src={viewingReceiptUrl} alt="Comprobante del gasto" onClose={() => setViewingReceiptUrl(null)} />
+      )}
+
+      {expenseForm && (
+        <VehicleExpenseFormModal
+          vehicles={vehicleOptions.map(([id, plate]) => ({ id, plate }))}
+          initialVehicleId={filters.vehicleId}
+          expense={expenseForm === 'new' ? undefined : expenseForm}
+          onClose={() => setExpenseForm(null)}
+          onSaved={() => {
+            setExpenseForm(null);
+            setReloadKey((key) => key + 1);
+          }}
+        />
       )}
 
       {selectedWorkOrder && (

@@ -3,13 +3,17 @@
 // en un Excel en español: ";" como separador, coma decimal, UTF-8 con BOM (sin el BOM, Excel lee
 // los acentos y la "ñ" como Latin-1) y fin de línea CRLF.
 
-import type { Expense } from '../types/domain';
+import type { Expense, WorkOrderExecutionType } from '../types/domain';
 import { formatShortDate } from './dateFormat';
 import { EXPENSE_CATEGORY_LABEL, EXPENSE_ORIGIN_LABEL } from './expenseFormat';
 
 const SEPARATOR = ';';
 const NEWLINE = '\r\n';
 const BOM = '\uFEFF';
+const EXECUTION_LABEL: Record<WorkOrderExecutionType, string> = {
+  interno: 'Personal propio',
+  externo: 'Taller externo',
+};
 
 const HEADERS = [
   'Fecha',
@@ -56,9 +60,10 @@ export function buildExpensesCsv(expenses: Expense[]): string {
     [
       formatShortDate(expense.date),
       expense.plate ?? '',
-      expense.workOrderTitle,
+      // Un gasto operativo (CAM-109) no tiene OT ni quién la hizo: esas dos columnas van vacías.
+      expense.workOrderTitle ?? '',
       EXPENSE_ORIGIN_LABEL[expense.origin],
-      expense.executionType === 'interno' ? 'Personal propio' : 'Taller externo',
+      expense.executionType ? EXECUTION_LABEL[expense.executionType] : '',
       EXPENSE_CATEGORY_LABEL[expense.category],
       expense.description,
     ]

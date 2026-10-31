@@ -283,10 +283,11 @@
   align-items: start;
 }
 
-.admin-dashboard__side {
+.admin-dashboard__column {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
 }
 
 @media (max-width: 900px) {
@@ -721,6 +722,46 @@
   margin: 0;
   font-size: 12px;
   color: rgba(62, 74, 66, 0.6);
+}
+
+/* En el Resumen ocupa el ancho de "Estado de la flota". Con un ancho intermedio, el estado y la patente van a la
+   izquierda y el plan con su detalle a la derecha, uno abajo del otro; con lugar de sobra, todo en un renglón. Sin
+   el paso intermedio, el detalle le sacaba el ancho al plan y lo partía en tres líneas. */
+@media (min-width: 641px) {
+  .upcoming-maintenance-card__item {
+    display: grid;
+    grid-template-columns: 170px minmax(0, 1fr);
+    grid-template-areas:
+      'top description'
+      'top meta';
+    align-items: center;
+    gap: 2px 16px;
+    padding: 10px 16px;
+  }
+
+  .upcoming-maintenance-card__top-line {
+    grid-area: top;
+  }
+
+  .upcoming-maintenance-card__description {
+    grid-area: description;
+  }
+
+  .upcoming-maintenance-card__meta {
+    grid-area: meta;
+  }
+}
+
+@media (min-width: 1280px) {
+  .upcoming-maintenance-card__item {
+    grid-template-columns: 170px minmax(0, 1fr) auto;
+    grid-template-areas: 'top description meta';
+    gap: 16px;
+  }
+
+  .upcoming-maintenance-card__meta {
+    text-align: right;
+  }
 }
 
 /* Widget "Defectos abiertos recientes" del dashboard de admin (CAM-37). */
@@ -1837,6 +1878,13 @@
   gap: 12px;
 }
 
+.vehicle-costs__actions {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .vehicle-costs__link {
   display: inline-flex;
   align-items: center;
@@ -2547,4 +2595,233 @@
   display: block;
   font-size: 12px;
   color: var(--fg-text-muted);
+}
+
+/* CAM-135: controles del checklist que fallan seguido -- detalle del vehículo y Resumen del admin. */
+.recurring-defects {
+  border-color: var(--fg-warn);
+  background: linear-gradient(var(--fg-warn-bg), var(--fg-warn-bg)), var(--fg-white);
+}
+
+.recurring-defects .vehicle-detail__card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recurring-defects .vehicle-detail__card-title svg {
+  width: 18px;
+  height: 18px;
+  color: var(--fg-warn);
+  flex-shrink: 0;
+}
+
+.recurring-defects__rule {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.recurring-defects__list,
+.recurring-defects__occurrences {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.recurring-defects__item + .recurring-defects__item {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--fg-border-color);
+}
+
+.recurring-defects__item-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 6px;
+}
+
+.recurring-defects__label {
+  font-weight: 600;
+  color: var(--fg-text);
+  overflow-wrap: anywhere;
+}
+
+.recurring-defects__count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-text);
+}
+
+.recurring-defects__occurrence {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.recurring-defects__occurrence-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.recurring-defects-card__empty {
+  margin: 0;
+  padding: 14px 16px;
+}
+
+.recurring-defects-card__item {
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.recurring-defects-card__item:hover {
+  background: var(--fg-hover);
+}
+
+.recurring-defects-card__item:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: -2px;
+}
+
+.recurring-defects-card__item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.recurring-defects-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.recurring-defects-card__control {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* CAM-134: disponibilidad y tiempo de reparación -- Resumen del admin y detalle del vehículo. */
+.availability__header,
+.availability-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.availability__header .vehicle-detail__card-title {
+  margin: 0;
+}
+
+.availability .vehicle-costs__stats {
+  margin-top: 12px;
+}
+
+.availability-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.availability-card__body {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding: 16px 20px;
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+}
+
+.availability-card__body > .error-banner,
+.availability-card__body > .muted {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.availability-card__ranking .upcoming-maintenance-card__group-title {
+  margin-bottom: 4px;
+}
+
+.availability-card__empty {
+  margin: 0;
+  font-size: 13px;
+}
+
+.availability-card__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    'plate downtime chevron'
+    'meta meta chevron';
+  align-items: center;
+  gap: 2px 12px;
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.availability-card__item:hover {
+  background: var(--fg-hover);
+}
+
+.availability-card__item:focus-visible {
+  outline: 2px solid var(--fg-text);
+  outline-offset: -2px;
+}
+
+.availability-card__item .vehicle-meta__plate {
+  grid-area: plate;
+}
+
+.availability-card__downtime {
+  grid-area: downtime;
+  justify-self: end;
+  font-family: var(--fg-font-mono);
+  font-weight: 500;
+}
+
+.availability-card__meta {
+  grid-area: meta;
+  font-size: 12px;
+  color: rgba(62, 74, 66, 0.6);
+}
+
+.availability-card__item svg {
+  grid-area: chevron;
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 900px) {
+  .availability-card__body {
+    grid-template-columns: 1fr;
+  }
 }

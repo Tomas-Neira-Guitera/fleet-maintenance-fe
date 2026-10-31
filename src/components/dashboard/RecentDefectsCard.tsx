@@ -6,7 +6,7 @@ import { formatRelativeReportTime } from '../../utils/relativeTime';
 import { SeverityBadge } from '../SeverityBadge';
 import '../../styles/dashboard.css';
 
-const VISIBLE_DEFECTS = 4;
+const VISIBLE_DEFECTS = 6;
 
 interface RecentDefectsCardProps {
   onViewAll: () => void;
