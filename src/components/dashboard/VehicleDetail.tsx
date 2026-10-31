@@ -297,7 +297,7 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
         </>
       )}
 
-      {vehicle && <VehicleCostsCard vehicleId={vehicle.id} onViewExpenses={onViewExpenses} />}
+      {vehicle && <VehicleCostsCard vehicle={vehicle} onViewExpenses={onViewExpenses} />}
       {vehicle && <VehicleAvailabilityCard vehicleId={vehicle.id} />}
       {vehicle && <VehicleRecurringDefectsCard vehicleId={vehicle.id} />}
 

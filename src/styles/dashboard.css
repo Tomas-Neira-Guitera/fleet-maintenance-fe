@@ -1878,6 +1878,13 @@
   gap: 12px;
 }
 
+.vehicle-costs__actions {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .vehicle-costs__link {
   display: inline-flex;
   align-items: center;
