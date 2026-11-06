@@ -286,6 +286,11 @@ export interface NextMaintenanceSummary {
   dueKm: number | null;
   remainingDays: number | null;
   remainingKm: number | null;
+  /**
+   * CAM-137: cuándo vence por km según lo que anda el vehículo ("2026-11-15"). Solo informativa:
+   * null si no es por km, si no se puede estimar o si ya venció por km.
+   */
+  estimatedDueDate: string | null;
 }
 
 /** Una fila del componente "Estado de la flota" -- GET /api/vehicles?view=fleet-status. */
