@@ -2051,6 +2051,11 @@
   color: rgba(62, 74, 66, 0.6);
 }
 
+/* CAM-152: por qué el viaje quedó marcado, con el color de "por vencer" de su badge. */
+.vehicle-detail__km-alert {
+  color: var(--fg-warn);
+}
+
 @media (max-width: 720px) {
   .vehicle-detail {
     padding: 20px 16px 32px;

@@ -24,6 +24,10 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Defecto recurrente en AB123CD',
     message: 'Frenos de AB123CD: 3 defectos en 30 días.',
   },
+  trip_km_anomaly: {
+    title: 'Kilometraje fuera de lo normal en AB123CD',
+    message: 'Juan Pérez cerró un viaje de 1.250 km con AB123CD, más del doble de su promedio de 400 km por viaje.',
+  },
   work_order_finalized: {
     title: 'Orden de trabajo finalizada',
     message: 'Cambio de pastillas (AB123CD), hecha por Javier Romero.',
@@ -86,6 +90,6 @@ export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types:
   {
     id: 'trips',
     label: 'Viajes y disponibilidad',
-    types: ['trip_open_reminder', 'vehicle_unavailable', 'vehicle_available'],
+    types: ['trip_km_anomaly', 'trip_open_reminder', 'vehicle_unavailable', 'vehicle_available'],
   },
 ];

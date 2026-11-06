@@ -204,6 +204,19 @@ export interface InspectionHistoryItem {
   odometerKm?: number | null;
   notes?: string | null;
   hasBlockingDefect: boolean;
+  /** CAM-152: solo en el post-viaje de un viaje con km fuera de lo normal. */
+  kmAlert?: TripKmAlert | null;
+}
+
+/** CAM-152: la marca de km fuera de lo normal de un viaje, con los números del momento del cierre. */
+export interface TripKmAlert {
+  reason: 'above_average' | 'below_average' | 'below_vehicle_km';
+  /** Post-viaje menos pre-viaje; null sin pre-viaje con km. */
+  tripKm: number | null;
+  /** Promedio de km por viaje del vehículo; null sin viajes suficientes (solo con below_vehicle_km). */
+  averageKm: number | null;
+  declaredKm: number;
+  vehicleKm: number;
 }
 
 /** Item de `maintenance` en GET /api/vehicles/{id}/history: un "marcar como hecho" de un plan (CAM-22). */
@@ -509,7 +522,8 @@ export type NotificationType =
   | 'document_due_soon'
   | 'document_expired'
   | 'vehicle_unavailable'
-  | 'vehicle_available';
+  | 'vehicle_available'
+  | 'trip_km_anomaly';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';
