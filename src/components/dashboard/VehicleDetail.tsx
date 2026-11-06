@@ -19,6 +19,7 @@ import { VehicleQrCard } from './VehicleQrCard';
 import { VehicleRecurringDefectsCard } from './VehicleRecurringDefectsCard';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
+import { describeTripKmAlert } from '../../utils/tripKmAlert';
 import '../../styles/dashboard.css';
 
 interface VehicleDetailProps {
@@ -415,7 +416,15 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
                           {formatDateTime(i.timestamp)} · {formatKm(i.odometerKm)}
                         </span>
                         {i.notes && <span className="vehicle-detail__item-meta">{i.notes}</span>}
+                        {i.kmAlert && (
+                          <span className="vehicle-detail__item-meta vehicle-detail__km-alert">
+                            {describeTripKmAlert(i.kmAlert)}
+                          </span>
+                        )}
                       </div>
+                      {i.kmAlert && (
+                        <span className="fleet-status-badge fleet-status-badge--por_vencer">Km fuera de lo normal</span>
+                      )}
                       {i.hasBlockingDefect && <SeverityBadge severity="blocking" />}
                     </li>
                   )}

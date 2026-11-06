@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { WorkOrder } from '../../types/domain';
 import { formatDate, currencyFormatter, numberFormatter } from '../../utils/maintenanceFormat';
 import { describePeriod } from '../../utils/period';
+import { describeTripKmAlert } from '../../utils/tripKmAlert';
 import { formatArgentinaDateTime, type CostLine, type VehicleHistoryReport } from '../../utils/vehicleHistoryReport';
 import { WORK_ORDER_STATUS_LABEL, workOrderResponsible } from '../../utils/workOrderFormat';
 import '../../styles/print.css';
@@ -116,7 +117,11 @@ export function VehicleHistoryPrint({ report }: { report: VehicleHistoryReport }
             <td className="history-print__short">{inspection.type === 'pre-trip' ? 'Pre-viaje' : 'Post-viaje'}</td>
             <td className="history-print__short">{inspection.driverName ?? '—'}</td>
             <td className="history-print__short">{formatKm(inspection.odometerKm)}</td>
-            <td>{inspection.hasBlockingDefect ? 'Con defecto bloqueante' : 'Sin defectos bloqueantes'}</td>
+            <td>
+              {inspection.hasBlockingDefect ? 'Con defecto bloqueante' : 'Sin defectos bloqueantes'}
+              {/* CAM-152: el historial impreso también muestra el viaje marcado. */}
+              {inspection.kmAlert && `. Km fuera de lo normal: ${describeTripKmAlert(inspection.kmAlert)}`}
+            </td>
           </tr>
         ))}
       </Section>
