@@ -9,14 +9,15 @@ import {
   updateWorkOrder,
   type UpdateWorkOrderInput,
 } from '../../services/workOrdersService';
-import type { WorkOrder, WorkOrderExecutionType, WorkOrderExpenseCategory } from '../../types/domain';
+import type { WorkOrder, WorkOrderExecutionType, WorkOrderExpenseCategory, WorkOrderPauseReason } from '../../types/domain';
 import { EXPENSE_CATEGORY_LABEL } from '../../utils/expenseFormat';
 import { currencyFormatter } from '../../utils/maintenanceFormat';
-import { workOrderResponsible } from '../../utils/workOrderFormat';
+import { describePause, formatPausedDuration, isOpenWorkOrder, workOrderResponsible } from '../../utils/workOrderFormat';
 import { BuildingIcon, CameraIcon, CloseIcon, ReceiptIcon, TrashIcon, WrenchIcon } from '../icons';
 import { FinalizeWorkOrderModal } from './FinalizeWorkOrderModal';
 import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
+import { PauseWorkOrderForm } from '../PauseWorkOrderForm';
 import { PhotoViewer } from '../PhotoViewer';
 import '../../styles/dashboard.css';
 
@@ -61,7 +62,9 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
 
-  const isOpen = wo.status === 'asignada' || wo.status === 'en_proceso';
+  const isOpen = isOpenWorkOrder(wo);
+  // CAM-148: el admin también pausa, porque una OT de un taller externo no tiene técnico.
+  const [pausing, setPausing] = useState(false);
   const responsible = workOrderResponsible(wo);
 
   function apply(updated: WorkOrder) {
@@ -76,6 +79,19 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
       apply(await updateWorkOrder(wo.id, { status: 'en_proceso' }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo actualizar la orden. Intentá de nuevo.');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handlePause(pauseReason: WorkOrderPauseReason, pauseComment: string) {
+    setPending(true);
+    setError(null);
+    try {
+      apply(await updateWorkOrder(wo.id, { status: 'en_espera', pauseReason, pauseComment: pauseComment || undefined }));
+      setPausing(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo poner la orden en espera. Intentá de nuevo.');
     } finally {
       setPending(false);
     }
@@ -251,7 +267,24 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
             {wo.status === 'finalizada' && wo.finalizedAt && (
               <span className="muted">Finalizada el {formatDateTime(wo.finalizedAt)}</span>
             )}
+            {/* CAM-148: el tiempo en espera, también en las cerradas que estuvieron frenadas. */}
+            {wo.pausedSeconds > 0 && (
+              <span className="muted">En espera en total: {formatPausedDuration(wo.pausedSeconds)}</span>
+            )}
           </div>
+
+          {wo.status === 'en_espera' && wo.pause && (
+            <p className="pause-summary wo-detail__pause">
+              {describePause(wo.pause)}
+              <span className="pause-summary__since">Desde el {formatDateTime(wo.pause.since)}</span>
+            </p>
+          )}
+
+          {wo.status === 'en_proceso' && pausing && (
+            <div className="wo-detail__section">
+              <PauseWorkOrderForm pending={pending} onConfirm={handlePause} onCancel={() => setPausing(false)} />
+            </div>
+          )}
 
           {error && <p className="error-banner">{error}</p>}
 
@@ -528,14 +561,24 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
               Cancelar orden
             </button>
           )}
-          {wo.status === 'en_proceso' && (
+          {(wo.status === 'en_proceso' || wo.status === 'en_espera') && (
             <button type="button" className="secondary-btn" onClick={handleCancel} disabled={pending}>
               Cancelar orden
+            </button>
+          )}
+          {wo.status === 'en_proceso' && !pausing && (
+            <button type="button" className="secondary-btn" onClick={() => setPausing(true)} disabled={pending}>
+              Poner en espera
             </button>
           )}
           {wo.status === 'asignada' && (
             <button type="button" className="primary-btn" onClick={handleAdvance} disabled={pending}>
               Pasar a en proceso
+            </button>
+          )}
+          {wo.status === 'en_espera' && (
+            <button type="button" className="primary-btn" onClick={handleAdvance} disabled={pending}>
+              Retomar
             </button>
           )}
           {/* Con una foto subiendo, el modal de finalizar abriría con la lista de fotos sin ella (CAM-74).

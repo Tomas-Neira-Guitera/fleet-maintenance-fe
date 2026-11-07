@@ -3,6 +3,7 @@ import { getDefects } from '../services/defectsService';
 import { getWorkOrders } from '../services/workOrdersService';
 import type { DefectSummary, WorkOrder } from '../types/domain';
 import { ArrowLeftIcon, CameraIcon, WrenchIcon } from './icons';
+import { OPEN_WORK_ORDER_STATUSES, WORK_ORDER_STATUS_LABEL } from '../utils/workOrderFormat';
 import { PhotoViewer } from './PhotoViewer';
 import { SeverityBadge } from './SeverityBadge';
 import { SchedulePickerModal } from './dashboard/SchedulePickerModal';
@@ -11,9 +12,9 @@ interface DefectsListProps {
   onBack?: () => void;
 }
 
-/** "OT asignada · tecnico2", "OT en proceso · sin técnico", "OT asignada · Taller Norte". */
+/** "OT asignada · tecnico2", "OT en proceso · sin técnico", "OT en espera · Taller Norte". */
 function describeOpenWorkOrder(wo: WorkOrder): string {
-  const status = wo.status === 'en_proceso' ? 'OT en proceso' : 'OT asignada';
+  const status = `OT ${WORK_ORDER_STATUS_LABEL[wo.status].toLowerCase()}`;
   const who =
     wo.executionType === 'externo' ? (wo.externalProvider ?? 'taller externo') : (wo.technicianUsername ?? 'sin técnico');
   return `${status} · ${who}`;
@@ -48,10 +49,10 @@ export function DefectsList({ onBack }: DefectsListProps) {
   // Solo las abiertas: el historial de OTs cerradas crece sin límite y acá no hace falta.
   const loadOpenWorkOrders = useCallback(() => {
     const requestId = ++workOrdersRequestRef.current;
-    Promise.all([getWorkOrders({ status: 'asignada' }), getWorkOrders({ status: 'en_proceso' })])
-      .then(([assigned, inProgress]) => {
+    Promise.all(OPEN_WORK_ORDER_STATUSES.map((status) => getWorkOrders({ status })))
+      .then((byStatus) => {
         if (requestId === workOrdersRequestRef.current) {
-          setOpenWorkOrders(openWorkOrdersByDefect([...assigned, ...inProgress]));
+          setOpenWorkOrders(openWorkOrdersByDefect(byStatus.flat()));
         }
       })
       .catch(() => {

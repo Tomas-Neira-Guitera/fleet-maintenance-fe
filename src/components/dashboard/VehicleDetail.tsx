@@ -6,7 +6,7 @@ import { getWorkOrders } from '../../services/workOrdersService';
 import type { DefectSummary, Vehicle, VehicleHistory, WorkOrder, WorkOrderStatus } from '../../types/domain';
 import { formatDayAndTime } from '../../utils/dateFormat';
 import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
-import { workOrderResponsible } from '../../utils/workOrderFormat';
+import { isOpenWorkOrder, workOrderResponsible } from '../../utils/workOrderFormat';
 import { AlertOctagonIcon, AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, HistoryIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
 import { ExportHistoryModal } from './ExportHistoryModal';
@@ -70,12 +70,13 @@ function sortDefects(defects: DefectSummary[]): DefectSummary[] {
 
 const WORK_ORDER_STATUS_RANK: Record<WorkOrderStatus, number> = {
   en_proceso: 0,
-  asignada: 1,
-  finalizada: 2,
-  cancelada: 3,
+  en_espera: 1,
+  asignada: 2,
+  finalizada: 3,
+  cancelada: 4,
 };
 
-/** Abiertas (en proceso, después asignadas) primero, más reciente primero dentro de cada grupo. */
+/** Abiertas (en proceso, en espera, después asignadas) primero, más reciente primero dentro de cada grupo. */
 function sortWorkOrders(workOrders: WorkOrder[]): WorkOrder[] {
   return [...workOrders].sort((a, b) => {
     const rankDiff = WORK_ORDER_STATUS_RANK[a.status] - WORK_ORDER_STATUS_RANK[b.status];
@@ -229,7 +230,7 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
   const blockReasons = vehicle?.blockReasons ?? [];
   const expiredDocuments = blockReasons.some((r) => r.type === 'expired_document');
   const blockingDefects = history?.defects.filter((d) => d.status === 'open' && d.severity === 'blocking').length ?? 0;
-  const openWorkOrders = workOrders?.filter((wo) => wo.status === 'asignada' || wo.status === 'en_proceso').length ?? 0;
+  const openWorkOrders = workOrders?.filter(isOpenWorkOrder).length ?? 0;
 
   return (
     <section className="vehicle-detail">
@@ -534,7 +535,7 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
                           {workOrderResponsible(wo) ? ` · ${workOrderResponsible(wo)}` : ''}
                         </span>
                       </div>
-                      <WorkOrderStatusBadge status={wo.status} />
+                      <WorkOrderStatusBadge status={wo.status} pause={wo.pause} />
                     </li>
                   )}
                 />

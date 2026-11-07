@@ -400,7 +400,7 @@ export interface ScheduledMaintenance {
   scheduledAt: string;
   status: ScheduleStatus;
   notes: string | null;
-  /** OT abierta (asignada o en proceso) vinculada a la programación, si hay una. */
+  /** OT abierta (asignada, en proceso o en espera) vinculada a la programación, si hay una. */
   workOrder?: { id: string; status: WorkOrderStatus; responsible: string | null } | null;
 }
 
@@ -409,7 +409,17 @@ export interface ScheduledMaintenance {
 
 export type WorkOrderSourceType = 'scheduled_maintenance' | 'defect' | 'manual';
 export type WorkOrderExecutionType = 'interno' | 'externo';
-export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'finalizada' | 'cancelada';
+export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'en_espera' | 'finalizada' | 'cancelada';
+
+/** CAM-148: por qué una OT quedó en espera. */
+export type WorkOrderPauseReason = 'esperando_repuesto' | 'esperando_proveedor' | 'esperando_vehiculo' | 'otro';
+
+/** CAM-148: la pausa actual de una OT en espera. */
+export interface WorkOrderPause {
+  reason: WorkOrderPauseReason;
+  comment: string | null;
+  since: string;
+}
 export type WorkOrderExpenseCategory = 'repuesto' | 'mano_de_obra' | 'otro';
 /** Categoría de un gasto operativo del vehículo, que no sale de una OT (CAM-109). */
 export type VehicleExpenseCategory = 'combustible' | 'seguro' | 'patente' | 'vtv' | 'peajes' | 'otro';
@@ -504,6 +514,10 @@ export interface WorkOrder {
   createdAt: string;
   updatedAt: string;
   finalizedAt: string | null;
+  /** CAM-148: la pausa actual si está en espera; si no, null. */
+  pause: WorkOrderPause | null;
+  /** CAM-148: segundos en espera en total, contando la pausa actual hasta el momento de la respuesta. */
+  pausedSeconds: number;
 }
 
 // ─── Avisos in-app (CAM-96) ────────────────────────────────────────────────
