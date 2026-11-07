@@ -3602,7 +3602,11 @@
   font-weight: 600;
 }
 
-/* CAM-155: indicadores de cumplimiento del mantenimiento, en el Resumen. */
+/* CAM-155: indicadores de cumplimiento del mantenimiento, en el Resumen. Mismo panel que Disponibilidad, sin ranking. */
+.compliance-card__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .compliance-card__overdue {
   color: var(--fg-critical);
   font-weight: 600;
