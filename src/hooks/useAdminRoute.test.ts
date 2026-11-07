@@ -19,3 +19,11 @@ describe('rutas del detalle del vehículo (CAM-127)', () => {
     expect(parseAdminPath('/inspeccion/v-1')).toEqual({ view: 'vehicle', vehicleId: 'v-1', tab: 'resumen' });
   });
 });
+
+describe('comparar vehículos (CAM-140)', () => {
+  it('tiene su dirección, y "comparar" no se lee como el id de un vehículo', () => {
+    expect(adminPath({ view: 'vehicle-comparison' })).toBe('/vehiculos/comparar');
+    expect(parseAdminPath('/vehiculos/comparar')).toEqual({ view: 'vehicle-comparison' });
+    expect(parseAdminPath('/vehiculos/comparar/')).toEqual({ view: 'vehicle-comparison' });
+  });
+});

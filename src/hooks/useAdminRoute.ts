@@ -17,7 +17,9 @@ export type AdminRoute =
   // Gastos ya filtrada por un vehículo: el "Ver gastos" del detalle (CAM-105).
   | { view: 'vehicle-expenses'; vehicleId: string }
   // El detalle de una OT, abierto sobre la lista: el link del aviso de OT finalizada (CAM-98).
-  | { view: 'work-order'; workOrderId: string };
+  | { view: 'work-order'; workOrderId: string }
+  // Comparar vehículos (CAM-140), dentro de Vehículos.
+  | { view: 'vehicle-comparison' };
 
 // Mismo criterio que el id de /vehiculos/{id}: solo letras, números y guiones.
 const VEHICLE_ID = /^[A-Za-z0-9-]+$/;
@@ -34,8 +36,12 @@ const TAB_PATHS: Record<AdminTab, string> = {
 
 const DEFAULT_ROUTE: AdminRoute = { view: 'tab', tab: 'resumen' };
 
+/** CAM-140. Va antes que /vehiculos/{id}: "comparar" también pasaría por un id. */
+const COMPARISON_PATH = '/vehiculos/comparar';
+
 export function adminPath(route: AdminRoute): string {
   if (route.view === 'defects') return '/defectos';
+  if (route.view === 'vehicle-comparison') return COMPARISON_PATH;
   if (route.view === 'vehicle') {
     return route.tab && route.tab !== 'resumen' ? `/vehiculos/${route.vehicleId}/${route.tab}` : `/vehiculos/${route.vehicleId}`;
   }
@@ -48,6 +54,7 @@ export function adminPath(route: AdminRoute): string {
 export function parseAdminPath(pathname: string, search = ''): AdminRoute | null {
   const path = pathname.replace(/\/+$/, '');
   if (path === '/defectos') return { view: 'defects' };
+  if (path === COMPARISON_PATH) return { view: 'vehicle-comparison' };
   if (path === TAB_PATHS.gastos) {
     const vehicleId = new URLSearchParams(search).get('vehiculo');
     if (vehicleId && VEHICLE_ID.test(vehicleId)) return { view: 'vehicle-expenses', vehicleId };

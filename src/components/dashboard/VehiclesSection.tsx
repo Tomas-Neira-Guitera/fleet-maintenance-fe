@@ -28,7 +28,13 @@ function describeVehicle(v: Vehicle): string | null {
  * fila. La asignación de planes de mantenimiento (CAM-16) vive en la pestaña "Planes
  * de Mantenimiento".
  */
-export function VehiclesSection({ onOpenVehicle }: { onOpenVehicle: (vehicleId: string) => void }) {
+interface VehiclesSectionProps {
+  onOpenVehicle: (vehicleId: string) => void;
+  /** CAM-140: abre "Comparar vehículos". */
+  onCompare: () => void;
+}
+
+export function VehiclesSection({ onOpenVehicle, onCompare }: VehiclesSectionProps) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(lastShowInactive);
@@ -78,6 +84,9 @@ export function VehiclesSection({ onOpenVehicle }: { onOpenVehicle: (vehicleId: 
               }} />
             Ver dados de baja
           </label>
+          <button type="button" className="secondary-btn vehicles-section__new-btn" onClick={onCompare}>
+            Comparar
+          </button>
           <button type="button" className="primary-btn vehicles-section__new-btn" onClick={() => setCreating(true)}>
             + Nuevo vehículo
           </button>
