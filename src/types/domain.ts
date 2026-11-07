@@ -661,3 +661,49 @@ export interface DocumentInput {
   expiresAt: string;
   fileUrl?: string;
 }
+
+// ─── Comparar vehículos (CAM-140) ──────────────────────────────────────────
+
+export type ComparisonReason = 'maintenance_cost_per_km' | 'availability' | 'recurring_defects';
+
+/** Una fila de GET /api/vehicles/comparison. Los km y los costos por km son null sin lecturas suficientes. */
+export interface VehicleComparisonRow {
+  vehicleId: string;
+  plate: string;
+  brand: string | null;
+  model: string | null;
+  vehicleType: string | null;
+  year: number | null;
+  maintenanceCost: number;
+  operatingCost: number;
+  totalCost: number;
+  kmDriven: number | null;
+  maintenanceCostPerKm: number | null;
+  totalCostPerKm: number | null;
+  availabilityPct: number | null;
+  downtimeHours: number;
+  stops: number;
+  recurringControls: number;
+  review: { flagged: boolean; reasons: ComparisonReason[] };
+}
+
+/** El promedio de la flota de cada indicador; null si ningún vehículo lo tiene. */
+export interface VehicleComparisonAverages {
+  maintenanceCost: number | null;
+  operatingCost: number | null;
+  totalCost: number | null;
+  kmDriven: number | null;
+  maintenanceCostPerKm: number | null;
+  totalCostPerKm: number | null;
+  availabilityPct: number | null;
+  downtimeHours: number | null;
+  stops: number | null;
+  recurringControls: number | null;
+}
+
+export interface VehicleComparison {
+  from: string;
+  to: string;
+  vehicles: VehicleComparisonRow[];
+  fleet: VehicleComparisonAverages;
+}
