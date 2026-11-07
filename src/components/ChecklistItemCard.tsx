@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
-import { ApiError } from '../services/apiClient';
+import { ApiError, isNetworkError } from '../services/apiClient';
 import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../services/photosService';
 import type { ChecklistItemDef, ChecklistItemState, DefectSeverity } from '../types/domain';
 import { AlertTriangleIcon, CameraIcon } from './icons';
 import { CharCounter } from './CharCounter';
 import { DictatedTextarea } from './DictatedTextarea';
 import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH } from '../utils/textLimits';
+import { hasPhoto } from '../utils/defectPhoto';
 
 interface ChecklistItemCardProps {
   def: ChecklistItemDef;
@@ -19,7 +20,7 @@ function isDefectValid(state: ChecklistItemState): boolean {
   const defect = state.defect;
   if (!defect) return false;
   if (!defect.description.trim()) return false;
-  if (defect.severity === 'blocking' && (!defect.photoUrl || state.uploading)) return false;
+  if (defect.severity === 'blocking' && (!hasPhoto(defect) || state.uploading)) return false;
   return true;
 }
 
@@ -83,11 +84,26 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
     const file = e.target.files?.[0];
     if (!file || !defect) return;
     setPhotoError(null);
+    // CAM-153: sin señal la foto queda en el celular y se sube al mandar la inspección.
+    const keepLocally = () =>
+      onChange({
+        ...state,
+        defect: { ...defect, photoUrl: undefined, pendingPhoto: file, pendingPhotoPreview: URL.createObjectURL(file) },
+        uploading: false,
+      });
+    if (!navigator.onLine && file.type && ACCEPTED_PHOTO_TYPES.split(',').includes(file.type)) {
+      keepLocally();
+      return;
+    }
     onChange({ ...state, uploading: true });
     try {
       const { photoUrl } = await uploadDefectPhoto(file);
       onChange({ ...state, defect: { ...defect, photoUrl }, uploading: false });
     } catch (err) {
+      if (isNetworkError(err)) {
+        keepLocally();
+        return;
+      }
       setPhotoError(err instanceof ApiError ? err.message : 'No se pudo subir la foto. Probá de nuevo.');
       onChange({ ...state, uploading: false });
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -96,7 +112,8 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
 
   function removePhoto() {
     if (!defect) return;
-    onChange({ ...state, defect: { ...defect, photoUrl: undefined } });
+    if (defect.pendingPhotoPreview) URL.revokeObjectURL(defect.pendingPhotoPreview);
+    onChange({ ...state, defect: { ...defect, photoUrl: undefined, pendingPhoto: undefined, pendingPhotoPreview: undefined } });
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -184,9 +201,10 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
             </span>
             {state.uploading ? (
               <span className="muted">Subiendo…</span>
-            ) : defect.photoUrl ? (
+            ) : defect.photoUrl || defect.pendingPhoto ? (
               <div className="photo-preview">
-                <img src={defect.photoUrl} alt="Foto del defecto reportado" />
+                <img src={defect.photoUrl ?? defect.pendingPhotoPreview} alt="Foto del defecto reportado" />
+                {!defect.photoUrl && <p className="photo-preview__pending">Sin señal: la foto se sube al mandar la inspección.</p>}
                 <button type="button" className="photo-preview__remove" onClick={removePhoto}>
                   Quitar foto
                 </button>

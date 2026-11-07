@@ -25,17 +25,30 @@ export function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
   }));
 }
 
+/** CAM-153: cuándo la hizo el chofer y el id con que el servidor reconoce un reintento. */
+export interface SubmissionMeta {
+  performedAt?: string;
+  clientSubmissionId?: string;
+}
+
 /** POST /api/inspections/{vehicleId} -- el chofer es el del token (CAM-85): 401 si la sesión venció. */
 export async function submitInspection(
   vehicleId: string,
   type: InspectionType,
   answers: ChecklistAnswer[],
   notes?: string,
+  meta: SubmissionMeta = {},
 ): Promise<SubmitInspectionResult> {
   const res = await fetch(`${API_BASE_URL}/api/inspections/${vehicleId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ type, answers: toWireAnswers(answers), notes }),
+    body: JSON.stringify({
+      type,
+      answers: toWireAnswers(answers),
+      notes,
+      performedAt: meta.performedAt,
+      clientSubmissionId: meta.clientSubmissionId,
+    }),
   });
   if (!res.ok) return throwApiError(res, 'No se pudo enviar la inspección');
   return res.json() as Promise<SubmitInspectionResult>;
