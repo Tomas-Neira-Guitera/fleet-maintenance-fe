@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getDefects } from '../services/defectsService';
+import { getDefects, isReportedOnRoad } from '../services/defectsService';
 import { getWorkOrders } from '../services/workOrdersService';
 import type { DefectSummary, WorkOrder } from '../types/domain';
 import { ArrowLeftIcon, CameraIcon, WrenchIcon } from './icons';
@@ -108,6 +108,12 @@ export function DefectsList({ onBack }: DefectsListProps) {
                   <span className="vehicle-meta__plate">{defect.vehiclePlate}</span>
                   {' · '}
                   {formatDate(defect.createdAt)}
+                  {isReportedOnRoad(defect) && (
+                    <>
+                      {' · '}
+                      <span className="defect-origin-tag">Reportado en viaje</span>
+                    </>
+                  )}
                   {defect.photoUrl && (
                     <>
                       {' · '}

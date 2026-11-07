@@ -134,7 +134,15 @@ export interface DefectSummary {
   reportedBy?: string | null;
   /** Descripción larga del defecto (CAM-32); `description` es el título corto. */
   details?: string | null;
+  /** Dónde se reportó (CAM-139): on-road es "Reportado en viaje". */
+  source?: DefectSource;
 }
+
+/** CAM-139: en el checklist del pre-viaje o del post-viaje, o durante el viaje. */
+export type DefectSource = 'pre-trip' | 'post-trip' | 'on-road';
+
+/** CAM-139: lo que se elige como "qué falla" cuando no es ningún control del checklist. */
+export const ROAD_OTHER_ITEM_ID = 'road-otro';
 
 /** Promedio de horas entre la creación y la finalización de OTs (CAM-134); null si no hay ninguna. */
 export interface RepairAverage {

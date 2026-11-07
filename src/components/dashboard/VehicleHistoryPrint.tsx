@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { WorkOrder } from '../../types/domain';
 import { formatDate, currencyFormatter, numberFormatter } from '../../utils/maintenanceFormat';
 import { describePeriod } from '../../utils/period';
+import { isReportedOnRoad } from '../../services/defectsService';
 import { describeTripKmAlert } from '../../utils/tripKmAlert';
 import { formatArgentinaDateTime, type CostLine, type VehicleHistoryReport } from '../../utils/vehicleHistoryReport';
 import { WORK_ORDER_STATUS_LABEL, workOrderResponsible } from '../../utils/workOrderFormat';
@@ -140,7 +141,10 @@ export function VehicleHistoryPrint({ report }: { report: VehicleHistoryReport }
               {defect.details ? ` — ${defect.details}` : ''}
             </td>
             <td className="history-print__short">{defect.severity === 'blocking' ? 'Bloqueante' : 'No bloqueante'}</td>
-            <td className="history-print__short">{defect.reportedBy ?? '—'}</td>
+            <td className="history-print__short">
+              {defect.reportedBy ?? '—'}
+              {isReportedOnRoad(defect) ? ' (en viaje)' : ''}
+            </td>
             <td>{resolution}</td>
           </tr>
         ))}

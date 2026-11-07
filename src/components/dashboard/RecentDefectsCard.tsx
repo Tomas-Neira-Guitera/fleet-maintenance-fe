@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useVisibleRows } from '../../hooks/useVisibleRows';
-import { getDefects } from '../../services/defectsService';
+import { getDefects, isReportedOnRoad } from '../../services/defectsService';
 import type { DefectSummary } from '../../types/domain';
 import { formatRelativeReportTime } from '../../utils/relativeTime';
 import { SeverityBadge } from '../SeverityBadge';
@@ -16,6 +16,7 @@ function describeReport(defect: DefectSummary): string {
   const { label, isToday } = formatRelativeReportTime(defect.createdAt);
   const parts = [isToday ? `Reportado ${label}` : label];
   if (defect.reportedBy) parts.push(defect.reportedBy);
+  if (isReportedOnRoad(defect)) parts.push('en viaje');
   return parts.join(' · ');
 }
 
