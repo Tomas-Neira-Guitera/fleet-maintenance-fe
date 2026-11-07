@@ -134,6 +134,18 @@ export interface DefectSummary {
   reportedBy?: string | null;
   /** Descripción larga del defecto (CAM-32); `description` es el título corto. */
   details?: string | null;
+  /** CAM-146: presente si apareció durante el viaje (en el pre-viaje ese control dio OK). */
+  occurredOnTrip?: OccurredOnTrip | null;
+}
+
+/** CAM-146: el viaje en que apareció un defecto del post-viaje. */
+export interface OccurredOnTrip {
+  tripId: string;
+  tripStartedAt: string | null;
+  tripEndedAt: string | null;
+  /** El pre-viaje en que el control dio OK; null si el viaje no lo tiene guardado. */
+  preTripInspectionId: string | null;
+  preTripAt: string | null;
 }
 
 /** Promedio de horas entre la creación y la finalización de OTs (CAM-134); null si no hay ninguna. */

@@ -1105,6 +1105,35 @@
   color: rgba(62, 74, 66, 0.65);
 }
 
+/* CAM-146: filtro "Ocurridos en el viaje" y la marca de cada defecto. */
+.defect-filter {
+  display: flex;
+  gap: 8px;
+  max-width: 420px;
+  margin-bottom: 12px;
+}
+
+.occurred-on-trip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.occurred-on-trip__badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-warn-bg);
+  color: var(--fg-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.occurred-on-trip__meta {
+  color: var(--fg-text-muted);
+}
+
 /* OT abierta que está resolviendo el defecto (CAM-60), debajo de la patente y la fecha. */
 .defect-summary-item__work-order {
   display: inline-flex;

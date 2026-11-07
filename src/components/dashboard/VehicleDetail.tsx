@@ -15,6 +15,7 @@ import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleCostsCard } from './VehicleCostsCard';
 import { VehicleDocumentsTab } from './VehicleDocumentsTab';
 import { VehicleFormModal } from './VehicleFormModal';
+import { OccurredOnTripNote } from '../OccurredOnTripNote';
 import { VehicleQrCard } from './VehicleQrCard';
 import { VehicleRecurringDefectsCard } from './VehicleRecurringDefectsCard';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
@@ -451,6 +452,7 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
                           {d.reportedBy ? ` · ${d.reportedBy}` : ''}
                           {d.status === 'resuelto' ? ' · Resuelto' : ''}
                         </span>
+                        {d.occurredOnTrip && <OccurredOnTripNote occurredOnTrip={d.occurredOnTrip} />}
                       </div>
                       <SeverityBadge severity={d.severity} />
                     </li>

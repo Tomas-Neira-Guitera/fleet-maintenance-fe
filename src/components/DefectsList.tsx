@@ -3,6 +3,7 @@ import { getDefects } from '../services/defectsService';
 import { getWorkOrders } from '../services/workOrdersService';
 import type { DefectSummary, WorkOrder } from '../types/domain';
 import { ArrowLeftIcon, CameraIcon, WrenchIcon } from './icons';
+import { OccurredOnTripNote } from './OccurredOnTripNote';
 import { PhotoViewer } from './PhotoViewer';
 import { SeverityBadge } from './SeverityBadge';
 import { SchedulePickerModal } from './dashboard/SchedulePickerModal';
@@ -44,6 +45,10 @@ export function DefectsList({ onBack }: DefectsListProps) {
   // Id del último pedido de OTs: una respuesta vieja que llega tarde no pisa a una más nueva
   // (ni se aplica después de salir de la pantalla, que pone el contador en -1).
   const workOrdersRequestRef = useRef(0);
+  // CAM-146: ver solo los que aparecieron durante un viaje.
+  const [onlyOnTrip, setOnlyOnTrip] = useState(false);
+  const onTripCount = defects?.filter((d) => d.occurredOnTrip).length ?? 0;
+  const visibleDefects = onlyOnTrip ? defects?.filter((d) => d.occurredOnTrip) : defects;
 
   // Solo las abiertas: el historial de OTs cerradas crece sin límite y acá no hace falta.
   const loadOpenWorkOrders = useCallback(() => {
@@ -94,8 +99,31 @@ export function DefectsList({ onBack }: DefectsListProps) {
 
       {defects && defects.length === 0 && <p className="muted">No hay defectos reportados.</p>}
 
+      {defects && defects.length > 0 && (
+        <div className="defect-filter" role="group" aria-label="Filtrar defectos">
+          <button
+            type="button"
+            className={`wo-execution-toggle__btn${onlyOnTrip ? '' : ' wo-execution-toggle__btn--active'}`}
+            aria-pressed={!onlyOnTrip}
+            onClick={() => setOnlyOnTrip(false)}
+          >
+            Todos ({defects.length})
+          </button>
+          <button
+            type="button"
+            className={`wo-execution-toggle__btn${onlyOnTrip ? ' wo-execution-toggle__btn--active' : ''}`}
+            aria-pressed={onlyOnTrip}
+            onClick={() => setOnlyOnTrip(true)}
+          >
+            Ocurridos en el viaje ({onTripCount})
+          </button>
+        </div>
+      )}
+
+      {onlyOnTrip && onTripCount === 0 && <p className="muted">Ningún defecto apareció durante un viaje.</p>}
+
       <ul className="defect-summary-list">
-        {defects?.map((defect) => {
+        {visibleDefects?.map((defect) => {
           const openWorkOrder = openWorkOrders.get(defect.id);
           const resolved = defect.status === 'resuelto';
           return (
@@ -117,6 +145,9 @@ export function DefectsList({ onBack }: DefectsListProps) {
                     </>
                   )}
                 </span>
+                {defect.occurredOnTrip && (
+                  <OccurredOnTripNote occurredOnTrip={defect.occurredOnTrip} reportedBy={defect.reportedBy} />
+                )}
                 {openWorkOrder && !resolved && (
                   <span className="defect-summary-item__work-order">
                     <WrenchIcon width={13} height={13} aria-hidden="true" />
