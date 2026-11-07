@@ -99,6 +99,14 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * CAM-153: true si el pedido no llegó al servidor (sin señal, servidor caído). fetch rechaza con un
+ * TypeError; una respuesta de error del backend es un ApiError.
+ */
+export function isNetworkError(err: unknown): boolean {
+  return err instanceof TypeError;
+}
+
 /** true si el backend rechazó el JWT (401): sin token, vencido o de un usuario desactivado (CAM-23). */
 export function isSessionExpired(err: unknown): boolean {
   return err instanceof ApiError && err.status === 401;

@@ -77,6 +77,10 @@ export interface DefectDetail {
   /** Descripción larga, opcional; se puede dictar (CAM-32). */
   details?: string;
   photoUrl?: string;
+  /** CAM-153: foto sacada sin señal, guardada en el celular hasta poder subirla. */
+  pendingPhoto?: Blob;
+  /** CAM-153: URL local para mostrar pendingPhoto mientras tanto. No se guarda con la inspección pendiente. */
+  pendingPhotoPreview?: string;
 }
 
 export type CheckOutcome = 'ok' | 'defect';
