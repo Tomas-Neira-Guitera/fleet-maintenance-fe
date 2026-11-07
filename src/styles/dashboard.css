@@ -2051,6 +2051,11 @@
   color: rgba(62, 74, 66, 0.6);
 }
 
+/* CAM-152: por qué el viaje quedó marcado, con el color de "por vencer" de su badge. */
+.vehicle-detail__km-alert {
+  color: var(--fg-warn);
+}
+
 @media (max-width: 720px) {
   .vehicle-detail {
     padding: 20px 16px 32px;
@@ -2152,6 +2157,12 @@
   color: var(--fg-warn);
 }
 
+/* CAM-148: frenada, ni en curso ni terminada. El azul de los gráficos, que no se usa en estados. */
+.work-order-badge--en_espera {
+  background: rgba(71, 104, 165, 0.12);
+  color: var(--fg-chart-1);
+}
+
 .work-order-badge--finalizada {
   background: var(--fg-ok-bg);
   color: var(--fg-ok);
@@ -2195,7 +2206,17 @@
 .wo-detail__top {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+/* CAM-148: por qué está en espera, con el azul de su badge. */
+.wo-detail__pause {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--fg-chart-1);
+  border-radius: 6px;
+  background: rgba(71, 104, 165, 0.06);
 }
 
 .wo-detail__section {
@@ -3527,6 +3548,144 @@
 
 .renewed-doc__clear {
   align-self: flex-start;
+}
+
+/* --- Comparar vehículos (CAM-140) --- */
+
+/* Un poco más ancho que Vehículos: la tabla tiene diez columnas. */
+.comparison {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
+}
+
+.comparison__table thead th,
+.comparison__table tbody td {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Diez columnas: los encabezados largos ("Fallas recurrentes") pasan a dos renglones en vez de ensanchar la tabla. */
+.comparison__table thead th {
+  white-space: normal;
+  vertical-align: bottom;
+}
+
+.comparison__table thead .comparison__num .comparison__sort {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.comparison__header {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.comparison__filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Selector "Solo mantenimiento / Costo total" del costo por km: el mismo molde que el toggle de ejecución de las OTs. */
+.comparison__basis {
+  display: inline-flex;
+  border: var(--fg-border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--fg-white);
+}
+
+.comparison__basis-btn {
+  border: none;
+  background: transparent;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--fg-text);
+  cursor: pointer;
+}
+
+.comparison__basis-btn--active {
+  background: var(--fg-text);
+  color: var(--fg-white);
+}
+
+.comparison__hint {
+  margin: -8px 0 0;
+  font-size: 13px;
+}
+
+.comparison__summary {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-critical);
+}
+
+.comparison__table .comparison__num {
+  text-align: right;
+}
+
+.comparison__table td.comparison__num {
+  white-space: nowrap;
+}
+
+/* El encabezado entero es el botón de ordenar, con el mismo aspecto que un th común. */
+.comparison__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.comparison__sort-arrow {
+  display: inline-block;
+  width: 10px;
+  font-size: 9px;
+}
+
+/* La fila del promedio de la flota: arriba de todo, sin hover ni click. */
+.comparison__table tbody .comparison__average td {
+  background: var(--fg-bg);
+  font-weight: 600;
+}
+
+.comparison__vehicle-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
+.comparison__no-data {
+  color: var(--fg-text-muted);
+  font-style: italic;
+}
+
+.comparison__row--flagged td:first-child {
+  box-shadow: inset 3px 0 0 var(--fg-critical);
+}
+
+.comparison__review {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.comparison__review-reason {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--fg-text-muted);
+  min-width: 120px;
+  max-width: 150px;
 }
 
 /* CAM-154: importar vehículos desde un CSV o un Excel. */

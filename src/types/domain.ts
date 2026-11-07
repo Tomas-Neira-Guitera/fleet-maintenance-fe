@@ -138,6 +138,8 @@ export interface DefectSummary {
   reportedBy?: string | null;
   /** Descripción larga del defecto (CAM-32); `description` es el título corto. */
   details?: string | null;
+  /** Dónde se reportó (CAM-139): on-road es "Reportado en viaje". */
+  source?: DefectSource;
   /** CAM-146: presente si apareció durante el viaje (en el pre-viaje ese control dio OK). */
   occurredOnTrip?: OccurredOnTrip | null;
 }
@@ -151,6 +153,12 @@ export interface OccurredOnTrip {
   preTripInspectionId: string | null;
   preTripAt: string | null;
 }
+
+/** CAM-139: en el checklist del pre-viaje o del post-viaje, o durante el viaje. */
+export type DefectSource = 'pre-trip' | 'post-trip' | 'on-road';
+
+/** CAM-139: lo que se elige como "qué falla" cuando no es ningún control del checklist. */
+export const ROAD_OTHER_ITEM_ID = 'road-otro';
 
 /** Promedio de horas entre la creación y la finalización de OTs (CAM-134); null si no hay ninguna. */
 export interface RepairAverage {
@@ -229,6 +237,19 @@ export interface InspectionHistoryItem {
   odometerKm?: number | null;
   notes?: string | null;
   hasBlockingDefect: boolean;
+  /** CAM-152: solo en el post-viaje de un viaje con km fuera de lo normal. */
+  kmAlert?: TripKmAlert | null;
+}
+
+/** CAM-152: la marca de km fuera de lo normal de un viaje, con los números del momento del cierre. */
+export interface TripKmAlert {
+  reason: 'above_average' | 'below_average' | 'below_vehicle_km';
+  /** Post-viaje menos pre-viaje; null sin pre-viaje con km. */
+  tripKm: number | null;
+  /** Promedio de km por viaje del vehículo; null sin viajes suficientes (solo con below_vehicle_km). */
+  averageKm: number | null;
+  declaredKm: number;
+  vehicleKm: number;
 }
 
 /** Item de `maintenance` en GET /api/vehicles/{id}/history: un "marcar como hecho" de un plan (CAM-22). */
@@ -311,6 +332,11 @@ export interface NextMaintenanceSummary {
   dueKm: number | null;
   remainingDays: number | null;
   remainingKm: number | null;
+  /**
+   * CAM-137: cuándo vence por km según lo que anda el vehículo ("2026-11-15"). Solo informativa:
+   * null si no es por km, si no se puede estimar o si ya venció por km.
+   */
+  estimatedDueDate: string | null;
 }
 
 /** Una fila del componente "Estado de la flota" -- GET /api/vehicles?view=fleet-status. */
@@ -407,7 +433,7 @@ export interface ScheduledMaintenance {
   scheduledAt: string;
   status: ScheduleStatus;
   notes: string | null;
-  /** OT abierta (asignada o en proceso) vinculada a la programación, si hay una. */
+  /** OT abierta (asignada, en proceso o en espera) vinculada a la programación, si hay una. */
   workOrder?: { id: string; status: WorkOrderStatus; responsible: string | null } | null;
 }
 
@@ -416,7 +442,17 @@ export interface ScheduledMaintenance {
 
 export type WorkOrderSourceType = 'scheduled_maintenance' | 'defect' | 'manual';
 export type WorkOrderExecutionType = 'interno' | 'externo';
-export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'finalizada' | 'cancelada';
+export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'en_espera' | 'finalizada' | 'cancelada';
+
+/** CAM-148: por qué una OT quedó en espera. */
+export type WorkOrderPauseReason = 'esperando_repuesto' | 'esperando_proveedor' | 'esperando_vehiculo' | 'otro';
+
+/** CAM-148: la pausa actual de una OT en espera. */
+export interface WorkOrderPause {
+  reason: WorkOrderPauseReason;
+  comment: string | null;
+  since: string;
+}
 export type WorkOrderExpenseCategory = 'repuesto' | 'mano_de_obra' | 'otro';
 /** Categoría de un gasto operativo del vehículo, que no sale de una OT (CAM-109). */
 export type VehicleExpenseCategory = 'combustible' | 'seguro' | 'patente' | 'vtv' | 'peajes' | 'otro';
@@ -511,6 +547,10 @@ export interface WorkOrder {
   createdAt: string;
   updatedAt: string;
   finalizedAt: string | null;
+  /** CAM-148: la pausa actual si está en espera; si no, null. */
+  pause: WorkOrderPause | null;
+  /** CAM-148: segundos en espera en total, contando la pausa actual hasta el momento de la respuesta. */
+  pausedSeconds: number;
 }
 
 // ─── Avisos in-app (CAM-96) ────────────────────────────────────────────────
@@ -529,7 +569,8 @@ export type NotificationType =
   | 'document_due_soon'
   | 'document_expired'
   | 'vehicle_unavailable'
-  | 'vehicle_available';
+  | 'vehicle_available'
+  | 'trip_km_anomaly';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';
@@ -652,4 +693,50 @@ export interface DocumentInput {
   number?: string;
   expiresAt: string;
   fileUrl?: string;
+}
+
+// ─── Comparar vehículos (CAM-140) ──────────────────────────────────────────
+
+export type ComparisonReason = 'maintenance_cost_per_km' | 'availability' | 'recurring_defects';
+
+/** Una fila de GET /api/vehicles/comparison. Los km y los costos por km son null sin lecturas suficientes. */
+export interface VehicleComparisonRow {
+  vehicleId: string;
+  plate: string;
+  brand: string | null;
+  model: string | null;
+  vehicleType: string | null;
+  year: number | null;
+  maintenanceCost: number;
+  operatingCost: number;
+  totalCost: number;
+  kmDriven: number | null;
+  maintenanceCostPerKm: number | null;
+  totalCostPerKm: number | null;
+  availabilityPct: number | null;
+  downtimeHours: number;
+  stops: number;
+  recurringControls: number;
+  review: { flagged: boolean; reasons: ComparisonReason[] };
+}
+
+/** El promedio de la flota de cada indicador; null si ningún vehículo lo tiene. */
+export interface VehicleComparisonAverages {
+  maintenanceCost: number | null;
+  operatingCost: number | null;
+  totalCost: number | null;
+  kmDriven: number | null;
+  maintenanceCostPerKm: number | null;
+  totalCostPerKm: number | null;
+  availabilityPct: number | null;
+  downtimeHours: number | null;
+  stops: number | null;
+  recurringControls: number | null;
+}
+
+export interface VehicleComparison {
+  from: string;
+  to: string;
+  vehicles: VehicleComparisonRow[];
+  fleet: VehicleComparisonAverages;
 }

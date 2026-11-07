@@ -527,6 +527,12 @@
   color: var(--fg-critical);
 }
 
+/* CAM-148: OT en espera, frenada por un motivo. El mismo azul que su badge en el admin. */
+.status-pill--info {
+  background: rgba(71, 104, 165, 0.12);
+  color: var(--fg-chart-1);
+}
+
 /* Estado neutro: algo pendiente que todavía no arrancó (ej. OT asignada, CAM-60). */
 .status-pill--neutral {
   background: var(--fg-white);
@@ -857,6 +863,65 @@
   color: var(--fg-text);
   resize: vertical;
   background: var(--fg-white);
+}
+
+/* CAM-148: poner una OT en espera, en la vista del técnico y en el detalle del admin. */
+.pause-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pause-form__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.pause-form__select,
+.pause-form__textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: var(--fg-border);
+  padding: 10px 12px;
+  font-family: var(--fg-font-body);
+  font-size: 14px;
+  color: var(--fg-text);
+  background: var(--fg-white);
+}
+
+.pause-form__textarea {
+  resize: vertical;
+}
+
+.pause-form__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* CAM-148: "Poner en espera" del técnico, a todo el ancho y arriba de Volver/Finalizar. */
+.technician-wo__pause-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* El motivo y desde cuándo, mientras la OT está en espera. */
+.pause-summary {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fg-text);
+}
+
+.pause-summary__since {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--fg-text-muted);
 }
 
 /* CAM-84: mismo color que el botón de dictado (.dictate-btn), así la foto -- obligatoria en un
@@ -1405,4 +1470,53 @@
   color: rgba(62, 74, 66, 0.8);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* CAM-139: un bloqueante reportado en viaje. */
+.success-icon--crit {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+}
+
+/* CAM-139: "Reportar un problema", debajo de la tarjeta del viaje propio en la flota del chofer. */
+.vehicle-list__trip-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.vehicle-card__report {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--fg-radius);
+  border: 1px solid var(--fg-critical);
+  background: var(--fg-white);
+  color: var(--fg-critical);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.vehicle-card__report svg {
+  width: 16px;
+  height: 16px;
+}
+
+.road-defect__select {
+  font-family: var(--fg-font-body);
+  margin-top: 6px;
+}
+
+/* CAM-139: marca "Reportado en viaje" de un defecto, en Defectos y en el historial del vehículo. */
+.defect-origin-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-warn-bg);
+  color: var(--fg-warn);
+  white-space: nowrap;
 }

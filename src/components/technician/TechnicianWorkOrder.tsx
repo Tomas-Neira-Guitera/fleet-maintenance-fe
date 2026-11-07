@@ -2,10 +2,12 @@ import { useRef, useState } from 'react';
 import { ApiError, describeApiError } from '../../services/apiClient';
 import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../../services/photosService';
 import { addWorkOrderPhoto, deleteWorkOrderPhoto, updateWorkOrder } from '../../services/workOrdersService';
-import type { WorkOrder, WorkOrderSourceType } from '../../types/domain';
-import { isValidCompletedKm } from '../../utils/workOrderFormat';
-import { CameraIcon, ClipboardListIcon, ShieldCheckIcon, WrenchIcon } from '../icons';
+import type { WorkOrder, WorkOrderPauseReason, WorkOrderSourceType } from '../../types/domain';
+import { formatDayAndTime } from '../../utils/dateFormat';
+import { describePause, isValidCompletedKm } from '../../utils/workOrderFormat';
+import { CameraIcon, ClipboardListIcon, ClockIcon, ShieldCheckIcon, WrenchIcon } from '../icons';
 import { DictatedTextarea } from '../DictatedTextarea';
+import { PauseWorkOrderForm } from '../PauseWorkOrderForm';
 import { PhotoViewer } from '../PhotoViewer';
 
 /** Qué se cierra al finalizar, para la pantalla de éxito. Una OT manual no tiene origen que cerrar. */
@@ -37,7 +39,8 @@ interface TechnicianWorkOrderProps {
  * Detalle de una OT para el técnico (CAM-60), con el mismo molde que el flujo de
  * inspección del chofer: encabezado con patente, secciones en tarjetas y botones grandes
  * abajo. Asignada → "Empezar trabajo"; en proceso → cierre + fotos → "Finalizar".
- * Cancelar y cargar gastos quedan del lado del admin.
+ * En proceso también se puede poner en espera con un motivo, y en espera → "Retomar trabajo"
+ * (CAM-148). Cancelar y cargar gastos quedan del lado del admin.
  */
 export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWorkOrderProps) {
   const [wo, setWo] = useState(workOrder);
@@ -50,6 +53,7 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
   const [finalized, setFinalized] = useState(false);
   const [defectPhotoFailed, setDefectPhotoFailed] = useState(false);
   const [viewingDefectPhoto, setViewingDefectPhoto] = useState(false);
+  const [pausing, setPausing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mismo criterio que FinalizeWorkOrderModal: el km solo se pide si la OT cierra un plan de mantenimiento.
@@ -73,6 +77,32 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
       setWo(await updateWorkOrder(wo.id, { status: 'en_proceso' }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo empezar la orden. Intentá de nuevo.');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  // CAM-148: lo que ya cargó para el cierre (descripción, km, fotos) se conserva al retomar.
+  async function handlePause(pauseReason: WorkOrderPauseReason, pauseComment: string) {
+    setPending(true);
+    setError(null);
+    try {
+      setWo(await updateWorkOrder(wo.id, { status: 'en_espera', pauseReason, pauseComment: pauseComment || undefined }));
+      setPausing(false);
+    } catch (err) {
+      setError(describeApiError(err, 'No se pudo poner la orden en espera. Intentá de nuevo.'));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handleResume() {
+    setPending(true);
+    setError(null);
+    try {
+      setWo(await updateWorkOrder(wo.id, { status: 'en_proceso' }));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo retomar la orden. Intentá de nuevo.');
     } finally {
       setPending(false);
     }
@@ -156,6 +186,11 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
             <WrenchIcon className="status-pill__icon" />
             En proceso
           </span>
+        ) : wo.status === 'en_espera' ? (
+          <span className="status-pill status-pill--info technician-wo__status">
+            <ClockIcon className="status-pill__icon" />
+            En espera
+          </span>
         ) : (
           <span className="status-pill status-pill--neutral technician-wo__status">
             <ClipboardListIcon className="status-pill__icon" />
@@ -217,6 +252,28 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
           <h2 className="section-title">Qué hay que hacer</h2>
           <div className="checklist-item">
             <p className="technician-wo__text">{wo.description}</p>
+          </div>
+        </section>
+      )}
+
+      {wo.status === 'en_espera' && wo.pause && (
+        <section className="checklist-section">
+          <h2 className="section-title">En espera</h2>
+          <div className="checklist-item">
+            <p className="pause-summary">
+              {describePause(wo.pause)}
+              <span className="pause-summary__since">Desde el {formatDayAndTime(wo.pause.since)}</span>
+            </p>
+            <p className="technician-wo__hint">Cuando puedas seguir, retomala para cargar el cierre y finalizarla.</p>
+          </div>
+        </section>
+      )}
+
+      {wo.status === 'en_proceso' && pausing && (
+        <section className="checklist-section">
+          <h2 className="section-title">Poner en espera</h2>
+          <div className="checklist-item">
+            <PauseWorkOrderForm pending={pending} onConfirm={handlePause} onCancel={() => setPausing(false)} />
           </div>
         </section>
       )}
@@ -306,6 +363,14 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
         </p>
       )}
 
+      {/* CAM-148: en su propia fila, arriba de Volver y Finalizar: los tres juntos no entran en un celular. */}
+      {wo.status === 'en_proceso' && !pausing && (
+        <button type="button" className="secondary-btn technician-wo__pause-btn" onClick={() => setPausing(true)} disabled={busy}>
+          <ClockIcon className="photo-attach-btn__icon" />
+          Poner en espera
+        </button>
+      )}
+
       <div className="screen__actions">
         <button type="button" className="secondary-btn" onClick={onBack} disabled={busy}>
           Volver
@@ -315,7 +380,12 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
             {pending ? 'Empezando…' : 'Empezar trabajo'}
           </button>
         )}
-        {wo.status === 'en_proceso' && (
+        {wo.status === 'en_espera' && (
+          <button type="button" className="primary-btn" onClick={handleResume} disabled={busy}>
+            {pending ? 'Retomando…' : 'Retomar trabajo'}
+          </button>
+        )}
+        {wo.status === 'en_proceso' && !pausing && (
           <button
             type="button"
             className="primary-btn"

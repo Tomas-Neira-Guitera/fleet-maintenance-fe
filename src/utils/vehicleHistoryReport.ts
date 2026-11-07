@@ -16,7 +16,7 @@ import type {
 import { EXPENSE_CATEGORY_LABEL, EXPENSE_ORIGIN_LABEL } from './expenseFormat';
 import { toLocalDateKey } from './localDate';
 import { isInPeriod, lastDayOf, type Period } from './period';
-import { WORK_ORDER_STATUS_LABEL } from './workOrderFormat';
+import { isOpenWorkOrder, WORK_ORDER_STATUS_LABEL } from './workOrderFormat';
 
 const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
@@ -83,7 +83,7 @@ function describeResolution(defect: DefectSummary, workOrders: WorkOrder[]): str
     return `Resuelto por OT "${finalized.title}"${closedOn}${closing}`;
   }
   if (defect.status === 'resuelto') return 'Resuelto';
-  const open = own.find((wo) => wo.status === 'asignada' || wo.status === 'en_proceso');
+  const open = own.find(isOpenWorkOrder);
   return open ? `Abierto · OT "${open.title}" (${WORK_ORDER_STATUS_LABEL[open.status].toLowerCase()})` : 'Abierto';
 }
 

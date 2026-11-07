@@ -3,26 +3,14 @@ import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { getFleetStatus } from '../../services/fleetStatusService';
 import type { FleetStatusRow } from '../../types/domain';
 import { describeNextMaintenance } from '../../utils/maintenanceFormat';
+import { groupByDueDays } from '../../utils/upcomingMaintenance';
 import { StatusBadge } from './StatusBadge';
 import '../../styles/dashboard.css';
 
 /** No hay endpoint de conteos agregados (ver ROADMAP) -- alcanza con traer toda la flota. */
 const FLEET_STATUS_PAGE_SIZE = 500;
-const MAX_PER_BUCKET = 5;
 // En el Resumen comparte columna con "Estado de la flota": con un tope, las dos columnas quedan parejas.
 const VISIBLE_ITEMS = 5;
-
-/**
- * Franjas por `remainingDays` (siempre en días, comparables entre sí -- a diferencia de
- * mezclar con `remainingKm`). Los planes solo-por-km (`remainingDays == null`) quedan afuera
- * de este widget porque no encajan en una franja de días. Los vencidos (días negativos) caen
- * en la primera franja, la más urgente -- no se agrega una franja separada para ellos.
- */
-const BUCKETS = [
-  { label: 'Próximos 7 días', min: -Infinity, max: 7 },
-  { label: '8-14 días', min: 8, max: 14 },
-  { label: '15-30 días', min: 15, max: 30 },
-];
 
 interface UpcomingMaintenanceCardProps {
   /** Cambiar este valor fuerza un refetch (ej. después de asignar/desasignar un plan). */
@@ -47,18 +35,7 @@ export function UpcomingMaintenanceCard({ refreshKey }: UpcomingMaintenanceCardP
     };
   }, [refreshKey]);
 
-  const bucketedGroups = rows
-    ? BUCKETS.map((bucket) => ({
-        ...bucket,
-        items: rows
-          .filter((row) => {
-            const days = row.nextMaintenance?.remainingDays;
-            return days != null && days >= bucket.min && days <= bucket.max;
-          })
-          .sort((a, b) => a.nextMaintenance!.remainingDays! - b.nextMaintenance!.remainingDays!)
-          .slice(0, MAX_PER_BUCKET),
-      })).filter((group) => group.items.length > 0)
-    : null;
+  const bucketedGroups = rows ? groupByDueDays(rows) : null;
   const itemCount = bucketedGroups?.reduce((total, group) => total + group.items.length, 0) ?? 0;
   const { ref: scrollRef, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_ITEMS, itemCount);
 

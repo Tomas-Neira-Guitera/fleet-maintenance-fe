@@ -1,5 +1,33 @@
-import type { DefectSummary, DefectStatus, RecurringDefects } from '../types/domain';
+import type { DefectDetail, DefectSummary, DefectStatus, RecurringDefects } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
+
+/**
+ * POST /api/vehicles/{id}/road-defects -- el chofer del viaje abierto reporta un defecto sin cerrarlo
+ * (CAM-139). itemId: un control del pre-viaje del vehículo, o ROAD_OTHER_ITEM_ID.
+ */
+export async function reportRoadDefect(vehicleId: string, itemId: string, defect: DefectDetail): Promise<DefectSummary> {
+  const details = defect.details?.trim();
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/road-defects`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({
+      itemId,
+      defect: {
+        severity: defect.severity,
+        description: defect.description.trim(),
+        ...(details ? { details } : {}),
+        ...(defect.photoUrl ? { photoUrl: defect.photoUrl } : {}),
+      },
+    }),
+  });
+  if (!res.ok) return throwApiError(res, 'No se pudo reportar el problema');
+  return res.json() as Promise<DefectSummary>;
+}
+
+/** "Reportado en viaje" (CAM-139), para los defectos que el chofer cargó durante el viaje. */
+export function isReportedOnRoad(defect: Pick<DefectSummary, 'source'>): boolean {
+  return defect.source === 'on-road';
+}
 
 export interface GetDefectsOptions {
   vehicleId?: string;

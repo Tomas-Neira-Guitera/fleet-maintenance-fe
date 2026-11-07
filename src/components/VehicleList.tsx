@@ -10,12 +10,16 @@ import { getSessionUserId, getUsername, isNetworkError } from '../services/apiCl
 import { getVehicles } from '../services/vehiclesService';
 import type { Vehicle } from '../types/domain';
 import { formatDayAndTime } from '../utils/dateFormat';
-import { AlertOctagonIcon, CheckCircleIcon, LockClockIcon } from './icons';
+import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, LockClockIcon } from './icons';
 
 interface VehicleListProps {
   onSelectVehicle: (vehicle: Vehicle) => void;
   /** Por qué se volvió al listado sin enviar la inspección (ej. el vehículo quedó bloqueado mientras tanto). */
   notice?: string | null;
+  /** Lo que salió bien al volver al listado (ej. el problema reportado en viaje, CAM-139). */
+  confirmation?: string | null;
+  /** CAM-139: reportar un problema durante el viaje propio, sin cerrarlo. */
+  onReportProblem: (vehicle: Vehicle) => void;
 }
 
 /** Quién tiene el vehículo en viaje (CAM-87), para que el chofer reconozca cuál es el suyo. */
@@ -49,7 +53,7 @@ function describePending(item: PendingInspection): string {
   return `${item.type === 'pre-trip' ? 'Pre-viaje' : 'Post-viaje'} de ${item.plate} (${formatDayAndTime(item.performedAt)})`;
 }
 
-export function VehicleList({ onSelectVehicle, notice }: VehicleListProps) {
+export function VehicleList({ onSelectVehicle, notice, confirmation, onReportProblem }: VehicleListProps) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   // CAM-153: sin señal se muestra la última flota cargada, con la hora.
@@ -98,6 +102,7 @@ export function VehicleList({ onSelectVehicle, notice }: VehicleListProps) {
         <p className="screen__subtitle">Elegí un vehículo para iniciar la inspección</p>
       </header>
 
+      {confirmation && <p className="info-banner">{confirmation}</p>}
       {notice && <p className="error-banner">{notice}</p>}
       {error && <p className="error-banner">{error}</p>}
       {offlineSince && (
@@ -190,6 +195,15 @@ export function VehicleList({ onSelectVehicle, notice }: VehicleListProps) {
                   </span>
                 )}
               </button>
+              {/* Con el pre-viaje todavía sin enviar, el servidor no conoce el viaje: el reporte en ruta espera la señal. */}
+              {isMine && !pending && (
+                <div className="vehicle-list__trip-actions">
+                  <button type="button" className="vehicle-card__report" onClick={() => onReportProblem(vehicle)}>
+                    <AlertTriangleIcon aria-hidden="true" />
+                    Reportar un problema
+                  </button>
+                </div>
+              )}
             </li>
           );
         })}

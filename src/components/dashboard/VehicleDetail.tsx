@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
 import { VEHICLE_TABS, type VehicleTab } from '../../hooks/useAdminRoute';
 import { ApiError } from '../../services/apiClient';
+import { isReportedOnRoad } from '../../services/defectsService';
 import { deactivateVehicle, getVehicle, getVehicleHistory, updateVehicle } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
 import type { DefectSummary, Vehicle, VehicleHistory, WorkOrder, WorkOrderStatus } from '../../types/domain';
 import { formatDayAndTime } from '../../utils/dateFormat';
 import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
-import { workOrderResponsible } from '../../utils/workOrderFormat';
+import { isOpenWorkOrder, workOrderResponsible } from '../../utils/workOrderFormat';
 import { AlertOctagonIcon, AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, HistoryIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
 import { ExportHistoryModal } from './ExportHistoryModal';
@@ -20,6 +21,7 @@ import { VehicleQrCard } from './VehicleQrCard';
 import { VehicleRecurringDefectsCard } from './VehicleRecurringDefectsCard';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
+import { describeTripKmAlert } from '../../utils/tripKmAlert';
 import '../../styles/dashboard.css';
 
 interface VehicleDetailProps {
@@ -70,12 +72,13 @@ function sortDefects(defects: DefectSummary[]): DefectSummary[] {
 
 const WORK_ORDER_STATUS_RANK: Record<WorkOrderStatus, number> = {
   en_proceso: 0,
-  asignada: 1,
-  finalizada: 2,
-  cancelada: 3,
+  en_espera: 1,
+  asignada: 2,
+  finalizada: 3,
+  cancelada: 4,
 };
 
-/** Abiertas (en proceso, después asignadas) primero, más reciente primero dentro de cada grupo. */
+/** Abiertas (en proceso, en espera, después asignadas) primero, más reciente primero dentro de cada grupo. */
 function sortWorkOrders(workOrders: WorkOrder[]): WorkOrder[] {
   return [...workOrders].sort((a, b) => {
     const rankDiff = WORK_ORDER_STATUS_RANK[a.status] - WORK_ORDER_STATUS_RANK[b.status];
@@ -229,7 +232,7 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
   const blockReasons = vehicle?.blockReasons ?? [];
   const expiredDocuments = blockReasons.some((r) => r.type === 'expired_document');
   const blockingDefects = history?.defects.filter((d) => d.status === 'open' && d.severity === 'blocking').length ?? 0;
-  const openWorkOrders = workOrders?.filter((wo) => wo.status === 'asignada' || wo.status === 'en_proceso').length ?? 0;
+  const openWorkOrders = workOrders?.filter(isOpenWorkOrder).length ?? 0;
 
   return (
     <section className="vehicle-detail">
@@ -416,7 +419,15 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
                           {formatDateTime(i.timestamp)} · {formatKm(i.odometerKm)}
                         </span>
                         {i.notes && <span className="vehicle-detail__item-meta">{i.notes}</span>}
+                        {i.kmAlert && (
+                          <span className="vehicle-detail__item-meta vehicle-detail__km-alert">
+                            {describeTripKmAlert(i.kmAlert)}
+                          </span>
+                        )}
                       </div>
+                      {i.kmAlert && (
+                        <span className="fleet-status-badge fleet-status-badge--por_vencer">Km fuera de lo normal</span>
+                      )}
                       {i.hasBlockingDefect && <SeverityBadge severity="blocking" />}
                     </li>
                   )}
@@ -451,6 +462,12 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
                           {formatDateTime(d.createdAt)}
                           {d.reportedBy ? ` · ${d.reportedBy}` : ''}
                           {d.status === 'resuelto' ? ' · Resuelto' : ''}
+                          {isReportedOnRoad(d) && (
+                            <>
+                              {' · '}
+                              <span className="defect-origin-tag">Reportado en viaje</span>
+                            </>
+                          )}
                         </span>
                         {d.occurredOnTrip && <OccurredOnTripNote occurredOnTrip={d.occurredOnTrip} />}
                       </div>
@@ -527,7 +544,7 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
                           {workOrderResponsible(wo) ? ` · ${workOrderResponsible(wo)}` : ''}
                         </span>
                       </div>
-                      <WorkOrderStatusBadge status={wo.status} />
+                      <WorkOrderStatusBadge status={wo.status} pause={wo.pause} />
                     </li>
                   )}
                 />
