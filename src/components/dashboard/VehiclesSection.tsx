@@ -4,6 +4,7 @@ import type { OdometerResult } from '../../services/vehiclesService';
 import type { Vehicle } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
 import { AlertTriangleIcon, ChevronRightIcon } from '../icons';
+import { ImportVehiclesModal } from './ImportVehiclesModal';
 import { UpdateOdometerModal } from './UpdateOdometerModal';
 import { VehicleFormModal } from './VehicleFormModal';
 import '../../styles/dashboard.css';
@@ -33,6 +34,8 @@ export function VehiclesSection({ onOpenVehicle }: { onOpenVehicle: (vehicleId: 
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(lastShowInactive);
   const [creating, setCreating] = useState(false);
+  // CAM-154: alta de la flota desde un archivo.
+  const [importing, setImporting] = useState(false);
   const [odometerTarget, setOdometerTarget] = useState<Vehicle | null>(null);
   const mountedRef = useRef(true);
 
@@ -78,6 +81,9 @@ export function VehiclesSection({ onOpenVehicle }: { onOpenVehicle: (vehicleId: 
               }} />
             Ver dados de baja
           </label>
+          <button type="button" className="secondary-btn vehicles-section__new-btn" onClick={() => setImporting(true)}>
+            Importar
+          </button>
           <button type="button" className="primary-btn vehicles-section__new-btn" onClick={() => setCreating(true)}>
             + Nuevo vehículo
           </button>
@@ -173,6 +179,8 @@ export function VehiclesSection({ onOpenVehicle }: { onOpenVehicle: (vehicleId: 
       )}
 
       {creating && <VehicleFormModal onClose={() => setCreating(false)} onSaved={handleCreated} />}
+
+      {importing && <ImportVehiclesModal onClose={() => setImporting(false)} onImported={() => load(!showInactive)} />}
 
       {odometerTarget && (
         <UpdateOdometerModal
