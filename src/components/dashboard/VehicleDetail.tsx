@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
 import { VEHICLE_TABS, type VehicleTab } from '../../hooks/useAdminRoute';
 import { ApiError } from '../../services/apiClient';
+import { isReportedOnRoad } from '../../services/defectsService';
 import { deactivateVehicle, getVehicle, getVehicleHistory, updateVehicle } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
 import type { DefectSummary, Vehicle, VehicleHistory, WorkOrder, WorkOrderStatus } from '../../types/domain';
@@ -460,6 +461,12 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
                           {formatDateTime(d.createdAt)}
                           {d.reportedBy ? ` · ${d.reportedBy}` : ''}
                           {d.status === 'resuelto' ? ' · Resuelto' : ''}
+                          {isReportedOnRoad(d) && (
+                            <>
+                              {' · '}
+                              <span className="defect-origin-tag">Reportado en viaje</span>
+                            </>
+                          )}
                         </span>
                       </div>
                       <SeverityBadge severity={d.severity} />

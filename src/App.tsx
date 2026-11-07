@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
+import { RoadDefectForm } from './components/RoadDefectForm';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
 import { NotificationBell } from './components/NotificationBell';
@@ -26,7 +27,11 @@ import type { InspectionType, Role, Vehicle } from './types/domain';
 // Pantallas del chofer. Las del admin van por URL (CAM-82, useAdminRoute); el chofer y el técnico
 // siguen en "/" porque sus flujos tienen datos a medio cargar que una recarga perdería igual. La
 // excepción es /inspeccion/{vehicleId}, la dirección del QR del camión (CAM-133): abre su inspección.
-type Route = { view: 'list' } | { view: 'flow'; vehicle: Vehicle; type: InspectionType };
+type Route =
+  | { view: 'list' }
+  | { view: 'flow'; vehicle: Vehicle; type: InspectionType }
+  // CAM-139: reportar un problema durante el viaje, sin cerrarlo.
+  | { view: 'road-defect'; vehicle: Vehicle };
 
 /** Vista del admin, aparte para que el hook de ruteo solo corra con ese rol. */
 function AdminApp({ onLogout }: { onLogout: () => void }) {
@@ -120,6 +125,8 @@ function App() {
   const [listKey, setListKey] = useState(0);
   // Por qué el chofer volvió a la flota sin poder enviar la inspección (CAM-89).
   const [listNotice, setListNotice] = useState<string | null>(null);
+  // Qué se hizo antes de volver a la flota (CAM-139: el problema reportado en viaje).
+  const [listConfirmation, setListConfirmation] = useState<string | null>(null);
   // CAM-133: el vehículo del QR escaneado. Sobrevive al login: sin sesión se entra y se sigue a ese vehículo.
   const [scannedVehicleId, setScannedVehicleId] = useState<string | null>(() =>
     parseInspectionPath(window.location.pathname),
@@ -191,6 +198,7 @@ function App() {
     window.history.replaceState(null, '', '/');
     setRole(null);
     setListNotice(null);
+    setListConfirmation(null);
     setScannedVehicleId(null);
     setRoute({ view: 'list' });
   }
@@ -199,11 +207,25 @@ function App() {
     // Decisión de producto (CAM-11): un vehículo con viaje abierto solo puede cerrarlo (post-viaje).
     const type: InspectionType = vehicle.status === 'on-trip' ? 'post-trip' : 'pre-trip';
     setListNotice(null);
+    setListConfirmation(null);
     setRoute({ view: 'flow', vehicle, type });
+  }
+
+  function handleReportProblem(vehicle: Vehicle) {
+    setListNotice(null);
+    setListConfirmation(null);
+    setRoute({ view: 'road-defect', vehicle });
+  }
+
+  function handleRoadDefectDone(plate: string) {
+    setListConfirmation(`Problema reportado en ${plate}. Cuando termines, cerrá el viaje con el post-viaje.`);
+    setListKey((k) => k + 1);
+    setRoute({ view: 'list' });
   }
 
   function handleFlowUnavailable(message: string) {
     setListNotice(message);
+    setListConfirmation(null);
     setListKey((k) => k + 1);
     setRoute({ view: 'list' });
   }
@@ -239,7 +261,7 @@ function App() {
 
   return (
     <main className="app mobile-shell">
-      {route.view !== 'flow' && (
+      {route.view === 'list' && (
         <nav className="top-nav top-nav--chofer">
           <NotificationBell onOpenLink={handleDriverNotificationLink} />
           <button type="button" className="top-nav__logout" onClick={handleLogout}>
@@ -248,13 +270,28 @@ function App() {
         </nav>
       )}
       {route.view === 'list' && (
-        <VehicleList key={listKey} onSelectVehicle={handleSelectVehicle} notice={listNotice} />
+        <VehicleList
+          key={listKey}
+          onSelectVehicle={handleSelectVehicle}
+          onReportProblem={handleReportProblem}
+          notice={listNotice}
+          confirmation={listConfirmation}
+        />
       )}
       {route.view === 'flow' && (
         <InspectionFlow
           vehicle={route.vehicle}
           type={route.type}
           onDone={handleFlowDone}
+          onBack={handleFlowBack}
+          onUnavailable={handleFlowUnavailable}
+          onLogout={handleLogout}
+        />
+      )}
+      {route.view === 'road-defect' && (
+        <RoadDefectForm
+          vehicle={route.vehicle}
+          onDone={() => handleRoadDefectDone(route.vehicle.plate)}
           onBack={handleFlowBack}
           onUnavailable={handleFlowUnavailable}
           onLogout={handleLogout}

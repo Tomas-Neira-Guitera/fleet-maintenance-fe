@@ -1,11 +1,7 @@
-import { useRef, useState } from 'react';
-import { ApiError } from '../services/apiClient';
-import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../services/photosService';
-import type { ChecklistItemDef, ChecklistItemState, DefectSeverity } from '../types/domain';
-import { AlertTriangleIcon, CameraIcon } from './icons';
-import { CharCounter } from './CharCounter';
-import { DictatedTextarea } from './DictatedTextarea';
-import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH } from '../utils/textLimits';
+import type { ChecklistItemDef, ChecklistItemState } from '../types/domain';
+import { AlertTriangleIcon } from './icons';
+import { DefectFields } from './DefectFields';
+import { isDefectDetailValid } from '../utils/defectValidation';
 
 interface ChecklistItemCardProps {
   def: ChecklistItemDef;
@@ -16,17 +12,11 @@ interface ChecklistItemCardProps {
 
 function isDefectValid(state: ChecklistItemState): boolean {
   if (state.outcome !== 'defect') return true;
-  const defect = state.defect;
-  if (!defect) return false;
-  if (!defect.description.trim()) return false;
-  if (defect.severity === 'blocking' && (!defect.photoUrl || state.uploading)) return false;
-  return true;
+  if (!state.defect) return false;
+  return isDefectDetailValid({ defect: state.defect, uploading: state.uploading });
 }
 
 export function ChecklistItemCard({ def, state, onChange, showValidation }: ChecklistItemCardProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [photoError, setPhotoError] = useState<string | null>(null);
-
   if (def.type === 'number') {
     const invalid = Boolean(showValidation && def.required && !state.numberValue?.trim());
     return (
@@ -64,42 +54,6 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
     }
   }
 
-  function setSeverity(severity: DefectSeverity) {
-    if (!defect) return;
-    onChange({ ...state, defect: { ...defect, severity } });
-  }
-
-  function setDescription(description: string) {
-    if (!defect) return;
-    onChange({ ...state, defect: { ...defect, description } });
-  }
-
-  function setDetails(details: string) {
-    if (!defect) return;
-    onChange({ ...state, defect: { ...defect, details } });
-  }
-
-  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !defect) return;
-    setPhotoError(null);
-    onChange({ ...state, uploading: true });
-    try {
-      const { photoUrl } = await uploadDefectPhoto(file);
-      onChange({ ...state, defect: { ...defect, photoUrl }, uploading: false });
-    } catch (err) {
-      setPhotoError(err instanceof ApiError ? err.message : 'No se pudo subir la foto. Probá de nuevo.');
-      onChange({ ...state, uploading: false });
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  }
-
-  function removePhoto() {
-    if (!defect) return;
-    onChange({ ...state, defect: { ...defect, photoUrl: undefined } });
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  }
-
   return (
     <div
       className={`checklist-item checklist-item--toggle${hasDefect ? ' checklist-item--expanded' : ''}${invalidDefect ? ' checklist-item--invalid' : ''}`}
@@ -125,97 +79,12 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
       </div>
 
       {hasDefect && defect && (
-        <div className="defect-panel">
-          <div className="defect-panel__field">
-            <span className="defect-panel__field-label">Gravedad</span>
-            <div className="severity-toggle">
-              <button
-                type="button"
-                className={`severity-btn severity-btn--non-blocking${defect.severity === 'non-blocking' ? ' severity-btn--active' : ''}`}
-                onClick={() => setSeverity('non-blocking')}
-                aria-pressed={defect.severity === 'non-blocking'}
-              >
-                No bloqueante
-              </button>
-              <button
-                type="button"
-                className={`severity-btn severity-btn--blocking${defect.severity === 'blocking' ? ' severity-btn--active' : ''}`}
-                onClick={() => setSeverity('blocking')}
-                aria-pressed={defect.severity === 'blocking'}
-              >
-                <AlertTriangleIcon className="severity-btn__icon" />
-                Bloqueante
-              </button>
-            </div>
-          </div>
-
-          <div className="defect-panel__field">
-            <label className="defect-panel__field-label" htmlFor={`${def.id}-desc`}>
-              Título (obligatorio)
-            </label>
-            <input
-              id={`${def.id}-desc`}
-              type="text"
-              className="defect-textarea"
-              maxLength={TITLE_MAX_LENGTH}
-              placeholder="Ej: Foco trasero quemado"
-              value={defect.description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            <CharCounter value={defect.description} />
-          </div>
-
-          <div className="defect-panel__field">
-            <label className="defect-panel__field-label" htmlFor={`${def.id}-details`}>
-              Descripción (opcional)
-            </label>
-            <DictatedTextarea
-              id={`${def.id}-details`}
-              value={defect.details ?? ''}
-              onChange={setDetails}
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              placeholder="Contá qué pasa. Podés dictarlo con el micrófono."
-            />
-          </div>
-
-          <div className="defect-panel__field">
-            <span className="defect-panel__field-label">
-              Foto {defect.severity === 'blocking' ? '(obligatoria)' : '(opcional)'}
-            </span>
-            {state.uploading ? (
-              <span className="muted">Subiendo…</span>
-            ) : defect.photoUrl ? (
-              <div className="photo-preview">
-                <img src={defect.photoUrl} alt="Foto del defecto reportado" />
-                <button type="button" className="photo-preview__remove" onClick={removePhoto}>
-                  Quitar foto
-                </button>
-              </div>
-            ) : (
-              <button type="button" className="photo-attach-btn" onClick={() => fileInputRef.current?.click()}>
-                <CameraIcon className="photo-attach-btn__icon" />
-                Adjuntar foto
-              </button>
-            )}
-            {photoError && <p className="field-error">{photoError}</p>}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_PHOTO_TYPES}
-              capture="environment"
-              className="visually-hidden"
-              onChange={handlePhotoChange}
-            />
-          </div>
-
-          {invalidDefect && (
-            <p className="field-error">
-              {defect.severity === 'blocking'
-                ? 'Los defectos bloqueantes necesitan foto y descripción.'
-                : 'Agregá una descripción del defecto.'}
-            </p>
-          )}
-        </div>
+        <DefectFields
+          idPrefix={def.id}
+          value={{ defect, uploading: state.uploading }}
+          onChange={(next) => onChange({ ...state, defect: next.defect, uploading: next.uploading })}
+          invalid={invalidDefect}
+        />
       )}
     </div>
   );
