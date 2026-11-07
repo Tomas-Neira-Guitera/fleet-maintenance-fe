@@ -183,6 +183,15 @@ export interface Downtime {
   vehicles: VehicleDowntime[];
 }
 
+/** GET /api/maintenance-compliance (CAM-155). openWorkOrders es la foto de hoy, sin el período. */
+export interface MaintenanceCompliance {
+  from: string;
+  to: string;
+  preventive: { onTime: number; late: number; onTimePct: number | null };
+  defects: { resolved: number; avgHours: number | null };
+  openWorkOrders: { total: number; under7Days: number; from7To30Days: number; over30Days: number };
+}
+
 /** Una falla de un control recurrente (CAM-135). */
 export interface RecurringDefectOccurrence {
   defectId: string;

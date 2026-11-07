@@ -3601,3 +3601,9 @@
   font-size: 15px;
   font-weight: 600;
 }
+
+/* CAM-155: indicadores de cumplimiento del mantenimiento, en el Resumen. */
+.compliance-card__overdue {
+  color: var(--fg-critical);
+  font-weight: 600;
+}
