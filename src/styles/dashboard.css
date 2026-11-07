@@ -2157,6 +2157,12 @@
   color: var(--fg-warn);
 }
 
+/* CAM-148: frenada, ni en curso ni terminada. El azul de los gráficos, que no se usa en estados. */
+.work-order-badge--en_espera {
+  background: rgba(71, 104, 165, 0.12);
+  color: var(--fg-chart-1);
+}
+
 .work-order-badge--finalizada {
   background: var(--fg-ok-bg);
   color: var(--fg-ok);
@@ -2200,7 +2206,17 @@
 .wo-detail__top {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+/* CAM-148: por qué está en espera, con el azul de su badge. */
+.wo-detail__pause {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--fg-chart-1);
+  border-radius: 6px;
+  background: rgba(71, 104, 165, 0.06);
 }
 
 .wo-detail__section {
