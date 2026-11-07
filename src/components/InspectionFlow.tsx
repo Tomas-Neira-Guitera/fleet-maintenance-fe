@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getPreTripItems, POST_TRIP_ITEMS } from '../checklist/checklistDefinitions';
-import { ApiError, describeApiError, getUsername, isSessionExpired, SESSION_EXPIRED_MESSAGE } from '../services/apiClient';
+import {
+  ApiError,
+  describeApiError,
+  getUsername,
+  isNetworkError,
+  isSessionExpired,
+  SESSION_EXPIRED_MESSAGE,
+} from '../services/apiClient';
 import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
+import { checklistCacheKey, loadCache, saveCache } from '../offline/offlineCache';
+import { enqueueInspection, hasPendingInspections } from '../offline/pendingInspections';
+import { hasPhoto } from '../utils/defectPhoto';
+import { newUuid } from '../utils/uuid';
 import type {
   ChecklistAnswer,
   ChecklistItemDef,
@@ -33,7 +44,8 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
   NO_OPEN_TRIP: 'ya no tiene un viaje abierto: alguien lo cerró.',
 };
 
-type FlowStep = 'checklist' | 'summary' | 'success';
+// queued: sin señal, quedó guardada en el celular (CAM-153).
+type FlowStep = 'checklist' | 'summary' | 'success' | 'queued';
 
 const SECTION_LABEL: Record<ChecklistSection, string> = {
   exterior: 'Inspección visual (exterior)',
@@ -55,7 +67,7 @@ function isItemValid(def: ChecklistItemDef, state: ChecklistItemState): boolean 
   if (state.outcome !== 'defect') return true;
   const defect = state.defect;
   if (!defect || !defect.description.trim()) return false;
-  if (defect.severity === 'blocking' && (!defect.photoUrl || state.uploading)) return false;
+  if (defect.severity === 'blocking' && (!hasPhoto(defect) || state.uploading)) return false;
   return true;
 }
 
@@ -71,12 +83,15 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   const [loadedItems, setLoadedItems] = useState<ChecklistItemDef[] | null>(null);
   useEffect(() => {
     let cancelled = false;
+    // CAM-153: sin señal, el último checklist que se cargó de ese vehículo.
+    const cacheKey = checklistCacheKey(vehicle.id, type);
     getVehicleChecklist(vehicle.id, type)
       .then((loaded) => {
+        saveCache(cacheKey, loaded);
         if (!cancelled) setLoadedItems(loaded);
       })
       .catch(() => {
-        if (!cancelled) setLoadedItems(fallbackItems);
+        if (!cancelled) setLoadedItems(loadCache<ChecklistItemDef[]>(cacheKey)?.data ?? fallbackItems);
       });
     return () => {
       cancelled = true;
@@ -151,11 +166,37 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
       };
     });
 
+    // CAM-153: la hora en que la hizo y un id para que un reintento no la duplique.
+    const meta = { performedAt: new Date().toISOString(), clientSubmissionId: newUuid() };
+    const queue = () =>
+      enqueueInspection({
+        id: meta.clientSubmissionId,
+        vehicleId: vehicle.id,
+        plate: vehicle.plate,
+        type,
+        answers: fullAnswers,
+        notes: notes.trim() || undefined,
+        performedAt: meta.performedAt,
+      });
+
     try {
-      const { inspection } = await submitInspection(vehicle.id, type, fullAnswers, notes.trim() || undefined);
+      // Sin señal, con una foto que no se pudo subir, o con otras esperando (para respetar el orden): a la cola.
+      const mustQueue =
+        !navigator.onLine || fullAnswers.some((a) => a.defect?.pendingPhoto) || (await hasPendingInspections());
+      if (mustQueue) {
+        await queue();
+        setStep('queued');
+        return;
+      }
+      const { inspection } = await submitInspection(vehicle.id, type, fullAnswers, notes.trim() || undefined, meta);
       setHasBlockingDefect(inspection.hasBlockingDefect);
       setStep('success');
     } catch (err) {
+      if (isNetworkError(err)) {
+        await queue();
+        setStep('queued');
+        return;
+      }
       const unavailable = err instanceof ApiError && err.status === 409 && UNAVAILABLE_MESSAGES[err.errorCode ?? ''];
       if (unavailable) {
         // CAM-89: no tiene sentido reintentar; se avisa y se vuelve a la flota, ya actualizada. Si está
@@ -181,6 +222,30 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     return (
       <div className="screen">
         <p className="muted">Cargando checklist…</p>
+      </div>
+    );
+  }
+
+  if (step === 'queued') {
+    return (
+      <div className="screen screen--success">
+        <div className="success-icon success-icon--ok">
+          <ShieldCheckIcon />
+        </div>
+        <h1 className="screen__title">Inspección guardada</h1>
+        <p className="screen__subtitle">
+          {`El ${type === 'post-trip' ? 'post-viaje' : 'pre-viaje'} de ${vehicle.plate} quedó guardado en el celular. `}
+          Se envía solo cuando vuelva la señal, en el orden en que hiciste las inspecciones.
+        </p>
+        {summaryData.anyBlocking && (
+          <div className="alert alert--critical">
+            <AlertOctagonIcon className="alert__icon" />
+            <span>Reportaste un defecto bloqueante: no salgas con el vehículo. Mantenimiento se entera al enviarse.</span>
+          </div>
+        )}
+        <button type="button" className="primary-btn" onClick={onDone}>
+          Volver a la flota
+        </button>
       </div>
     );
   }

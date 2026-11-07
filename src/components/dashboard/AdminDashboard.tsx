@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FleetAvailabilityCard } from './FleetAvailabilityCard';
 import { FleetKpiCards } from './FleetKpiCards';
 import { FleetStatusTable } from './FleetStatusTable';
+import { MaintenanceComplianceCard } from './MaintenanceComplianceCard';
 import { RecentDefectsCard } from './RecentDefectsCard';
 import { RecurringDefectsCard } from './RecurringDefectsCard';
 import { UpcomingMaintenanceCard } from './UpcomingMaintenanceCard';
@@ -41,6 +42,7 @@ export function AdminDashboard({ onViewDefects, onOpenVehicle }: AdminDashboardP
           </div>
         </div>
         <FleetAvailabilityCard onOpenVehicle={onOpenVehicle} />
+        <MaintenanceComplianceCard />
       </div>
     </div>
   );

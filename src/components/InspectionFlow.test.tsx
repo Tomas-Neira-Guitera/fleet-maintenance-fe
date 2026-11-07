@@ -5,6 +5,8 @@ import { ApiError, saveUsername } from '../services/apiClient';
 import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
 import { uploadDefectPhoto } from '../services/photosService';
+import { checklistCacheKey, saveCache } from '../offline/offlineCache';
+import { listPendingInspections, resetPendingInspectionsForTests } from '../offline/pendingInspections';
 import type { ChecklistItemDef, InspectionType, SubmitInspectionResult, Vehicle } from '../types/domain';
 import { InspectionFlow } from './InspectionFlow';
 
@@ -78,6 +80,7 @@ async function confirmAndSend(user: ReturnType<typeof userEvent.setup>) {
 beforeEach(() => {
   checklistMock.mockImplementation(async (_id, type) => (type === 'pre-trip' ? PRE_TRIP : POST_TRIP));
   saveUsername('carlos.gomez');
+  resetPendingInspectionsForTests();
 });
 
 describe('InspectionFlow — pre-viaje', () => {
@@ -280,6 +283,60 @@ describe('InspectionFlow — errores al enviar', () => {
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Enviar inspección' }));
     expect(await screen.findByRole('heading', { name: 'Inspección enviada' })).toBeInTheDocument();
+  });
+});
+
+describe('InspectionFlow — sin señal (CAM-153)', () => {
+  it('si el envío no llega al servidor la guarda en el celular con la hora en que se hizo', async () => {
+    const user = userEvent.setup();
+    submitMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    const { onDone } = renderFlow();
+    await goToSummary(user);
+
+    await confirmAndSend(user);
+
+    expect(await screen.findByRole('heading', { name: 'Inspección guardada' })).toBeInTheDocument();
+    expect(screen.getByText(/Se envía solo cuando vuelva la señal/)).toBeInTheDocument();
+    const [pending] = await listPendingInspections();
+    expect(pending).toMatchObject({ vehicleId: 'veh-1', plate: 'AB123CD', type: 'pre-trip', status: 'pending' });
+    // El primer intento ya mandó el mismo id: si había llegado, el reintento no la duplica.
+    expect(submitMock.mock.calls[0][4]).toEqual({ performedAt: pending.performedAt, clientSubmissionId: pending.id });
+    await user.click(screen.getByRole('button', { name: 'Volver a la flota' }));
+    expect(onDone).toHaveBeenCalledOnce();
+  });
+
+  it('una foto sacada sin señal queda en el celular y la inspección se guarda sin intentar mandarla', async () => {
+    const user = userEvent.setup();
+    uploadMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    URL.createObjectURL = vi.fn(() => 'blob:foto');
+    renderFlow();
+    await screen.findByRole('heading', { name: 'Pre-viaje' });
+
+    await user.click(screen.getByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    await user.click(screen.getByRole('button', { name: 'Bloqueante' }));
+    await user.type(screen.getByLabelText('Título (obligatorio)'), 'Neumático pinchado');
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(input, new File(['x'], 'goma.jpg', { type: 'image/jpeg' }));
+    expect(await screen.findByText('Sin señal: la foto se sube al mandar la inspección.')).toBeInTheDocument();
+    await goToSummary(user);
+
+    await confirmAndSend(user);
+
+    expect(await screen.findByRole('heading', { name: 'Inspección guardada' })).toBeInTheDocument();
+    expect(screen.getByText(/Reportaste un defecto bloqueante/)).toBeInTheDocument();
+    expect(submitMock).not.toHaveBeenCalled();
+    const [pending] = await listPendingInspections();
+    const tire = pending.answers.find((a) => a.itemId === 'ext-neumaticos');
+    expect(tire?.defect?.pendingPhoto).toBeInstanceOf(Blob);
+    expect(tire?.defect?.pendingPhotoPreview).toBeUndefined();
+  });
+
+  it('sin señal usa el último checklist que se cargó de ese vehículo', async () => {
+    saveCache(checklistCacheKey('veh-1', 'pre-trip'), PRE_TRIP);
+    checklistMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    renderFlow();
+
+    expect(await screen.findByText('Estado de la faja de sujeción')).toBeInTheDocument();
   });
 });
 

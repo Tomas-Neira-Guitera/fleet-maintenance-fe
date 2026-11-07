@@ -84,6 +84,7 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
           value={{ defect, uploading: state.uploading }}
           onChange={(next) => onChange({ ...state, defect: next.defect, uploading: next.uploading })}
           invalid={invalidDefect}
+          keepPhotoOffline
         />
       )}
     </div>

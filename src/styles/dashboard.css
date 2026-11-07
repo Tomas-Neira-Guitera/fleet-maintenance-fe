@@ -3688,3 +3688,85 @@
   max-width: 150px;
 }
 
+/* CAM-154: importar vehículos desde un CSV o un Excel. */
+.vehicle-import__template-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.vehicle-import__picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.vehicle-import__summary {
+  margin: 0;
+  font-weight: 600;
+}
+
+.vehicle-import__table-wrap {
+  max-height: 360px;
+  overflow: auto;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+}
+
+.vehicle-import__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.vehicle-import__table th,
+.vehicle-import__table td {
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: var(--fg-border);
+}
+
+.vehicle-import__table th {
+  position: sticky;
+  top: 0;
+  background: var(--fg-white);
+  font-weight: 600;
+}
+
+.vehicle-import__row--error {
+  background: var(--fg-crit-bg);
+}
+
+.vehicle-import__ok {
+  color: var(--fg-ok);
+  font-weight: 600;
+}
+
+.vehicle-import__errors {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--fg-critical);
+}
+
+.vehicle-import__done {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* CAM-155: indicadores de cumplimiento del mantenimiento, en el Resumen. Mismo panel que Disponibilidad, sin ranking. */
+.compliance-card__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.compliance-card__overdue {
+  color: var(--fg-critical);
+  font-weight: 600;
+}

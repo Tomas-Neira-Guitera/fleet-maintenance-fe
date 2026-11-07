@@ -28,6 +28,31 @@ export async function getVehicles(active = true): Promise<Vehicle[]> {
   return res.json() as Promise<Vehicle[]>;
 }
 
+/** CAM-154: resultado de POST /api/vehicles/import, una entrada por fila mandada. */
+export interface VehicleImportResult {
+  total: number;
+  valid: number;
+  created: number;
+  rows: {
+    row: number;
+    plate: string | null;
+    valid: boolean;
+    errors: { field: string; message: string }[];
+    vehicleId: string | null;
+  }[];
+}
+
+/** POST /api/vehicles/import -- con dryRun valida sin guardar; si no, crea las filas válidas (CAM-154). */
+export async function importVehicles(rows: CreateVehicleData[], dryRun: boolean): Promise<VehicleImportResult> {
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/import?dryRun=${dryRun}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ rows }),
+  });
+  if (!res.ok) return throwApiError(res, 'No se pudo importar la flota');
+  return res.json() as Promise<VehicleImportResult>;
+}
+
 export interface CreateVehicleData {
   plate: string;
   brand: string;

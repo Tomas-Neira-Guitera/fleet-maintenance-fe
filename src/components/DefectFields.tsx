@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ApiError } from '../services/apiClient';
+import { ApiError, isNetworkError } from '../services/apiClient';
 import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../services/photosService';
 import type { DefectSeverity } from '../types/domain';
 import type { DefectFieldsValue } from '../utils/defectValidation';
@@ -15,13 +15,15 @@ interface DefectFieldsProps {
   onChange: (next: DefectFieldsValue) => void;
   /** Muestra el aviso de lo que falta (título, o foto si es bloqueante). */
   invalid?: boolean;
+  /** CAM-153: sin señal, la foto queda en el celular y se sube al mandar la inspección. Solo el checklist. */
+  keepPhotoOffline?: boolean;
 }
 
 /**
  * La carga de un defecto: gravedad, título, descripción dictable y foto. La usan el checklist
  * (ChecklistItemCard) y el reporte durante el viaje (CAM-139, RoadDefectForm).
  */
-export function DefectFields({ idPrefix, value, onChange, invalid }: DefectFieldsProps) {
+export function DefectFields({ idPrefix, value, onChange, invalid, keepPhotoOffline }: DefectFieldsProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const { defect, uploading } = value;
@@ -42,11 +44,25 @@ export function DefectFields({ idPrefix, value, onChange, invalid }: DefectField
     const file = e.target.files?.[0];
     if (!file) return;
     setPhotoError(null);
+    const keepLocally = () =>
+      onChange({
+        ...value,
+        defect: { ...defect, photoUrl: undefined, pendingPhoto: file, pendingPhotoPreview: URL.createObjectURL(file) },
+        uploading: false,
+      });
+    if (keepPhotoOffline && !navigator.onLine && ACCEPTED_PHOTO_TYPES.split(',').includes(file.type)) {
+      keepLocally();
+      return;
+    }
     onChange({ ...value, uploading: true });
     try {
       const { photoUrl } = await uploadDefectPhoto(file);
       onChange({ ...value, defect: { ...defect, photoUrl }, uploading: false });
     } catch (err) {
+      if (keepPhotoOffline && isNetworkError(err)) {
+        keepLocally();
+        return;
+      }
       setPhotoError(err instanceof ApiError ? err.message : 'No se pudo subir la foto. Probá de nuevo.');
       onChange({ ...value, uploading: false });
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -54,7 +70,11 @@ export function DefectFields({ idPrefix, value, onChange, invalid }: DefectField
   }
 
   function removePhoto() {
-    onChange({ ...value, defect: { ...defect, photoUrl: undefined } });
+    if (defect.pendingPhotoPreview) URL.revokeObjectURL(defect.pendingPhotoPreview);
+    onChange({
+      ...value,
+      defect: { ...defect, photoUrl: undefined, pendingPhoto: undefined, pendingPhotoPreview: undefined },
+    });
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -118,9 +138,10 @@ export function DefectFields({ idPrefix, value, onChange, invalid }: DefectField
         </span>
         {uploading ? (
           <span className="muted">Subiendo…</span>
-        ) : defect.photoUrl ? (
+        ) : defect.photoUrl || defect.pendingPhoto ? (
           <div className="photo-preview">
-            <img src={defect.photoUrl} alt="Foto del defecto reportado" />
+            <img src={defect.photoUrl ?? defect.pendingPhotoPreview} alt="Foto del defecto reportado" />
+            {!defect.photoUrl && <p className="photo-preview__pending">Sin señal: la foto se sube al mandar la inspección.</p>}
             <button type="button" className="photo-preview__remove" onClick={removePhoto}>
               Quitar foto
             </button>

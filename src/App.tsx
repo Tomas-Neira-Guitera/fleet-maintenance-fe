@@ -18,6 +18,8 @@ import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
 import { NotificationSettingsSection } from './components/dashboard/NotificationSettingsSection';
 import { adminPath, parseAdminPath, useAdminRoute } from './hooks/useAdminRoute';
+import { clearOfflineCache } from './offline/offlineCache';
+import { startPendingInspectionsSync } from './offline/pendingInspections';
 import { ApiError, authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
 import { getVehicle } from './services/vehiclesService';
 import { parseInspectionPath } from './utils/publicUrl';
@@ -140,6 +142,12 @@ function App() {
     }
   }, [role]);
 
+  // CAM-153: mientras el chofer tiene la app abierta, las inspecciones guardadas sin señal se mandan solas.
+  useEffect(() => {
+    if (role !== 'CHOFER') return;
+    return startPendingInspectionsSync();
+  }, [role]);
+
   // CAM-133: el chofer va directo a la inspección del QR, con la misma regla que la lista: con un
   // viaje abierto, post-viaje. Un técnico va a su vista; el admin, al detalle del vehículo (useAdminRoute).
   useEffect(() => {
@@ -194,6 +202,9 @@ function App() {
     // usuario, y si entra otro, al abrir la campanita pasan a ser suyas.
     if (!isSessionTokenExpired()) void disablePush(authHeaders());
     clearSession();
+    // CAM-153: la flota guardada para trabajar sin señal es del que se fue. Las inspecciones pendientes no se
+    // borran: son de ese chofer y se mandan cuando vuelva a entrar.
+    clearOfflineCache();
     // El próximo que entre arranca de cero, no en la última pantalla del admin anterior.
     window.history.replaceState(null, '', '/');
     setRole(null);

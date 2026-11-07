@@ -359,6 +359,48 @@
   margin: 0;
 }
 
+/* CAM-153: sin señal -- la flota guardada y las inspecciones que esperan para enviarse. */
+.offline-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--fg-warn-bg);
+  color: var(--fg-text);
+  border-radius: var(--fg-radius);
+  padding: 12px 14px;
+  font-size: 14px;
+  margin: 0;
+}
+
+.offline-banner p {
+  margin: 0;
+}
+
+.offline-banner__list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.offline-rejected {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.offline-rejected p {
+  margin: 0;
+}
+
+.photo-preview__pending {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
 /* CAM-85: la sesión venció al enviar la inspección; el aviso trae el botón para volver a entrar. */
 .session-expired {
   display: flex;
@@ -1168,6 +1210,35 @@
   gap: 4px;
   font-size: 12px;
   color: rgba(62, 74, 66, 0.65);
+}
+
+/* CAM-146: filtro "Ocurridos en el viaje" y la marca de cada defecto. */
+.defect-filter {
+  display: flex;
+  gap: 8px;
+  max-width: 420px;
+  margin-bottom: 12px;
+}
+
+.occurred-on-trip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.occurred-on-trip__badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-warn-bg);
+  color: var(--fg-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.occurred-on-trip__meta {
+  color: var(--fg-text-muted);
 }
 
 /* OT abierta que está resolviendo el defecto (CAM-60), debajo de la patente y la fecha. */

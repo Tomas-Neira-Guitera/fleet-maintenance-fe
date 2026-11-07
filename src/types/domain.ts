@@ -77,6 +77,10 @@ export interface DefectDetail {
   /** Descripción larga, opcional; se puede dictar (CAM-32). */
   details?: string;
   photoUrl?: string;
+  /** CAM-153: foto sacada sin señal, guardada en el celular hasta poder subirla. */
+  pendingPhoto?: Blob;
+  /** CAM-153: URL local para mostrar pendingPhoto mientras tanto. No se guarda con la inspección pendiente. */
+  pendingPhotoPreview?: string;
 }
 
 export type CheckOutcome = 'ok' | 'defect';
@@ -136,6 +140,18 @@ export interface DefectSummary {
   details?: string | null;
   /** Dónde se reportó (CAM-139): on-road es "Reportado en viaje". */
   source?: DefectSource;
+  /** CAM-146: presente si apareció durante el viaje (en el pre-viaje ese control dio OK). */
+  occurredOnTrip?: OccurredOnTrip | null;
+}
+
+/** CAM-146: el viaje en que apareció un defecto del post-viaje. */
+export interface OccurredOnTrip {
+  tripId: string;
+  tripStartedAt: string | null;
+  tripEndedAt: string | null;
+  /** El pre-viaje en que el control dio OK; null si el viaje no lo tiene guardado. */
+  preTripInspectionId: string | null;
+  preTripAt: string | null;
 }
 
 /** CAM-139: en el checklist del pre-viaje o del post-viaje, o durante el viaje. */
@@ -173,6 +189,15 @@ export interface Downtime {
   fleet: Omit<VehicleDowntime, 'vehicleId' | 'plate'>;
   /** De más horas fuera de servicio a menos. */
   vehicles: VehicleDowntime[];
+}
+
+/** GET /api/maintenance-compliance (CAM-155). openWorkOrders es la foto de hoy, sin el período. */
+export interface MaintenanceCompliance {
+  from: string;
+  to: string;
+  preventive: { onTime: number; late: number; onTimePct: number | null };
+  defects: { resolved: number; avgHours: number | null };
+  openWorkOrders: { total: number; under7Days: number; from7To30Days: number; over30Days: number };
 }
 
 /** Una falla de un control recurrente (CAM-135). */

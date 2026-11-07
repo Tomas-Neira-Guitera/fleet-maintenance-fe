@@ -1,4 +1,5 @@
 import type { DefectDetail } from '../types/domain';
+import { hasPhoto } from './defectPhoto';
 
 /** Un defecto mientras se carga: lo que va al backend, y si su foto se está subiendo. */
 export interface DefectFieldsValue {
@@ -13,6 +14,6 @@ export interface DefectFieldsValue {
  */
 export function isDefectDetailValid({ defect, uploading }: DefectFieldsValue): boolean {
   if (!defect.description.trim()) return false;
-  if (defect.severity === 'blocking' && (!defect.photoUrl || uploading)) return false;
+  if (defect.severity === 'blocking' && (!hasPhoto(defect) || uploading)) return false;
   return true;
 }
