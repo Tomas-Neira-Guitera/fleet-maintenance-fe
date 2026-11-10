@@ -44,7 +44,8 @@ export function FuelLoadScreen({ vehicle, onDone, onBack, onUnavailable, onLogou
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const load = await createFuelLoad(toFuelInput(vehicle.id, value));
+      // La hora es la del envío, no la de cuando abrió la pantalla.
+      const load = await createFuelLoad(toFuelInput(vehicle.id, { ...value, loadedAt: toLocalDateTimeInput(new Date()) }));
       onDone(`Carga de ${formatLiters(load.liters)} registrada en ${vehicle.plate}.`);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -76,6 +77,7 @@ export function FuelLoadScreen({ vehicle, onDone, onBack, onUnavailable, onLogou
             currentKm={vehicle.odometerKm}
             inputClassName="number-input"
             fieldClassName="fuel-form__field"
+            showDate={false}
           />
           {showValidation && !valid && <p className="field-error">Completá los km, los litros y el monto.</p>}
         </div>

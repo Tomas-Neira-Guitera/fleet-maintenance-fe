@@ -12,24 +12,36 @@ interface FuelLoadFieldsProps {
   /** Clase de los inputs: la del formulario del chofer o la de los modales del admin. */
   inputClassName: string;
   fieldClassName: string;
+  /** El chofer carga en el momento: sin fecha, se manda la hora actual. */
+  showDate?: boolean;
 }
 
 /** CAM-156: los campos de una carga de combustible, iguales para el chofer y para el admin. */
-export function FuelLoadFields({ value, onChange, currentKm, idPrefix, inputClassName, fieldClassName }: FuelLoadFieldsProps) {
+export function FuelLoadFields({
+  value,
+  onChange,
+  currentKm,
+  idPrefix,
+  inputClassName,
+  fieldClassName,
+  showDate = true,
+}: FuelLoadFieldsProps) {
   const set = (patch: Partial<FuelLoadFieldsValue>) => onChange({ ...value, ...patch });
   return (
     <>
-      <div className={fieldClassName} role="group" aria-labelledby={`${idPrefix}-when`}>
-        <label id={`${idPrefix}-when`} htmlFor={`${idPrefix}-when-day`}>
-          Fecha y hora
-        </label>
-        <DateTimePicker
-          id={`${idPrefix}-when-day`}
-          value={value.loadedAt}
-          onChange={(loadedAt) => set({ loadedAt })}
-          className={inputClassName}
-        />
-      </div>
+      {showDate && (
+        <div className={fieldClassName} role="group" aria-labelledby={`${idPrefix}-when`}>
+          <label id={`${idPrefix}-when`} htmlFor={`${idPrefix}-when-day`}>
+            Fecha y hora
+          </label>
+          <DateTimePicker
+            id={`${idPrefix}-when-day`}
+            value={value.loadedAt}
+            onChange={(loadedAt) => set({ loadedAt })}
+            className={inputClassName}
+          />
+        </div>
+      )}
       <label className={fieldClassName}>
         Kilómetros del odómetro
         <input
