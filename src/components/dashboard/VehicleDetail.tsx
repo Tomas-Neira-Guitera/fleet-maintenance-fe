@@ -556,7 +556,7 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
 
       {vehicle && tab === 'checklist' && (
         <div role="tabpanel" id="vehicle-panel-checklist" aria-labelledby="vehicle-tab-checklist">
-          <VehicleChecklistCard vehicleId={vehicle.id} plate={vehicle.plate} />
+          <VehicleChecklistCard vehicleId={vehicle.id} plate={vehicle.plate} inactive={inactive} />
         </div>
       )}
 

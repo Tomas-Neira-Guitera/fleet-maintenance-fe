@@ -61,9 +61,11 @@ export interface CreateVehicleData {
   year?: number;
   chassisNumber?: string;
   odometerKm?: number;
+  /** CAM-150: plantilla cuyos controles se copian al vehículo nuevo. */
+  checklistTemplateId?: string;
 }
 
-export type UpdateVehicleData = Partial<CreateVehicleData> & { active?: boolean };
+export type UpdateVehicleData = Partial<Omit<CreateVehicleData, 'checklistTemplateId'>> & { active?: boolean };
 
 /** POST /api/vehicles -- alta de un vehículo (CAM-25). */
 export async function createVehicle(data: CreateVehicleData): Promise<Vehicle> {

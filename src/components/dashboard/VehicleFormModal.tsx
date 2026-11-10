@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ApiError } from '../../services/apiClient';
+import { getChecklistTemplates } from '../../services/checklistTemplatesService';
 import { createVehicle, updateVehicle } from '../../services/vehiclesService';
-import type { Vehicle } from '../../types/domain';
+import type { ChecklistTemplate, Vehicle } from '../../types/domain';
 import { CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
 
@@ -27,6 +28,23 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
   const [year, setYear] = useState(vehicle?.year != null ? String(vehicle.year) : '');
   const [chassisNumber, setChassisNumber] = useState(vehicle?.chassisNumber ?? '');
   const [odometerKm, setOdometerKm] = useState('');
+  // CAM-150: en el alta, una plantilla de checklist opcional.
+  const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
+  const [checklistTemplateId, setChecklistTemplateId] = useState('');
+
+  useEffect(() => {
+    if (isEdit) return;
+    let cancelled = false;
+    // Sin plantillas (o si falla) el campo no se muestra: el alta sigue igual que antes.
+    getChecklistTemplates()
+      .then((loaded) => {
+        if (!cancelled) setTemplates(loaded);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +66,11 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
       const saved =
         isEdit && vehicle
           ? await updateVehicle(vehicle.id, payload)
-          : await createVehicle({ ...payload, odometerKm: odometerKm.trim() ? Number(odometerKm) : undefined });
+          : await createVehicle({
+              ...payload,
+              odometerKm: odometerKm.trim() ? Number(odometerKm) : undefined,
+              checklistTemplateId: checklistTemplateId || undefined,
+            });
       onSaved(saved);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo guardar el vehículo. Intentá de nuevo.');
@@ -138,6 +160,23 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
                 onChange={(e) => setOdometerKm(e.target.value)}
                 placeholder="Ej: 15000"
               />
+            </label>
+          )}
+          {!isEdit && templates.length > 0 && (
+            <label className="schedule-picker__field">
+              Plantilla de checklist (opcional)
+              <select
+                className="schedule-picker__input"
+                value={checklistTemplateId}
+                onChange={(e) => setChecklistTemplateId(e.target.value)}
+              >
+                <option value="">Sin plantilla</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.items.length} {t.items.length === 1 ? 'control' : 'controles'})
+                  </option>
+                ))}
+              </select>
             </label>
           )}
 

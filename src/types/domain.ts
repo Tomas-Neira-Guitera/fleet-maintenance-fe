@@ -740,3 +740,25 @@ export interface VehicleComparison {
   vehicles: VehicleComparisonRow[];
   fleet: VehicleComparisonAverages;
 }
+
+/** CAM-150: plantilla de controles que el admin copia a varios vehículos. */
+export interface ChecklistTemplateItem {
+  id: string;
+  label: string;
+  type: ChecklistItemType;
+  section: Exclude<ChecklistSection, 'posttrip'>;
+}
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  items: ChecklistTemplateItem[];
+  createdAt: string;
+}
+
+export interface ApplyChecklistTemplateResult {
+  templateId: string;
+  added: number;
+  skipped: number;
+  vehicles: { vehicleId: string; plate: string; added: number; skipped: number; skippedLabels: string[] }[];
+}

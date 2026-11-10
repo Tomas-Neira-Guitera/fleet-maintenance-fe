@@ -9,6 +9,7 @@ import { NotificationBell } from './components/NotificationBell';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { AdminShell } from './components/dashboard/AdminShell';
 import { VehicleComparisonSection } from './components/dashboard/VehicleComparisonSection';
+import { ChecklistTemplatesSection } from './components/dashboard/ChecklistTemplatesSection';
 import { VehiclesSection } from './components/dashboard/VehiclesSection';
 import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
@@ -41,7 +42,7 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
   const activeTab =
     route.view === 'tab'
       ? route.tab
-      : route.view === 'vehicle' || route.view === 'vehicle-comparison'
+      : route.view === 'vehicle' || route.view === 'vehicle-comparison' || route.view === 'checklist-templates'
         ? 'vehiculos'
         : route.view === 'vehicle-expenses'
           ? 'gastos'
@@ -83,6 +84,8 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
             onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
           />
+        ) : route.view === 'checklist-templates' ? (
+          <ChecklistTemplatesSection onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })} />
         ) : route.view === 'vehicle-expenses' ? (
           // key: llegar con otro vehículo, o volver a Gastos sin filtro, arranca la pestaña de cero.
           <ExpensesSection key={route.vehicleId} onLogout={onLogout} initialVehicleId={route.vehicleId} />
@@ -96,6 +99,7 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
           <VehiclesSection
             onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
             onCompare={() => navigate({ view: 'vehicle-comparison' })}
+            onOpenTemplates={() => navigate({ view: 'checklist-templates' })}
           />
         ) : activeTab === 'planes' ? (
           <MaintenancePlansSection />
