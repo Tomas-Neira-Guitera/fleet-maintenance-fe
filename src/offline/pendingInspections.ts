@@ -5,7 +5,7 @@
 import { ApiError, describeApiError, getSessionUserId, isNetworkError, isSessionExpired } from '../services/apiClient';
 import { submitInspection } from '../services/inspectionsService';
 import { uploadDefectPhoto } from '../services/photosService';
-import type { ChecklistAnswer, InspectionType } from '../types/domain';
+import type { ChecklistAnswer, InspectionType, TreadReading } from '../types/domain';
 
 export interface PendingInspection {
   /** También es el clientSubmissionId: con él el servidor reconoce un reintento. */
@@ -17,6 +17,8 @@ export interface PendingInspection {
   answers: ChecklistAnswer[];
   notes?: string;
   performedAt: string;
+  /** CAM-157: el dibujo de las cubiertas que anotó en el pre-viaje. */
+  treadReadings?: TreadReading[];
   status: 'pending' | 'rejected';
   /** Por qué el servidor la rechazó. */
   error?: string;
@@ -177,6 +179,7 @@ async function sync(): Promise<SyncResult> {
       await submitInspection(item.vehicleId, item.type, answers, item.notes, {
         performedAt: item.performedAt,
         clientSubmissionId: item.id,
+        treadReadings: item.treadReadings,
       });
       await store.remove(item.id);
       sent++;

@@ -10,9 +10,11 @@ import {
 } from '../services/apiClient';
 import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
-import { checklistCacheKey, loadCache, saveCache } from '../offline/offlineCache';
+import { getTirePositions } from '../services/tiresService';
+import { checklistCacheKey, loadCache, saveCache, tirePositionsCacheKey } from '../offline/offlineCache';
 import { enqueueInspection, hasPendingInspections } from '../offline/pendingInspections';
 import { hasPhoto } from '../utils/defectPhoto';
+import { parseTreadInputs } from '../utils/tireFormat';
 import { newUuid } from '../utils/uuid';
 import type {
   ChecklistAnswer,
@@ -20,9 +22,11 @@ import type {
   ChecklistItemState,
   ChecklistSection,
   InspectionType,
+  TirePositionRef,
   Vehicle,
 } from '../types/domain';
 import { ChecklistItemCard } from './ChecklistItemCard';
+import { TreadReadingsCard } from './TreadReadingsCard';
 import { HealthRing, type RingStatus } from './HealthRing';
 import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, ShieldCheckIcon } from './icons';
 
@@ -98,6 +102,28 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     };
   }, [vehicle.id, type, fallbackItems]);
   const items = useMemo(() => loadedItems ?? [], [loadedItems]);
+
+  // CAM-157: en el pre-viaje, las cubiertas montadas para anotar el dibujo. Sin señal, las últimas que se cargaron;
+  // si no hay ninguna, el bloque no aparece.
+  const [tirePositions, setTirePositions] = useState<TirePositionRef[]>([]);
+  const [treadValues, setTreadValues] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (type !== 'pre-trip') return;
+    let cancelled = false;
+    const cacheKey = tirePositionsCacheKey(vehicle.id);
+    getTirePositions(vehicle.id)
+      .then((loaded) => {
+        saveCache(cacheKey, loaded);
+        if (!cancelled) setTirePositions(loaded);
+      })
+      .catch(() => {
+        if (!cancelled) setTirePositions(loadCache<TirePositionRef[]>(cacheKey)?.data ?? []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicle.id, type]);
+  const treadReadings = parseTreadInputs(treadValues);
   const checkItems = useMemo(() => items.filter((i) => i.type === 'check'), [items]);
 
   const [step, setStep] = useState<FlowStep>('checklist');
@@ -116,7 +142,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   }
 
   const defectCount = checkItems.filter((def) => stateOf(def).outcome === 'defect').length;
-  const allValid = items.every((def) => isItemValid(def, stateOf(def)));
+  const allValid = items.every((def) => isItemValid(def, stateOf(def))) && treadReadings !== null;
 
   function updateItem(id: string, next: ChecklistItemState) {
     setAnswers((prev) => ({ ...prev, [id]: next }));
@@ -167,7 +193,11 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     });
 
     // CAM-153: la hora en que la hizo y un id para que un reintento no la duplique.
-    const meta = { performedAt: new Date().toISOString(), clientSubmissionId: newUuid() };
+    const meta = {
+      performedAt: new Date().toISOString(),
+      clientSubmissionId: newUuid(),
+      treadReadings: treadReadings && treadReadings.length > 0 ? treadReadings : undefined,
+    };
     const queue = () =>
       enqueueInspection({
         id: meta.clientSubmissionId,
@@ -177,6 +207,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
         answers: fullAnswers,
         notes: notes.trim() || undefined,
         performedAt: meta.performedAt,
+        treadReadings: meta.treadReadings,
       });
 
     try {
@@ -314,6 +345,12 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
           <p className="muted summary-no-defects">Sin defectos reportados. Todo en orden.</p>
         )}
 
+        {treadReadings && treadReadings.length > 0 && (
+          <p className="muted">
+            Dibujo anotado en {treadReadings.length} {treadReadings.length === 1 ? 'cubierta' : 'cubiertas'}.
+          </p>
+        )}
+
         <label className="confirm-check">
           <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
           Declaro que la información es correcta
@@ -380,6 +417,15 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
           </div>
         </section>
       ))}
+
+      {type === 'pre-trip' && tirePositions.length > 0 && (
+        <TreadReadingsCard
+          positions={tirePositions}
+          values={treadValues}
+          onChange={setTreadValues}
+          invalid={showValidation && treadReadings === null}
+        />
+      )}
 
       {type === 'post-trip' && (
         <section className="checklist-section">

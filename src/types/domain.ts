@@ -797,3 +797,105 @@ export interface VehicleFuel {
   monthly: (FuelPeriod & { month: string })[];
   loads: FuelLoad[];
 }
+
+/** CAM-157: neumáticos. */
+export type TireLayout = '4_ruedas' | '6_ruedas' | '10_ruedas';
+export type TireStatus = 'stock' | 'mounted' | 'retired';
+
+export interface TreadMeasurement {
+  depthMm: number;
+  measuredAt: string;
+  measuredBy: string | null;
+  belowMinimum: boolean;
+}
+
+export interface Tire {
+  id: string;
+  code: string | null;
+  brand: string;
+  model: string | null;
+  size: string;
+  purchaseDate: string;
+  cost: number;
+  initialTreadMm: number | null;
+  status: TireStatus;
+  retiredAt: string | null;
+  retiredReason: string | null;
+  /** Lo que rodó en todos sus montajes; el auxilio no suma. */
+  km: number;
+  costPerKm: number | null;
+  current: {
+    vehicleId: string;
+    plate: string;
+    position: string;
+    positionLabel: string;
+    mountedAt: string;
+    mountedKm: number;
+  } | null;
+  lastTread: TreadMeasurement | null;
+}
+
+export interface TireMounting {
+  tireId: string;
+  tireLabel: string;
+  vehicleId: string;
+  plate: string;
+  position: string;
+  positionLabel: string;
+  mountedAt: string;
+  mountedKm: number;
+  removedAt: string | null;
+  removedKm: number | null;
+  km: number;
+}
+
+export interface VehicleTirePosition {
+  position: string;
+  label: string;
+  /** 1 el delantero, 0 el auxilio. */
+  axle: number;
+  side: 'izq' | 'der' | null;
+  inner: boolean;
+  tire: Tire | null;
+}
+
+export interface VehicleTires {
+  vehicleId: string;
+  plate: string;
+  layout: TireLayout | null;
+  odometerKm: number;
+  minTreadMm: number;
+  positions: VehicleTirePosition[];
+  history: TireMounting[];
+}
+
+export interface TireDetail {
+  tire: Tire;
+  mountings: TireMounting[];
+  treads: TreadMeasurement[];
+}
+
+export interface TireBrandComparison {
+  minKm: number;
+  brands: {
+    brand: string;
+    tires: number;
+    retired: number;
+    totalKm: number;
+    totalCost: number;
+    costPerKm: number;
+    averageKm: number;
+  }[];
+}
+
+/** Una medición del dibujo, en el pre-viaje o cargada por el admin. */
+export interface TreadReading {
+  position: string;
+  depthMm: number;
+}
+
+/** Posición con cubierta montada, para el pre-viaje del chofer. */
+export interface TirePositionRef {
+  position: string;
+  label: string;
+}

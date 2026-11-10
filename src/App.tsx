@@ -11,6 +11,7 @@ import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { AdminShell } from './components/dashboard/AdminShell';
 import { VehicleComparisonSection } from './components/dashboard/VehicleComparisonSection';
 import { ChecklistTemplatesSection } from './components/dashboard/ChecklistTemplatesSection';
+import { TiresSection } from './components/dashboard/TiresSection';
 import { VehiclesSection } from './components/dashboard/VehiclesSection';
 import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
@@ -45,7 +46,10 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
   const activeTab =
     route.view === 'tab'
       ? route.tab
-      : route.view === 'vehicle' || route.view === 'vehicle-comparison' || route.view === 'checklist-templates'
+      : route.view === 'vehicle' ||
+          route.view === 'vehicle-comparison' ||
+          route.view === 'checklist-templates' ||
+          route.view === 'tires'
         ? 'vehiculos'
         : route.view === 'vehicle-expenses'
           ? 'gastos'
@@ -81,11 +85,17 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             onSelectTab={(tab) => navigate({ view: 'vehicle', vehicleId: route.vehicleId, tab })}
             onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
             onViewExpenses={() => navigate({ view: 'vehicle-expenses', vehicleId: route.vehicleId })}
+            onOpenTires={() => navigate({ view: 'tires' })}
           />
         ) : route.view === 'vehicle-comparison' ? (
           <VehicleComparisonSection
             onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
             onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
+          />
+        ) : route.view === 'tires' ? (
+          <TiresSection
+            onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId, tab: 'neumaticos' })}
           />
         ) : route.view === 'checklist-templates' ? (
           <ChecklistTemplatesSection onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })} />
@@ -108,6 +118,7 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
             onCompare={() => navigate({ view: 'vehicle-comparison' })}
             onOpenTemplates={() => navigate({ view: 'checklist-templates' })}
+            onOpenTires={() => navigate({ view: 'tires' })}
           />
         ) : activeTab === 'planes' ? (
           <MaintenancePlansSection />

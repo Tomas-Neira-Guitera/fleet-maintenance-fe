@@ -16,6 +16,7 @@ import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleCostsCard } from './VehicleCostsCard';
 import { VehicleDocumentsTab } from './VehicleDocumentsTab';
 import { VehicleFuelTab } from './VehicleFuelTab';
+import { VehicleTiresTab } from './VehicleTiresTab';
 import { VehicleFormModal } from './VehicleFormModal';
 import { OccurredOnTripNote } from '../OccurredOnTripNote';
 import { VehicleQrCard } from './VehicleQrCard';
@@ -33,6 +34,8 @@ interface VehicleDetailProps {
   onBack: () => void;
   /** Abre la pestaña Gastos filtrada por este vehículo (CAM-105). */
   onViewExpenses: () => void;
+  /** CAM-157: abre el inventario de cubiertas. */
+  onOpenTires?: () => void;
 }
 
 function formatDateTime(iso: string): string {
@@ -45,6 +48,7 @@ const TAB_LABEL: Record<VehicleTab, string> = {
   checklist: 'Checklist',
   documentacion: 'Documentación',
   combustible: 'Combustible',
+  neumaticos: 'Neumáticos',
 };
 
 /** CAM-87: si está en viaje, quién lo tiene y desde cuándo; CAM-89/CAM-127: si no puede salir (el porqué va aparte). */
@@ -127,7 +131,14 @@ function CollapsibleList<T>({ items, renderItem, limit = LIST_PREVIEW_LIMIT }: C
  * aparte de /history -- son un recurso propio (GET /api/work-orders?vehicleId=),
  * no un campo del historial.
  */
-export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack, onViewExpenses }: VehicleDetailProps) {
+export function VehicleDetail({
+  vehicleId,
+  tab = 'resumen',
+  onSelectTab,
+  onBack,
+  onViewExpenses,
+  onOpenTires,
+}: VehicleDetailProps) {
   const tabRefs = useRef<Partial<Record<VehicleTab, HTMLButtonElement | null>>>({});
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [history, setHistory] = useState<VehicleHistory | null>(null);
@@ -577,6 +588,12 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
             readOnly={inactive}
             onChanged={() => void reloadVehicle()}
           />
+        </div>
+      )}
+
+      {vehicle && tab === 'neumaticos' && (
+        <div role="tabpanel" id="vehicle-panel-neumaticos" aria-labelledby="vehicle-tab-neumaticos">
+          <VehicleTiresTab vehicleId={vehicle.id} readOnly={inactive} onOpenTires={onOpenTires} />
         </div>
       )}
 

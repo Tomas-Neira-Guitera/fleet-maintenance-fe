@@ -41,3 +41,8 @@ export const VEHICLES_CACHE_KEY = 'vehicles';
 export function checklistCacheKey(vehicleId: string, type: string): string {
   return `checklist.${vehicleId}.${type}`;
 }
+
+/** CAM-157: las posiciones con cubierta del vehículo, para anotar el dibujo sin señal. */
+export function tirePositionsCacheKey(vehicleId: string): string {
+  return `tire-positions.${vehicleId}`;
+}

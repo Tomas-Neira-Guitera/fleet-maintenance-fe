@@ -1,0 +1,238 @@
+/* CAM-157: neumáticos. */
+.tread-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tread-card__hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.tread-card__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.tread-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tread-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--fg-text);
+}
+
+.tread-card__input {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.tread-card__input .number-input {
+  width: 76px;
+  text-align: right;
+}
+
+/* Esquema del vehículo: un eje por fila, izquierda y derecha a los lados. */
+.tire-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 12px 0;
+}
+
+.tire-diagram__axle {
+  display: grid;
+  grid-template-columns: 1fr 64px 1fr;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.tire-diagram__axle-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+  border-left: 2px dashed var(--fg-border-color);
+  border-right: 2px dashed var(--fg-border-color);
+  text-align: center;
+}
+
+.tire-diagram__side {
+  display: flex;
+  gap: 8px;
+}
+
+.tire-diagram__side--izq {
+  justify-content: flex-end;
+}
+
+.tire-slot {
+  flex: 1;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+  font-size: 13px;
+  color: var(--fg-text);
+}
+
+.tire-slot--empty {
+  border-style: dashed;
+  color: var(--fg-text-muted);
+}
+
+.tire-slot--low {
+  border-color: var(--fg-critical);
+  background: var(--fg-crit-bg);
+}
+
+.tire-slot__position {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-text-muted);
+}
+
+.tire-slot__name {
+  font-weight: 600;
+}
+
+.tire-slot__meta {
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
+.tire-slot__tread--low {
+  color: var(--fg-critical);
+  font-weight: 600;
+}
+
+.tire-slot__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tire-slot__actions button {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.tire-diagram__spare {
+  display: flex;
+  justify-content: center;
+}
+
+.tires-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tires-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tire-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tire-status--stock {
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok);
+}
+
+.tire-status--mounted {
+  background: var(--fg-bg);
+  color: var(--fg-text);
+}
+
+.tire-status--retired {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+}
+
+.tires-section__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tires-section__brands {
+  max-width: 640px;
+}
+
+.tires-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
+}
+
+.tires-section .fleet-status__vehicle-name {
+  white-space: nowrap;
+}
+
+.tires-section .vehicle-fuel__actions {
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .tire-diagram__axle {
+    grid-template-columns: 1fr 28px 1fr;
+  }
+
+  .tire-diagram__side {
+    flex-direction: column;
+  }
+}
+
+.tire-layout-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.tire-modal__fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

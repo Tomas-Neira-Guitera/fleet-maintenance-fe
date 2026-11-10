@@ -1,4 +1,4 @@
-import type { ChecklistAnswer, InspectionType, SubmitInspectionResult } from '../types/domain';
+import type { ChecklistAnswer, InspectionType, SubmitInspectionResult, TreadReading } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 interface WireAnswer {
@@ -29,6 +29,8 @@ export function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
 export interface SubmissionMeta {
   performedAt?: string;
   clientSubmissionId?: string;
+  /** CAM-157: dibujo de las cubiertas, solo en el pre-viaje. */
+  treadReadings?: TreadReading[];
 }
 
 /** POST /api/inspections/{vehicleId} -- el chofer es el del token (CAM-85): 401 si la sesión venció. */
@@ -48,6 +50,7 @@ export async function submitInspection(
       notes,
       performedAt: meta.performedAt,
       clientSubmissionId: meta.clientSubmissionId,
+      treadReadings: meta.treadReadings?.length ? meta.treadReadings : undefined,
     }),
   });
   if (!res.ok) return throwApiError(res, 'No se pudo enviar la inspección');

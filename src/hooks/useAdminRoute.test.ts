@@ -41,3 +41,14 @@ describe('pestaña Combustible del vehículo (CAM-156)', () => {
     expect(parseAdminPath('/vehiculos/v-1/combustible')).toEqual({ view: 'vehicle', vehicleId: 'v-1', tab: 'combustible' });
   });
 });
+
+describe('neumáticos (CAM-157)', () => {
+  it('la pestaña del vehículo tiene la dirección del aviso de dibujo bajo', () => {
+    expect(parseAdminPath('/vehiculos/v-1/neumaticos')).toEqual({ view: 'vehicle', vehicleId: 'v-1', tab: 'neumaticos' });
+  });
+
+  it('el inventario tiene su dirección y "cubiertas" no se lee como un vehículo', () => {
+    expect(adminPath({ view: 'tires' })).toBe('/vehiculos/cubiertas');
+    expect(parseAdminPath('/vehiculos/cubiertas')).toEqual({ view: 'tires' });
+  });
+});

@@ -35,9 +35,11 @@ interface VehiclesSectionProps {
   onCompare: () => void;
   /** CAM-150: abre las plantillas de checklist. */
   onOpenTemplates: () => void;
+  /** CAM-157: abre el inventario de cubiertas. */
+  onOpenTires: () => void;
 }
 
-export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates }: VehiclesSectionProps) {
+export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onOpenTires }: VehiclesSectionProps) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(lastShowInactive);
@@ -91,6 +93,9 @@ export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates }: V
           </label>
           <button type="button" className="secondary-btn vehicles-section__new-btn" onClick={onOpenTemplates}>
             Plantillas de checklist
+          </button>
+          <button type="button" className="secondary-btn vehicles-section__new-btn" onClick={onOpenTires}>
+            Cubiertas
           </button>
           <button type="button" className="secondary-btn vehicles-section__new-btn" onClick={onCompare}>
             Comparar
