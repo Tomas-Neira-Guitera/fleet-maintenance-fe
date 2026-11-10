@@ -474,7 +474,8 @@ export interface WorkOrderExpense {
  * De dónde nació un gasto: una OT de un plan (preventivo), de un defecto (correctivo) o suelta, o
  * ninguna OT, si es un gasto operativo del vehículo (CAM-109).
  */
-export type ExpenseOrigin = 'plan' | 'defect' | 'manual' | 'operating';
+/** fuel: una carga de combustible (CAM-156), que se edita desde el vehículo y no desde Gastos. */
+export type ExpenseOrigin = 'plan' | 'defect' | 'manual' | 'operating' | 'fuel';
 
 /**
  * Un gasto con su vehículo y, si sale de una, su OT -- GET /api/expenses (CAM-52, CAM-109). En un gasto
@@ -570,7 +571,8 @@ export type NotificationType =
   | 'document_expired'
   | 'vehicle_unavailable'
   | 'vehicle_available'
-  | 'trip_km_anomaly';
+  | 'trip_km_anomaly'
+  | 'fuel_consumption_anomaly';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';
@@ -761,4 +763,37 @@ export interface ApplyChecklistTemplateResult {
   added: number;
   skipped: number;
   vehicles: { vehicleId: string; plate: string; added: number; skipped: number; skippedLabels: string[] }[];
+}
+
+/** CAM-156: una carga de combustible. consumption: el tramo de tanque lleno a tanque lleno que cierra. */
+export interface FuelLoad {
+  id: string;
+  vehicleId: string;
+  plate: string;
+  loadedAt: string;
+  liters: number;
+  amount: number;
+  odometerKm: number;
+  fullTank: boolean;
+  createdBy: UserRef | null;
+  consumption: { km: number; liters: number; litersPer100Km: number; costPerKm: number } | null;
+  alert: { litersPer100Km: number; averageLitersPer100Km: number } | null;
+}
+
+export interface FuelPeriod {
+  liters: number;
+  amount: number;
+  measuredKm: number;
+  litersPer100Km: number | null;
+  costPerKm: number | null;
+}
+
+export interface VehicleFuel {
+  vehicleId: string;
+  plate: string;
+  months: number;
+  summary: FuelPeriod & { loadCount: number };
+  /** month: "2026-06". */
+  monthly: (FuelPeriod & { month: string })[];
+  loads: FuelLoad[];
 }

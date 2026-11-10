@@ -3,6 +3,7 @@ import './App.css';
 import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
 import { RoadDefectForm } from './components/RoadDefectForm';
+import { FuelLoadScreen } from './components/FuelLoadScreen';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
 import { NotificationBell } from './components/NotificationBell';
@@ -34,7 +35,9 @@ type Route =
   | { view: 'list' }
   | { view: 'flow'; vehicle: Vehicle; type: InspectionType }
   // CAM-139: reportar un problema durante el viaje, sin cerrarlo.
-  | { view: 'road-defect'; vehicle: Vehicle };
+  | { view: 'road-defect'; vehicle: Vehicle }
+  // CAM-156: cargar combustible.
+  | { view: 'fuel'; vehicle: Vehicle };
 
 /** Vista del admin, aparte para que el hook de ruteo solo corra con ese rol. */
 function AdminApp({ onLogout }: { onLogout: () => void }) {
@@ -88,7 +91,12 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
           <ChecklistTemplatesSection onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })} />
         ) : route.view === 'vehicle-expenses' ? (
           // key: llegar con otro vehículo, o volver a Gastos sin filtro, arranca la pestaña de cero.
-          <ExpensesSection key={route.vehicleId} onLogout={onLogout} initialVehicleId={route.vehicleId} />
+          <ExpensesSection
+            key={route.vehicleId}
+            onLogout={onLogout}
+            initialVehicleId={route.vehicleId}
+            onOpenFuel={(vehicleId) => navigate({ view: 'vehicle', vehicleId, tab: 'combustible' })}
+          />
         ) : route.view === 'work-order' ? (
           <WorkOrdersSection
             key={route.workOrderId}
@@ -106,7 +114,11 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         ) : activeTab === 'ordenes-trabajo' ? (
           <WorkOrdersSection />
         ) : activeTab === 'gastos' ? (
-          <ExpensesSection key="todos" onLogout={onLogout} />
+          <ExpensesSection
+            key="todos"
+            onLogout={onLogout}
+            onOpenFuel={(vehicleId) => navigate({ view: 'vehicle', vehicleId, tab: 'combustible' })}
+          />
         ) : activeTab === 'usuarios' ? (
           <UsersSection onLogout={onLogout} />
         ) : activeTab === 'notificaciones' ? (
@@ -232,6 +244,18 @@ function App() {
     setRoute({ view: 'road-defect', vehicle });
   }
 
+  function handleLoadFuel(vehicle: Vehicle) {
+    setListNotice(null);
+    setListConfirmation(null);
+    setRoute({ view: 'fuel', vehicle });
+  }
+
+  function handleFuelDone(message: string) {
+    setListConfirmation(message);
+    setListKey((k) => k + 1);
+    setRoute({ view: 'list' });
+  }
+
   function handleRoadDefectDone(plate: string) {
     setListConfirmation(`Problema reportado en ${plate}. Cuando termines, cerrá el viaje con el post-viaje.`);
     setListKey((k) => k + 1);
@@ -289,6 +313,7 @@ function App() {
           key={listKey}
           onSelectVehicle={handleSelectVehicle}
           onReportProblem={handleReportProblem}
+          onLoadFuel={handleLoadFuel}
           notice={listNotice}
           confirmation={listConfirmation}
         />
@@ -307,6 +332,15 @@ function App() {
         <RoadDefectForm
           vehicle={route.vehicle}
           onDone={() => handleRoadDefectDone(route.vehicle.plate)}
+          onBack={handleFlowBack}
+          onUnavailable={handleFlowUnavailable}
+          onLogout={handleLogout}
+        />
+      )}
+      {route.view === 'fuel' && (
+        <FuelLoadScreen
+          vehicle={route.vehicle}
+          onDone={handleFuelDone}
           onBack={handleFlowBack}
           onUnavailable={handleFlowUnavailable}
           onLogout={handleLogout}

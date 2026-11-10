@@ -34,3 +34,10 @@ describe('plantillas de checklist (CAM-150)', () => {
     expect(parseAdminPath('/vehiculos/plantillas')).toEqual({ view: 'checklist-templates' });
   });
 });
+
+describe('pestaña Combustible del vehículo (CAM-156)', () => {
+  it('tiene su dirección, la del aviso de consumo alto', () => {
+    expect(adminPath({ view: 'vehicle', vehicleId: 'v-1', tab: 'combustible' })).toBe('/vehiculos/v-1/combustible');
+    expect(parseAdminPath('/vehiculos/v-1/combustible')).toEqual({ view: 'vehicle', vehicleId: 'v-1', tab: 'combustible' });
+  });
+});

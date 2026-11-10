@@ -25,9 +25,9 @@ interface VehicleExpenseFormModalProps {
 }
 
 /**
- * Cargar, editar o borrar un gasto operativo del vehículo (CAM-109): combustible, seguro, peajes y
- * todo lo que no sale de una orden de trabajo. La fecha puede ser anterior a hoy, para cargar una
- * factura de días pasados; futura no, y eso también lo valida el backend.
+ * Cargar, editar o borrar un gasto operativo del vehículo (CAM-109): seguro, peajes y todo lo que no
+ * sale de una orden de trabajo (el combustible tiene su carga propia, CAM-156). La fecha puede ser
+ * anterior a hoy, para cargar una factura de días pasados; futura no, y eso también lo valida el backend.
  */
 export function VehicleExpenseFormModal({
   vehicles,
@@ -41,8 +41,11 @@ export function VehicleExpenseFormModal({
   const [vehicleId, setVehicleId] = useState(lockVehicle ? vehicles[0].id : (expense?.vehicleId ?? initialVehicleId ?? ''));
   const [date, setDate] = useState(expense ? argentinaDateKey(expense.date) : today);
   const [category, setCategory] = useState<VehicleExpenseCategory>(
-    (expense?.category as VehicleExpenseCategory | undefined) ?? 'combustible',
+    (expense?.category as VehicleExpenseCategory | undefined) ?? 'seguro',
   );
+  // CAM-156: "combustible" solo aparece al editar un gasto de combustible anterior.
+  const categories: VehicleExpenseCategory[] =
+    expense?.category === 'combustible' ? ['combustible', ...VEHICLE_EXPENSE_CATEGORIES] : VEHICLE_EXPENSE_CATEGORIES;
   const [description, setDescription] = useState(expense?.description ?? '');
   const [amount, setAmount] = useState(expense ? String(expense.amount) : '');
   const [saving, setSaving] = useState(false);
@@ -135,7 +138,7 @@ export function VehicleExpenseFormModal({
               value={category}
               onChange={(e) => setCategory(e.target.value as VehicleExpenseCategory)}
             >
-              {VEHICLE_EXPENSE_CATEGORIES.map((option) => (
+              {categories.map((option) => (
                 <option key={option} value={option}>
                   {EXPENSE_CATEGORY_LABEL[option]}
                 </option>

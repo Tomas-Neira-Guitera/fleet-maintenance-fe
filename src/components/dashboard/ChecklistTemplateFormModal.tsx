@@ -12,8 +12,8 @@ import '../../styles/dashboard.css';
 import '../../styles/checklistTemplates.css';
 
 // Igual que el backend (ChecklistTemplateService).
-export const TEMPLATE_NAME_MAX_LENGTH = 60;
-export const TEMPLATE_MAX_ITEMS = 30;
+const TEMPLATE_NAME_MAX_LENGTH = 60;
+const TEMPLATE_MAX_ITEMS = 30;
 
 type Row = ChecklistTemplateInput['items'][number] & { key: number };
 

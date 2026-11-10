@@ -1,0 +1,103 @@
+/* CAM-156: combustible. */
+.vehicle-list__trip-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vehicle-card__fuel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--fg-radius);
+  border: var(--fg-border);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.vehicle-card__fuel svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fuel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fuel-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.vehicle-fuel__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+
+.vehicle-fuel__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vehicle-fuel__stat-value {
+  font-family: var(--fg-font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.vehicle-fuel__stat-label {
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
+.vehicle-fuel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vehicle-fuel__months {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.vehicle-fuel__alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vehicle-fuel__partial {
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
+.vehicle-fuel__actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}

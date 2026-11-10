@@ -15,6 +15,7 @@ import { VehicleAvailabilityCard } from './VehicleAvailabilityCard';
 import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleCostsCard } from './VehicleCostsCard';
 import { VehicleDocumentsTab } from './VehicleDocumentsTab';
+import { VehicleFuelTab } from './VehicleFuelTab';
 import { VehicleFormModal } from './VehicleFormModal';
 import { OccurredOnTripNote } from '../OccurredOnTripNote';
 import { VehicleQrCard } from './VehicleQrCard';
@@ -43,6 +44,7 @@ const TAB_LABEL: Record<VehicleTab, string> = {
   historial: 'Historial',
   checklist: 'Checklist',
   documentacion: 'Documentación',
+  combustible: 'Combustible',
 };
 
 /** CAM-87: si está en viaje, quién lo tiene y desde cuándo; CAM-89/CAM-127: si no puede salir (el porqué va aparte). */
@@ -563,6 +565,18 @@ export function VehicleDetail({ vehicleId, tab = 'resumen', onSelectTab, onBack,
       {vehicle && tab === 'documentacion' && (
         <div role="tabpanel" id="vehicle-panel-documentacion" aria-labelledby="vehicle-tab-documentacion">
           <VehicleDocumentsTab vehicleId={vehicle.id} readOnly={inactive} onChanged={() => void reloadVehicle()} />
+        </div>
+      )}
+
+      {vehicle && tab === 'combustible' && (
+        <div role="tabpanel" id="vehicle-panel-combustible" aria-labelledby="vehicle-tab-combustible">
+          <VehicleFuelTab
+            vehicleId={vehicle.id}
+            plate={vehicle.plate}
+            currentKm={vehicle.odometerKm ?? 0}
+            readOnly={inactive}
+            onChanged={() => void reloadVehicle()}
+          />
         </div>
       )}
 

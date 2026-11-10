@@ -6,9 +6,9 @@ import type { AdminTab } from '../components/dashboard/AdminShell';
 // API en vez de una librería: son pocas rutas planas y no hace falta más que esto.
 
 /** Pestañas del detalle de un vehículo (CAM-127); "resumen" es /vehiculos/{id} a secas. */
-export type VehicleTab = 'resumen' | 'historial' | 'checklist' | 'documentacion';
+export type VehicleTab = 'resumen' | 'historial' | 'checklist' | 'documentacion' | 'combustible';
 
-export const VEHICLE_TABS: VehicleTab[] = ['resumen', 'historial', 'checklist', 'documentacion'];
+export const VEHICLE_TABS: VehicleTab[] = ['resumen', 'historial', 'checklist', 'documentacion', 'combustible'];
 
 export type AdminRoute =
   | { view: 'tab'; tab: AdminTab }
@@ -67,7 +67,7 @@ export function parseAdminPath(pathname: string, search = ''): AdminRoute | null
   }
   // Solo letras, números y guiones (los ids son UUID). El id sale de la URL, que puede armar
   // cualquiera, y los services lo interpolan crudo: "..%2Fusers" terminaría pidiendo otro endpoint.
-  const vehicle = /^\/vehiculos\/([A-Za-z0-9-]+)(?:\/(historial|checklist|documentacion))?$/.exec(path);
+  const vehicle = /^\/vehiculos\/([A-Za-z0-9-]+)(?:\/(historial|checklist|documentacion|combustible))?$/.exec(path);
   if (vehicle) return { view: 'vehicle', vehicleId: vehicle[1], tab: (vehicle[2] as VehicleTab | undefined) ?? 'resumen' };
   // CAM-133: el QR del camión lleva a su inspección; un admin que lo escanea ve el vehículo.
   const scanned = /^\/inspeccion\/([A-Za-z0-9-]+)$/.exec(path);
