@@ -67,7 +67,11 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         onLogout={onLogout}
       >
         {route.view === 'defects' ? (
-          <DefectsList onBack={() => navigate({ view: 'tab', tab: 'resumen' })} />
+          <DefectsList
+            filter={route.filter}
+            onFilterChange={(filter) => navigate({ view: 'defects', filter })}
+            onBack={() => navigate({ view: 'tab', tab: 'resumen' })}
+          />
         ) : route.view === 'vehicle' ? (
           <VehicleDetail
             // key: pasar de un vehículo a otro (atrás/adelante) remonta el detalle en vez de mezclar datos.
@@ -113,6 +117,7 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         ) : (
           <AdminDashboard
             onViewDefects={() => navigate({ view: 'defects' })}
+            onViewUnattendedDefects={() => navigate({ view: 'defects', filter: 'unattended' })}
             onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
           />
         )}
