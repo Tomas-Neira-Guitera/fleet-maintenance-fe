@@ -24,6 +24,8 @@ import { VehicleRecurringDefectsCard } from './VehicleRecurringDefectsCard';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import { describeTripKmAlert } from '../../utils/tripKmAlert';
+import { isTrailer, vehicleTypeLabel } from '../../utils/vehicleTypes';
+import { CouplingCard } from './CouplingCard';
 import '../../styles/dashboard.css';
 
 interface VehicleDetailProps {
@@ -36,6 +38,8 @@ interface VehicleDetailProps {
   onViewExpenses: () => void;
   /** CAM-157: abre el inventario de cubiertas. */
   onOpenTires?: () => void;
+  /** CAM-157: abre el vehículo enganchado. */
+  onOpenVehicle?: (vehicleId: string) => void;
 }
 
 function formatDateTime(iso: string): string {
@@ -138,6 +142,7 @@ export function VehicleDetail({
   onBack,
   onViewExpenses,
   onOpenTires,
+  onOpenVehicle,
 }: VehicleDetailProps) {
   const tabRefs = useRef<Partial<Record<VehicleTab, HTMLButtonElement | null>>>({});
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
@@ -232,11 +237,14 @@ export function VehicleDetail({
   }
 
   /** Flechas izquierda/derecha entre pestañas, como pide el patrón de pestañas accesibles. */
+  // CAM-157: un remolque no carga combustible.
+  const visibleTabs = VEHICLE_TABS.filter((t) => t !== 'combustible' || !isTrailer(vehicle?.vehicleType));
+
   function handleTabKey(e: KeyboardEvent<HTMLButtonElement>) {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     e.preventDefault();
-    const index = VEHICLE_TABS.indexOf(tab);
-    const next = VEHICLE_TABS[(index + (e.key === 'ArrowRight' ? 1 : VEHICLE_TABS.length - 1)) % VEHICLE_TABS.length];
+    const index = visibleTabs.indexOf(tab);
+    const next = visibleTabs[(index + (e.key === 'ArrowRight' ? 1 : visibleTabs.length - 1)) % visibleTabs.length];
     onSelectTab?.(next);
     tabRefs.current[next]?.focus();
   }
@@ -316,7 +324,7 @@ export function VehicleDetail({
           )}
 
           <div className="vehicle-tabs" role="tablist" aria-label={`Secciones de ${vehicle.plate}`}>
-            {VEHICLE_TABS.map((t) => (
+            {visibleTabs.map((t) => (
               <button
                 key={t}
                 ref={(el) => {
@@ -375,7 +383,7 @@ export function VehicleDetail({
             </div>
             <div>
               <dt>Tipo</dt>
-              <dd>{vehicle.vehicleType ?? '—'}</dd>
+              <dd>{vehicleTypeLabel(vehicle.vehicleType)}</dd>
             </div>
             <div>
               <dt>Kilometraje</dt>
@@ -395,8 +403,11 @@ export function VehicleDetail({
 
           <div className="vehicle-detail__summary-row">
             <VehicleCostsCard vehicle={vehicle} onViewExpenses={onViewExpenses} />
-            <VehicleQrCard vehicle={vehicle} />
+            {/* El QR lleva a la inspección del chofer, que un remolque no tiene (CAM-157). */}
+            {!isTrailer(vehicle.vehicleType) && <VehicleQrCard vehicle={vehicle} />}
           </div>
+
+          <CouplingCard vehicle={vehicle} readOnly={inactive} onOpenVehicle={onOpenVehicle} />
 
           <VehicleAvailabilityCard vehicleId={vehicle.id} />
           <VehicleRecurringDefectsCard vehicleId={vehicle.id} />
@@ -593,7 +604,12 @@ export function VehicleDetail({
 
       {vehicle && tab === 'neumaticos' && (
         <div role="tabpanel" id="vehicle-panel-neumaticos" aria-labelledby="vehicle-tab-neumaticos">
-          <VehicleTiresTab vehicleId={vehicle.id} readOnly={inactive} onOpenTires={onOpenTires} />
+          <VehicleTiresTab
+            vehicleId={vehicle.id}
+            readOnly={inactive}
+            onOpenTires={onOpenTires}
+            onEditVehicle={() => setEditing(true)}
+          />
         </div>
       )}
 

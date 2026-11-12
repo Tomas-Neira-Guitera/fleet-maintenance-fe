@@ -3,6 +3,7 @@ import { getVehicles } from '../../services/vehiclesService';
 import type { OdometerResult } from '../../services/vehiclesService';
 import type { Vehicle } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
+import { vehicleTypeLabel } from '../../utils/vehicleTypes';
 import { AlertTriangleIcon, ChevronRightIcon } from '../icons';
 import { ImportVehiclesModal } from './ImportVehiclesModal';
 import { UpdateOdometerModal } from './UpdateOdometerModal';
@@ -19,7 +20,7 @@ let lastShowInactive = false;
 
 /** Segunda línea de la celda "Vehículo": "Furgón · 2015", o lo que haya de los dos. */
 function describeVehicle(v: Vehicle): string | null {
-  const parts = [v.vehicleType, v.year?.toString()].filter(Boolean);
+  const parts = [vehicleTypeLabel(v.vehicleType), v.year?.toString()].filter(Boolean);
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 

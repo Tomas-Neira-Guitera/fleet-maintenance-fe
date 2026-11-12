@@ -2,7 +2,6 @@ import type {
   Tire,
   TireBrandComparison,
   TireDetail,
-  TireLayout,
   TirePositionRef,
   TireStatus,
   TreadReading,
@@ -71,10 +70,6 @@ export function getTireBrandComparison(): Promise<TireBrandComparison> {
 
 export function getVehicleTires(vehicleId: string): Promise<VehicleTires> {
   return getJson(`/vehicles/${vehicleId}/tires`, 'No se pudieron obtener las cubiertas del vehículo');
-}
-
-export function setTireLayout(vehicleId: string, layout: TireLayout): Promise<VehicleTires> {
-  return send(`/vehicles/${vehicleId}/tire-layout`, 'PUT', { layout }, 'No se pudo cambiar la configuración');
 }
 
 export function mountTire(

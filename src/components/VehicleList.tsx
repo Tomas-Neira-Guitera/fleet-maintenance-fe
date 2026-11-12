@@ -10,6 +10,7 @@ import { getSessionUserId, getUsername, isNetworkError } from '../services/apiCl
 import { getVehicles } from '../services/vehiclesService';
 import type { Vehicle } from '../types/domain';
 import { formatDayAndTime } from '../utils/dateFormat';
+import { isTrailer } from '../utils/vehicleTypes';
 import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, FuelIcon, LockClockIcon } from './icons';
 import '../styles/fuel.css';
 
@@ -149,7 +150,8 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
       {!vehicles && !error && <p className="muted">Cargando vehículos…</p>}
 
       <ul className="vehicle-list">
-        {vehicles?.map((serverVehicle) => {
+        {/* CAM-157: los remolques no tienen chofer: se ven y se mantienen desde el admin. */}
+        {vehicles?.filter((v) => !isTrailer(v.vehicleType)).map((serverVehicle) => {
           const pending = lastPendingByVehicle.get(serverVehicle.id);
           const vehicle = withPending(serverVehicle, pending, currentUserId);
           const onTrip = vehicle.status === 'on-trip';

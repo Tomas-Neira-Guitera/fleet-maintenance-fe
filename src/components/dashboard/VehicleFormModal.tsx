@@ -3,6 +3,7 @@ import { ApiError } from '../../services/apiClient';
 import { getChecklistTemplates } from '../../services/checklistTemplatesService';
 import { createVehicle, updateVehicle } from '../../services/vehiclesService';
 import type { ChecklistTemplate, Vehicle } from '../../types/domain';
+import { VEHICLE_TYPES, vehicleTypeDef } from '../../utils/vehicleTypes';
 import { CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
 
@@ -24,7 +25,8 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
   const [plate, setPlate] = useState(vehicle?.plate ?? '');
   const [brand, setBrand] = useState(vehicle?.brand ?? '');
   const [model, setModel] = useState(vehicle?.model ?? '');
-  const [vehicleType, setVehicleType] = useState(vehicle?.vehicleType ?? '');
+  // CAM-157: del catálogo; un tipo viejo de texto libre llega sin código y hay que elegirlo.
+  const [vehicleType, setVehicleType] = useState(vehicleTypeDef(vehicle?.vehicleType)?.code ?? '');
   const [year, setYear] = useState(vehicle?.year != null ? String(vehicle.year) : '');
   const [chassisNumber, setChassisNumber] = useState(vehicle?.chassisNumber ?? '');
   const [odometerKm, setOdometerKm] = useState('');
@@ -49,7 +51,7 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = Boolean(plate.trim()) && Boolean(brand.trim()) && Boolean(model.trim());
+  const canSubmit = Boolean(plate.trim()) && Boolean(brand.trim()) && Boolean(model.trim()) && Boolean(vehicleType);
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -59,7 +61,7 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
         plate: plate.trim(),
         brand: brand.trim(),
         model: model.trim(),
-        vehicleType: vehicleType.trim() || undefined,
+        vehicleType: vehicleType || undefined,
         year: year.trim() ? Number(year) : undefined,
         chassisNumber: chassisNumber.trim() || undefined,
       };
@@ -121,14 +123,22 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
             />
           </label>
           <label className="schedule-picker__field">
-            Tipo (opcional)
-            <input
-              type="text"
+            Tipo
+            <select
               className="schedule-picker__input"
               value={vehicleType}
               onChange={(e) => setVehicleType(e.target.value)}
-              placeholder="Ej: furgón"
-            />
+            >
+              <option value="" disabled>
+                Elegí el tipo
+              </option>
+              {VEHICLE_TYPES.map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.label} — {t.hint}
+                </option>
+              ))}
+            </select>
+            <small className="vehicle-form__hint">Define sus ejes y sus cubiertas.</small>
           </label>
           <label className="schedule-picker__field">
             Año (opcional)

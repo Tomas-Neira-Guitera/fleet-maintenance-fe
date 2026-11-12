@@ -152,7 +152,7 @@ export async function readImportFile(file: File): Promise<ParsedImport> {
 
 /** La planilla de ejemplo: las columnas que se leen y una fila de muestra, para abrir con Excel. */
 export function buildImportTemplate(): string {
-  const example = ['AB123CD', 'Mercedes-Benz', 'Atego 1726', '2019', '9BM958074KB123456', 'Camión', '185000'];
+  const example = ['AB123CD', 'Mercedes-Benz', 'Atego 1726', '2019', '9BM958074KB123456', 'Camión rígido 4x2', '185000'];
   const lines = [COLUMNS.map((c) => c.label), example].map((cells) => cells.map(csvField).join(';'));
   return `﻿${lines.join('\r\n')}\r\n`;
 }

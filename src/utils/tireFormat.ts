@@ -1,12 +1,6 @@
-import type { Tire, TireLayout, TireStatus } from '../types/domain';
+import type { Tire, TireStatus } from '../types/domain';
 
 // CAM-157: cómo se muestran cubiertas, configuraciones y dibujo.
-
-export const TIRE_LAYOUT_LABEL: Record<TireLayout, string> = {
-  '4_ruedas': '4 ruedas',
-  '6_ruedas': '6 ruedas (trasero dual)',
-  '10_ruedas': '10 ruedas (dos ejes traseros duales)',
-};
 
 export const TIRE_STATUS_LABEL: Record<TireStatus, string> = {
   stock: 'En stock',

@@ -19,6 +19,8 @@ export interface PendingInspection {
   performedAt: string;
   /** CAM-157: el dibujo de las cubiertas que anotó en el pre-viaje. */
   treadReadings?: TreadReading[];
+  /** CAM-157: el remolque que eligió en el pre-viaje. */
+  trailerId?: string;
   status: 'pending' | 'rejected';
   /** Por qué el servidor la rechazó. */
   error?: string;
@@ -180,6 +182,7 @@ async function sync(): Promise<SyncResult> {
         performedAt: item.performedAt,
         clientSubmissionId: item.id,
         treadReadings: item.treadReadings,
+        trailerId: item.trailerId,
       });
       await store.remove(item.id);
       sent++;

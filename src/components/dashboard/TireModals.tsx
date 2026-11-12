@@ -5,7 +5,6 @@ import {
   getTires,
   mountTire,
   recordTreads,
-  rotateTires,
   unmountTire,
   updateTire,
   type TireInput,
@@ -149,62 +148,6 @@ export function MountTireModal({ vehicle, slot, onClose, onDone }: VehicleModalP
           )}
         </fieldset>
       )}
-      {error && <p className="error-banner">{error}</p>}
-    </ModalShell>
-  );
-}
-
-/** Rotar a otra posición del mismo vehículo; si está ocupada, se intercambian. */
-export function RotateTireModal({ vehicle, slot, onClose, onDone }: VehicleModalProps) {
-  const targets = vehicle.positions.filter((p) => p.position !== slot.position);
-  const [to, setTo] = useState(targets[0]?.position ?? '');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const target = targets.find((p) => p.position === to);
-
-  async function handleSubmit() {
-    setSaving(true);
-    setError(null);
-    try {
-      onDone(await rotateTires(vehicle.vehicleId, slot.position, to));
-    } catch (err) {
-      setError(errorText(err, 'No se pudo rotar la cubierta.'));
-      setSaving(false);
-    }
-  }
-
-  return (
-    <ModalShell
-      title="Rotar cubierta"
-      subtitle={`${vehicle.plate} · ${slot.tire ? tireLabel(slot.tire) : ''} en ${slot.label}`}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="secondary-btn" onClick={onClose} disabled={saving}>
-            Cancelar
-          </button>
-          <button type="button" className="primary-btn" onClick={handleSubmit} disabled={saving || !to}>
-            {saving ? 'Rotando…' : target?.tire ? 'Intercambiar' : 'Rotar'}
-          </button>
-        </>
-      }
-    >
-      <label className="schedule-picker__field">
-        A qué posición
-        <select className="schedule-picker__input" value={to} onChange={(e) => setTo(e.target.value)}>
-          {targets.map((p) => (
-            <option key={p.position} value={p.position}>
-              {p.label}
-              {p.tire ? ` (tiene ${tireLabel(p.tire)})` : ' (libre)'}
-            </option>
-          ))}
-        </select>
-      </label>
-      <p className="muted">
-        {target?.tire
-          ? 'Las dos cubiertas se intercambian. Sus km siguen sumando en la nueva posición.'
-          : 'Sus km siguen sumando en la nueva posición.'}
-      </p>
       {error && <p className="error-banner">{error}</p>}
     </ModalShell>
   );

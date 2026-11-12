@@ -7,6 +7,7 @@ import {
 } from '../../services/checklistTemplatesService';
 import { getVehicles } from '../../services/vehiclesService';
 import type { ApplyChecklistTemplateResult, ChecklistTemplate, Vehicle } from '../../types/domain';
+import { vehicleTypeLabel } from '../../utils/vehicleTypes';
 import { CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
 import '../../styles/checklistTemplates.css';
@@ -65,7 +66,7 @@ export function ApplyChecklistTemplateModal(props: ApplyChecklistTemplateModalPr
 
   const visible = vehicles?.filter((v) => {
     const q = filter.trim().toLowerCase();
-    return !q || `${v.plate} ${v.brand} ${v.model} ${v.vehicleType ?? ''}`.toLowerCase().includes(q);
+    return !q || `${v.plate} ${v.brand} ${v.model} ${vehicleTypeLabel(v.vehicleType)}`.toLowerCase().includes(q);
   });
   const allVisibleSelected = Boolean(visible?.length) && visible!.every((v) => selected.has(v.id));
   const template = templates?.find((t) => t.id === templateId);
@@ -196,7 +197,7 @@ export function ApplyChecklistTemplateModal(props: ApplyChecklistTemplateModalPr
                             {v.plate}
                             <small>
                               {v.brand} {v.model}
-                              {v.vehicleType ? ` · ${v.vehicleType}` : ''}
+                              {` · ${vehicleTypeLabel(v.vehicleType)}`}
                             </small>
                           </span>
                         </label>

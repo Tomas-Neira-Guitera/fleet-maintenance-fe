@@ -31,6 +31,8 @@ export interface SubmissionMeta {
   clientSubmissionId?: string;
   /** CAM-157: dibujo de las cubiertas, solo en el pre-viaje. */
   treadReadings?: TreadReading[];
+  /** CAM-157: el remolque que lleva ("none": sin remolque); sin el campo, el enganche no cambia. */
+  trailerId?: string;
 }
 
 /** POST /api/inspections/{vehicleId} -- el chofer es el del token (CAM-85): 401 si la sesión venció. */
@@ -51,6 +53,7 @@ export async function submitInspection(
       performedAt: meta.performedAt,
       clientSubmissionId: meta.clientSubmissionId,
       treadReadings: meta.treadReadings?.length ? meta.treadReadings : undefined,
+      trailerId: meta.trailerId,
     }),
   });
   if (!res.ok) return throwApiError(res, 'No se pudo enviar la inspección');

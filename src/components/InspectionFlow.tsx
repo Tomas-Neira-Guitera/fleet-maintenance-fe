@@ -11,10 +11,19 @@ import {
 import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
 import { getTirePositions } from '../services/tiresService';
-import { checklistCacheKey, loadCache, saveCache, tirePositionsCacheKey } from '../offline/offlineCache';
+import { getCoupling } from '../services/couplingService';
+import {
+  checklistCacheKey,
+  couplingCacheKey,
+  loadCache,
+  saveCache,
+  tirePositionsCacheKey,
+  VEHICLES_CACHE_KEY,
+} from '../offline/offlineCache';
 import { enqueueInspection, hasPendingInspections } from '../offline/pendingInspections';
 import { hasPhoto } from '../utils/defectPhoto';
 import { parseTreadInputs } from '../utils/tireFormat';
+import { canTow, canTowAny } from '../utils/vehicleTypes';
 import { newUuid } from '../utils/uuid';
 import type {
   ChecklistAnswer,
@@ -26,6 +35,7 @@ import type {
   Vehicle,
 } from '../types/domain';
 import { ChecklistItemCard } from './ChecklistItemCard';
+import { TrailerPicker } from './TrailerPicker';
 import { TreadReadingsCard } from './TreadReadingsCard';
 import { HealthRing, type RingStatus } from './HealthRing';
 import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, ShieldCheckIcon } from './icons';
@@ -124,6 +134,41 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     };
   }, [vehicle.id, type]);
   const treadReadings = parseTreadInputs(treadValues);
+
+  // CAM-157: el pre-viaje de un tractor o camión rígido dice qué remolque lleva. Arranca en el que tiene
+  // enganchado; si el chofer no lo cambia, no se manda y el enganche queda como estaba.
+  const tows = type === 'pre-trip' && canTowAny(vehicle.vehicleType);
+  const trailers = useMemo(
+    () =>
+      tows
+        ? (loadCache<Vehicle[]>(VEHICLES_CACHE_KEY)?.data ?? []).filter(
+            (v) => v.active !== false && canTow(vehicle.vehicleType, v.vehicleType),
+          )
+        : [],
+    [tows, vehicle.vehicleType],
+  );
+  const [initialTrailer, setInitialTrailer] = useState<string | null>(null);
+  const [trailerChoice, setTrailerChoice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tows) return;
+    let cancelled = false;
+    const cacheKey = couplingCacheKey(vehicle.id);
+    const apply = (current: string) => {
+      if (cancelled) return;
+      setInitialTrailer(current);
+      setTrailerChoice((prev) => prev ?? current);
+    };
+    getCoupling(vehicle.id)
+      .then((coupling) => {
+        saveCache(cacheKey, coupling.towing?.id ?? 'none');
+        apply(coupling.towing?.id ?? 'none');
+      })
+      .catch(() => apply(loadCache<string>(cacheKey)?.data ?? 'none'));
+    return () => {
+      cancelled = true;
+    };
+  }, [tows, vehicle.id]);
+  const trailerId = tows && trailerChoice !== null && trailerChoice !== initialTrailer ? trailerChoice : undefined;
   const checkItems = useMemo(() => items.filter((i) => i.type === 'check'), [items]);
 
   const [step, setStep] = useState<FlowStep>('checklist');
@@ -197,6 +242,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
       performedAt: new Date().toISOString(),
       clientSubmissionId: newUuid(),
       treadReadings: treadReadings && treadReadings.length > 0 ? treadReadings : undefined,
+      trailerId,
     };
     const queue = () =>
       enqueueInspection({
@@ -208,6 +254,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
         notes: notes.trim() || undefined,
         performedAt: meta.performedAt,
         treadReadings: meta.treadReadings,
+        trailerId: meta.trailerId,
       });
 
     try {
@@ -417,6 +464,10 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
           </div>
         </section>
       ))}
+
+      {tows && trailerChoice !== null && (trailers.length > 0 || trailerChoice !== 'none') && (
+        <TrailerPicker trailers={trailers} value={trailerChoice} onChange={setTrailerChoice} />
+      )}
 
       {type === 'pre-trip' && tirePositions.length > 0 && (
         <TreadReadingsCard

@@ -6,6 +6,7 @@ import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
 import { uploadDefectPhoto } from '../services/photosService';
 import { getTirePositions } from '../services/tiresService';
+import { getCoupling } from '../services/couplingService';
 import { checklistCacheKey, saveCache } from '../offline/offlineCache';
 import { listPendingInspections, resetPendingInspectionsForTests } from '../offline/pendingInspections';
 import type { ChecklistItemDef, InspectionType, SubmitInspectionResult, Vehicle } from '../types/domain';
@@ -18,11 +19,13 @@ vi.mock('../services/photosService', () => ({
   uploadDefectPhoto: vi.fn(),
 }));
 vi.mock('../services/tiresService', () => ({ getTirePositions: vi.fn() }));
+vi.mock('../services/couplingService', () => ({ getCoupling: vi.fn() }));
 
 const checklistMock = vi.mocked(getVehicleChecklist);
 const submitMock = vi.mocked(submitInspection);
 const uploadMock = vi.mocked(uploadDefectPhoto);
 const tirePositionsMock = vi.mocked(getTirePositions);
+const couplingMock = vi.mocked(getCoupling);
 
 const VEHICLE: Vehicle = { id: 'veh-1', plate: 'AB123CD', brand: 'Iveco', model: 'Daily', status: 'available' };
 
@@ -277,6 +280,53 @@ describe('InspectionFlow — dibujo de las cubiertas (CAM-157)', () => {
     await screen.findByRole('heading', { name: 'Post-viaje' });
     expect(screen.queryByText('Dibujo de las cubiertas (opcional)')).not.toBeInTheDocument();
     expect(tirePositionsMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('InspectionFlow — remolque del tractor (CAM-157)', () => {
+  const TRACTOR: Vehicle = { ...VEHICLE, vehicleType: 'tractor_4x2' };
+  const SEMI = { id: 'semi-1', plate: 'ZZ001AA', brand: 'Helvética', model: 'Tri-eje', status: 'available' as const, vehicleType: 'semirremolque_3_ejes' };
+  const ACOPLADO = { ...SEMI, id: 'aco-1', plate: 'ZZ002BB', vehicleType: 'acoplado' };
+
+  function renderTractor() {
+    saveCache('vehicles', [TRACTOR, SEMI, ACOPLADO]);
+    couplingMock.mockResolvedValue({ vehicleId: TRACTOR.id, towedBy: null, towing: null, canTow: [], history: [] });
+    submitMock.mockResolvedValue(result('pre-trip'));
+    render(<InspectionFlow vehicle={TRACTOR} type="pre-trip" onDone={vi.fn()} onBack={vi.fn()} onUnavailable={vi.fn()} onLogout={vi.fn()} />);
+  }
+
+  it('ofrece solo los semirremolques y manda el elegido', async () => {
+    const user = userEvent.setup();
+    renderTractor();
+
+    const picker = await screen.findByLabelText('¿Qué remolque llevás?');
+    expect(within(picker).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Sin remolque',
+      'ZZ001AA · Semirremolque 3 ejes',
+    ]);
+    await user.selectOptions(picker, 'semi-1');
+    await goToSummary(user);
+    await confirmAndSend(user);
+
+    expect(submitMock.mock.calls[0][4]?.trailerId).toBe('semi-1');
+  });
+
+  it('si no lo cambia, no manda nada y el enganche queda como estaba', async () => {
+    const user = userEvent.setup();
+    renderTractor();
+
+    await screen.findByLabelText('¿Qué remolque llevás?');
+    await goToSummary(user);
+    await confirmAndSend(user);
+
+    expect(submitMock.mock.calls[0][4]?.trailerId).toBeUndefined();
+  });
+
+  it('un utilitario no tiene remolque', async () => {
+    renderFlow();
+    await screen.findByRole('heading', { name: 'Pre-viaje' });
+    expect(screen.queryByLabelText('¿Qué remolque llevás?')).not.toBeInTheDocument();
+    expect(couplingMock).not.toHaveBeenCalled();
   });
 });
 

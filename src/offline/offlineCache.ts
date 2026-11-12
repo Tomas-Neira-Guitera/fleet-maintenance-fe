@@ -42,6 +42,11 @@ export function checklistCacheKey(vehicleId: string, type: string): string {
   return `checklist.${vehicleId}.${type}`;
 }
 
+/** CAM-157: el remolque enganchado, para el pre-viaje sin señal. */
+export function couplingCacheKey(vehicleId: string): string {
+  return `coupling.${vehicleId}`;
+}
+
 /** CAM-157: las posiciones con cubierta del vehículo, para anotar el dibujo sin señal. */
 export function tirePositionsCacheKey(vehicleId: string): string {
   return `tire-positions.${vehicleId}`;

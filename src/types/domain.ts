@@ -799,7 +799,6 @@ export interface VehicleFuel {
 }
 
 /** CAM-157: neumáticos. */
-export type TireLayout = '4_ruedas' | '6_ruedas' | '10_ruedas';
 export type TireStatus = 'stock' | 'mounted' | 'retired';
 
 export interface TreadMeasurement {
@@ -855,14 +854,15 @@ export interface VehicleTirePosition {
   /** 1 el delantero, 0 el auxilio. */
   axle: number;
   side: 'izq' | 'der' | null;
-  inner: boolean;
+  wheel: 'simple' | 'exterior' | 'interior';
   tire: Tire | null;
 }
 
 export interface VehicleTires {
   vehicleId: string;
   plate: string;
-  layout: TireLayout | null;
+  /** Código del catálogo (utils/vehicleTypes); null: sin tipo, sin posiciones. */
+  vehicleType: string | null;
   odometerKm: number;
   minTreadMm: number;
   positions: VehicleTirePosition[];
@@ -898,4 +898,29 @@ export interface TreadReading {
 export interface TirePositionRef {
   position: string;
   label: string;
+}
+
+/** Enganche de remolques (CAM-157): en un remolque, towedBy; en un tractor o camión rígido, towing. */
+export interface CouplingRef {
+  id: string;
+  plate: string;
+  vehicleType: string | null;
+  coupledAt: string;
+}
+
+export interface Coupling {
+  vehicleId: string;
+  towedBy: CouplingRef | null;
+  towing: CouplingRef | null;
+  /** Los tipos que puede arrastrar. */
+  canTow: string[];
+  history: {
+    trailerId: string;
+    trailerPlate: string;
+    towingId: string;
+    towingPlate: string;
+    coupledAt: string;
+    uncoupledAt: string | null;
+    coupledBy: string | null;
+  }[];
 }

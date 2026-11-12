@@ -86,6 +86,7 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
             onViewExpenses={() => navigate({ view: 'vehicle-expenses', vehicleId: route.vehicleId })}
             onOpenTires={() => navigate({ view: 'tires' })}
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
           />
         ) : route.view === 'vehicle-comparison' ? (
           <VehicleComparisonSection

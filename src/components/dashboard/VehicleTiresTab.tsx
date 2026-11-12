@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { ApiError } from '../../services/apiClient';
-import { getVehicleTires, setTireLayout } from '../../services/tiresService';
-import type { TireLayout, VehicleTirePosition, VehicleTires } from '../../types/domain';
+import { getVehicleTires, rotateTires } from '../../services/tiresService';
+import type { VehicleTirePosition, VehicleTires } from '../../types/domain';
 import { formatShortDate } from '../../utils/dateFormat';
-import { numberFormatter } from '../../utils/maintenanceFormat';
-import { formatTread, TIRE_LAYOUT_LABEL, tireLabel } from '../../utils/tireFormat';
-import { MountTireModal, RotateTireModal, TreadReadingsModal, UnmountTireModal } from './TireModals';
+import { formatCostPerKm } from '../../utils/fuelFormat';
+import { currencyFormatter, numberFormatter } from '../../utils/maintenanceFormat';
+import { formatTread, tireLabel } from '../../utils/tireFormat';
+import { vehicleTypeLabel } from '../../utils/vehicleTypes';
+import { MountTireModal, TreadReadingsModal, UnmountTireModal } from './TireModals';
+import { VehicleTopView } from './VehicleTopView';
 import '../../styles/dashboard.css';
 import '../../styles/tires.css';
 
-const LAYOUTS: TireLayout[] = ['4_ruedas', '6_ruedas', '10_ruedas'];
-
-type Action = { kind: 'mount' | 'rotate' | 'unmount'; slot: VehicleTirePosition } | { kind: 'treads' };
+type Action = { kind: 'mount' | 'unmount'; slot: VehicleTirePosition } | { kind: 'treads' };
 
 interface VehicleTiresTabProps {
   vehicleId: string;
@@ -19,28 +20,30 @@ interface VehicleTiresTabProps {
   readOnly?: boolean;
   /** Abre el inventario de cubiertas. */
   onOpenTires?: () => void;
+  /** Lleva a editar el vehículo, para elegir su tipo. */
+  onEditVehicle?: () => void;
 }
 
-/** De afuera hacia adentro: así se lee el eje de izquierda a derecha, como mirando el vehículo de atrás. */
-function sideOf(slots: VehicleTirePosition[], side: 'izq' | 'der'): VehicleTirePosition[] {
-  const onSide = slots.filter((s) => s.side === side);
-  return side === 'izq'
-    ? [...onSide].sort((a, b) => Number(a.inner) - Number(b.inner))
-    : [...onSide].sort((a, b) => Number(b.inner) - Number(a.inner));
-}
-
-/** CAM-157: qué cubierta hay en cada posición, cuántos km lleva y su dibujo; montar, rotar, cambiar y sacar. */
-export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires }: VehicleTiresTabProps) {
+/**
+ * CAM-157: el vehículo visto de arriba con sus cubiertas. Las posiciones salen de su tipo. Tocar una cubierta
+ * muestra al costado sus datos y qué hacer con ella; para rotar, se toca "Rotar" y después la posición destino.
+ */
+export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEditVehicle }: VehicleTiresTabProps) {
   const [data, setData] = useState<VehicleTires | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [action, setAction] = useState<Action | null>(null);
-  const [savingLayout, setSavingLayout] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [rotatingFrom, setRotatingFrom] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     getVehicleTires(vehicleId)
       .then((loaded) => {
-        if (!cancelled) setData(loaded);
+        if (cancelled) return;
+        setData(loaded);
+        // Arranca con la primera cubierta montada elegida, para que el panel no quede vacío.
+        setSelected(loaded.positions.find((p) => p.tire)?.position ?? loaded.positions[0]?.position ?? null);
       })
       .catch(() => {
         if (!cancelled) setError('No se pudieron cargar las cubiertas del vehículo.');
@@ -50,95 +53,50 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires }: Ve
     };
   }, [vehicleId]);
 
-  async function handleLayout(layout: TireLayout) {
-    setSavingLayout(true);
-    setError(null);
-    try {
-      setData(await setTireLayout(vehicleId, layout));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo cambiar la configuración.');
-    } finally {
-      setSavingLayout(false);
-    }
-  }
-
   function done(updated: VehicleTires) {
     setData(updated);
     setAction(null);
   }
 
-  const axles = data ? [...new Set(data.positions.filter((p) => p.axle > 0).map((p) => p.axle))].sort() : [];
-  const spare = data?.positions.find((p) => p.axle === 0);
-  const anyMounted = data?.positions.some((p) => p.tire) ?? false;
-
-  function renderSlot(slot: VehicleTirePosition) {
-    const tire = slot.tire;
-    const low = tire?.lastTread?.belowMinimum ?? false;
-    return (
-      <div key={slot.position} className={`tire-slot${tire ? '' : ' tire-slot--empty'}${low ? ' tire-slot--low' : ''}`}>
-        <span className="tire-slot__position">{slot.label}</span>
-        {tire ? (
-          <>
-            <span className="tire-slot__name">{tireLabel(tire)}</span>
-            <span className="tire-slot__meta">
-              {tire.size} · {numberFormatter.format(tire.km)} km
-            </span>
-            <span className={`tire-slot__meta${low ? ' tire-slot__tread--low' : ''}`}>
-              {tire.lastTread
-                ? `Dibujo ${formatTread(tire.lastTread.depthMm)} · ${formatShortDate(tire.lastTread.measuredAt)}`
-                : 'Sin medición de dibujo'}
-            </span>
-          </>
-        ) : (
-          <span className="tire-slot__meta">Sin cubierta</span>
-        )}
-        {!readOnly && (
-          <div className="tire-slot__actions">
-            {tire ? (
-              <>
-                <button type="button" className="vehicle-detail__action-btn" onClick={() => setAction({ kind: 'rotate', slot })}>
-                  Rotar
-                </button>
-                <button type="button" className="vehicle-detail__action-btn" onClick={() => setAction({ kind: 'mount', slot })}>
-                  Cambiar
-                </button>
-                <button type="button" className="vehicle-detail__action-btn" onClick={() => setAction({ kind: 'unmount', slot })}>
-                  Sacar
-                </button>
-              </>
-            ) : (
-              <button type="button" className="vehicle-detail__action-btn" onClick={() => setAction({ kind: 'mount', slot })}>
-                Montar
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    );
+  async function handleSelect(position: string) {
+    if (!rotatingFrom) {
+      setSelected(position);
+      return;
+    }
+    if (position === rotatingFrom) {
+      setRotatingFrom(null);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      setData(await rotateTires(vehicleId, rotatingFrom, position));
+      setSelected(position);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo rotar la cubierta.');
+    } finally {
+      setBusy(false);
+      setRotatingFrom(null);
+    }
   }
+
+  const slot = data?.positions.find((p) => p.position === selected) ?? null;
+  const tire = slot?.tire ?? null;
+  const anyMounted = data?.positions.some((p) => p.tire) ?? false;
+  const fromLabel = data?.positions.find((p) => p.position === rotatingFrom)?.label;
 
   return (
     <section className="vehicle-detail__card vehicle-tires">
       <header className="tires-header">
-        <h2 className="vehicle-detail__card-title">Neumáticos</h2>
-        <div className="tires-header__actions">
-          {data?.layout && (
-            <label className="vehicle-fuel__months">
-              Configuración{' '}
-              <select
-                className="schedule-picker__input"
-                value={data.layout}
-                onChange={(e) => void handleLayout(e.target.value as TireLayout)}
-                disabled={readOnly || savingLayout}
-              >
-                {LAYOUTS.map((l) => (
-                  <option key={l} value={l}>
-                    {TIRE_LAYOUT_LABEL[l]}
-                  </option>
-                ))}
-              </select>
-            </label>
+        <div>
+          <h2 className="vehicle-detail__card-title">Neumáticos</h2>
+          {data?.vehicleType && (
+            <p className="vehicle-detail__item-meta">
+              {vehicleTypeLabel(data.vehicleType)} · dibujo mínimo {formatTread(data.minTreadMm)} · el auxilio no suma km
+            </p>
           )}
+        </div>
+        <div className="tires-header__actions">
           {!readOnly && anyMounted && (
             <button type="button" className="vehicle-detail__action-btn" onClick={() => setAction({ kind: 'treads' })}>
               Cargar dibujo
@@ -155,88 +113,161 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires }: Ve
       {error && <p className="error-banner">{error}</p>}
       {!data && !error && <p className="muted">Cargando cubiertas…</p>}
 
-      {data && !data.layout && (
+      {data && !data.vehicleType && (
         <div className="tire-layout-picker">
-          <p className="muted">Elegí la configuración de ejes: de ahí salen las posiciones de las cubiertas.</p>
-          <div className="tires-header__actions">
-            {LAYOUTS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                className="secondary-btn"
-                onClick={() => void handleLayout(l)}
-                disabled={readOnly || savingLayout}
-              >
-                {TIRE_LAYOUT_LABEL[l]}
-              </button>
-            ))}
+          <p className="muted">
+            Este vehículo no tiene tipo. El tipo define sus ejes y sus cubiertas: elegilo para poder cargarlas.
+          </p>
+          {onEditVehicle && !readOnly && (
+            <button type="button" className="secondary-btn" onClick={onEditVehicle}>
+              Elegir el tipo
+            </button>
+          )}
+        </div>
+      )}
+
+      {data?.vehicleType && (
+        <div className="tires-layout">
+          <div>
+            <VehicleTopView
+              vehicleType={data.vehicleType}
+              positions={data.positions}
+              selected={selected}
+              rotatingFrom={rotatingFrom}
+              onSelect={(p) => void handleSelect(p)}
+            />
+            <div className="tires-legend" aria-hidden="true">
+              <span className="tires-legend__ok">Montada</span>
+              <span className="tires-legend__low">Dibujo bajo</span>
+              <span className="tires-legend__empty">Sin cubierta</span>
+            </div>
+          </div>
+
+          <div className="tire-panel" aria-live="polite">
+            {rotatingFrom ? (
+              <>
+                <p className="tire-panel__rotate">
+                  Tocá en el dibujo a dónde va la cubierta de <strong>{fromLabel}</strong>. Si esa posición tiene
+                  una, se intercambian.
+                </p>
+                <button type="button" className="secondary-btn" onClick={() => setRotatingFrom(null)} disabled={busy}>
+                  Cancelar
+                </button>
+              </>
+            ) : slot ? (
+              <>
+                <span className="tire-panel__position">{slot.label}</span>
+                {tire ? (
+                  <>
+                    <h3 className="tire-panel__name">{tireLabel(tire)}</h3>
+                    <dl className="tire-panel__facts">
+                      <div>
+                        <dt>Medida</dt>
+                        <dd>{tire.size}</dd>
+                      </div>
+                      <div>
+                        <dt>Km recorridos</dt>
+                        <dd>{numberFormatter.format(tire.km)} km</dd>
+                      </div>
+                      <div>
+                        <dt>Dibujo</dt>
+                        <dd className={tire.lastTread?.belowMinimum ? 'tire-slot__tread--low' : undefined}>
+                          {tire.lastTread
+                            ? `${formatTread(tire.lastTread.depthMm)} · ${formatShortDate(tire.lastTread.measuredAt)}`
+                            : 'Sin medir'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Costo por km</dt>
+                        <dd>{formatCostPerKm(tire.costPerKm)}</dd>
+                      </div>
+                      <div>
+                        <dt>Montada</dt>
+                        <dd>
+                          {tire.current
+                            ? `${formatShortDate(tire.current.mountedAt)} · ${numberFormatter.format(tire.current.mountedKm)} km`
+                            : '—'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Compra</dt>
+                        <dd>
+                          {formatShortDate(tire.purchaseDate)} · {currencyFormatter.format(tire.cost)}
+                        </dd>
+                      </div>
+                    </dl>
+                    {!readOnly && (
+                      <div className="tire-slot__actions">
+                        <button type="button" className="vehicle-detail__action-btn" onClick={() => setRotatingFrom(slot.position)}>
+                          Rotar
+                        </button>
+                        <button type="button" className="vehicle-detail__action-btn" onClick={() => setAction({ kind: 'mount', slot })}>
+                          Cambiar
+                        </button>
+                        <button type="button" className="vehicle-detail__action-btn" onClick={() => setAction({ kind: 'unmount', slot })}>
+                          Sacar
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="muted">Sin cubierta.</p>
+                    {!readOnly && (
+                      <div className="tire-slot__actions">
+                        <button type="button" className="primary-btn" onClick={() => setAction({ kind: 'mount', slot })}>
+                          Montar una del stock
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <p className="muted">Tocá una cubierta en el dibujo.</p>
+            )}
           </div>
         </div>
       )}
 
-      {data?.layout && (
+      {data && data.history.length > 0 && (
         <>
-          <p className="vehicle-detail__item-meta">
-            Los km de cada cubierta suman mientras rueda en el vehículo (el auxilio no suma). Dibujo mínimo:{' '}
-            {formatTread(data.minTreadMm)}.
-          </p>
-          <div className="tire-diagram" aria-label={`Cubiertas de ${data.plate} por posición`}>
-            {axles.map((axle) => {
-              const slots = data.positions.filter((p) => p.axle === axle);
-              return (
-                <div key={axle} className="tire-diagram__axle">
-                  <div className="tire-diagram__side tire-diagram__side--izq">{sideOf(slots, 'izq').map(renderSlot)}</div>
-                  <div className="tire-diagram__axle-label">{axle === 1 ? 'Delantero' : `Eje ${axle}`}</div>
-                  <div className="tire-diagram__side">{sideOf(slots, 'der').map(renderSlot)}</div>
-                </div>
-              );
-            })}
-            {spare && <div className="tire-diagram__spare">{renderSlot(spare)}</div>}
+          <h3 className="vehicle-checklist__section-title">Historial de montajes</h3>
+          <div className="fleet-status__table-wrap">
+            <table className="fleet-status__table">
+              <thead>
+                <tr>
+                  <th>Cubierta</th>
+                  <th>Posición</th>
+                  <th>Montada</th>
+                  <th>Sacada</th>
+                  <th className="fleet-status__km">Km en la posición</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.history.map((m, i) => (
+                  <tr key={`${m.tireId}-${m.mountedAt}-${i}`}>
+                    <td>{m.tireLabel}</td>
+                    <td>{m.positionLabel}</td>
+                    <td>
+                      {formatShortDate(m.mountedAt)} · {numberFormatter.format(m.mountedKm)} km
+                    </td>
+                    <td>
+                      {m.removedAt
+                        ? `${formatShortDate(m.removedAt)} · ${numberFormatter.format(m.removedKm ?? 0)} km`
+                        : 'Sigue puesta'}
+                    </td>
+                    <td className="fleet-status__km">{numberFormatter.format(m.km)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          {data.history.length > 0 && (
-            <>
-              <h3 className="vehicle-checklist__section-title">Historial de montajes</h3>
-              <div className="fleet-status__table-wrap">
-                <table className="fleet-status__table">
-                  <thead>
-                    <tr>
-                      <th>Cubierta</th>
-                      <th>Posición</th>
-                      <th>Montada</th>
-                      <th>Sacada</th>
-                      <th className="fleet-status__km">Km en la posición</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.history.map((m, i) => (
-                      <tr key={`${m.tireId}-${m.mountedAt}-${i}`}>
-                        <td>{m.tireLabel}</td>
-                        <td>{m.positionLabel}</td>
-                        <td>
-                          {formatShortDate(m.mountedAt)} · {numberFormatter.format(m.mountedKm)} km
-                        </td>
-                        <td>
-                          {m.removedAt
-                            ? `${formatShortDate(m.removedAt)} · ${numberFormatter.format(m.removedKm ?? 0)} km`
-                            : 'Sigue puesta'}
-                        </td>
-                        <td className="fleet-status__km">{numberFormatter.format(m.km)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
         </>
       )}
 
       {data && action?.kind === 'mount' && (
         <MountTireModal vehicle={data} slot={action.slot} onClose={() => setAction(null)} onDone={done} />
-      )}
-      {data && action?.kind === 'rotate' && (
-        <RotateTireModal vehicle={data} slot={action.slot} onClose={() => setAction(null)} onDone={done} />
       )}
       {data && action?.kind === 'unmount' && (
         <UnmountTireModal vehicle={data} slot={action.slot} onClose={() => setAction(null)} onDone={done} />
