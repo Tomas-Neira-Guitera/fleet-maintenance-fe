@@ -73,13 +73,17 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Tu vehículo vuelve a estar disponible',
     message: 'AB123CD ya puede salir. Se resolvió con la orden de trabajo «Pérdida de aire en frenos».',
   },
+  defect_resolved: {
+    title: 'Se resolvió un defecto que reportaste',
+    message: 'AB123CD: se resolvió «Luz de freno». Lámpara reemplazada.',
+  },
 };
 
 export type NotificationTopic = 'defects' | 'work_orders' | 'maintenance' | 'documents' | 'trips';
 
 /** Temas de la pantalla de configuración, en orden, con sus avisos. */
 export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types: NotificationType[] }[] = [
-  { id: 'defects', label: 'Defectos', types: ['blocking_defect_reported', 'recurring_defect'] },
+  { id: 'defects', label: 'Defectos', types: ['blocking_defect_reported', 'recurring_defect', 'defect_resolved'] },
   {
     id: 'work_orders',
     label: 'Órdenes de trabajo',
