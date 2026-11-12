@@ -570,7 +570,8 @@ export type NotificationType =
   | 'document_expired'
   | 'vehicle_unavailable'
   | 'vehicle_available'
-  | 'trip_km_anomaly';
+  | 'trip_km_anomaly'
+  | 'defect_resolved';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';
