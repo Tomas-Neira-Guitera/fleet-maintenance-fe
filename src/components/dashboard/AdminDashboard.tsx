@@ -11,10 +11,12 @@ import '../../styles/dashboard.css';
 
 interface AdminDashboardProps {
   onViewDefects: () => void;
+  /** CAM-142: el contador "N sin atender" de Defectos abiertos recientes. */
+  onViewUnattendedDefects: () => void;
   onOpenVehicle: (vehicleId: string) => void;
 }
 
-export function AdminDashboard({ onViewDefects, onOpenVehicle }: AdminDashboardProps) {
+export function AdminDashboard({ onViewDefects, onViewUnattendedDefects, onOpenVehicle }: AdminDashboardProps) {
   // Asignar/desasignar un plan desde el modal de FleetStatusTable cambia los
   // indicadores agregados -- bumpear esto fuerza a los widgets hermanos a refetchear.
   const [fleetVersion, setFleetVersion] = useState(0);
@@ -37,7 +39,7 @@ export function AdminDashboard({ onViewDefects, onOpenVehicle }: AdminDashboardP
             <UpcomingMaintenanceCard refreshKey={fleetVersion} />
           </div>
           <div className="admin-dashboard__column">
-            <RecentDefectsCard onViewAll={onViewDefects} />
+            <RecentDefectsCard onViewAll={onViewDefects} onViewUnattended={onViewUnattendedDefects} />
             <RecurringDefectsCard onOpenVehicle={onOpenVehicle} />
           </div>
         </div>

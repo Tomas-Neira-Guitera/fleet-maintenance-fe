@@ -1212,12 +1212,18 @@
   color: rgba(62, 74, 66, 0.65);
 }
 
-/* CAM-146: filtro "Ocurridos en el viaje" y la marca de cada defecto. */
+/* CAM-146 y CAM-142: filtros de Defectos y la marca de cada defecto. Cada botón ocupa lo que necesita su texto,
+   en un renglón; si no entran (en el celular), pasan abajo en vez de apretarse. */
 .defect-filter {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  max-width: 420px;
   margin-bottom: 12px;
+}
+
+.defect-filter .wo-execution-toggle__btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .occurred-on-trip {
@@ -1507,6 +1513,18 @@
 .road-defect__select {
   font-family: var(--fg-font-body);
   margin-top: 6px;
+}
+
+/* CAM-142: marca "Sin atender hace N días" de un defecto, en Defectos. */
+.defect-unattended-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+  white-space: nowrap;
 }
 
 /* CAM-139: marca "Reportado en viaje" de un defecto, en Defectos y en el historial del vehículo. */

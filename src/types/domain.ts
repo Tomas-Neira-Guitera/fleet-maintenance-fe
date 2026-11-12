@@ -142,6 +142,8 @@ export interface DefectSummary {
   source?: DefectSource;
   /** CAM-146: presente si apareció durante el viaje (en el pre-viaje ese control dio OK). */
   occurredOnTrip?: OccurredOnTrip | null;
+  /** CAM-142: días desde que se reportó, si está sin atender (más de 7 días sin OT abierta ni turno); si no, null. */
+  unattendedDays?: number | null;
 }
 
 /** CAM-146: el viaje en que apareció un defecto del post-viaje. */
@@ -571,7 +573,8 @@ export type NotificationType =
   | 'vehicle_unavailable'
   | 'vehicle_available'
   | 'trip_km_anomaly'
-  | 'defect_resolved';
+  | 'defect_resolved'
+  | 'defect_unattended';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';
