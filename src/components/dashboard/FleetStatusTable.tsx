@@ -3,6 +3,7 @@ import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { getFleetStatus } from '../../services/fleetStatusService';
 import type { FleetStatusRow } from '../../types/domain';
 import { describeNextMaintenance, numberFormatter } from '../../utils/maintenanceFormat';
+import { vehicleTypeLabel } from '../../utils/vehicleTypes';
 import { StatusBadge } from './StatusBadge';
 import { VehicleMaintenanceModal } from './VehicleMaintenanceModal';
 import '../../styles/dashboard.css';
@@ -87,7 +88,7 @@ export function FleetStatusTable({ onFleetChanged }: FleetStatusTableProps) {
                       <span className="fleet-status__vehicle-name">
                         {row.brand} {row.model}
                       </span>
-                      {row.vehicleType && <span className="fleet-status__vehicle-type">{row.vehicleType}</span>}
+                      {row.vehicleType && <span className="fleet-status__vehicle-type">{vehicleTypeLabel(row.vehicleType)}</span>}
                       {/* CAM-127: no puede salir, y por qué (defecto bloqueante o documento vencido). */}
                       {row.blocked && (
                         <span className="fleet-status__blocked" title={(row.blockReasons ?? []).map((r) => r.message).join('\n')}>

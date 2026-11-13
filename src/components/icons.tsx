@@ -370,3 +370,26 @@ export function PaperclipIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Surtidor: cargas de combustible (CAM-156). */
+export function FuelIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 22h12" />
+      <path d="M4 9h10" />
+      <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18" />
+      <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0V9.83a2 2 0 0 0-.59-1.42L18 5" />
+    </svg>
+  );
+}
+
+/** Cubierta: neumáticos (CAM-157). */
+export function TireIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="3.5" />
+      <path d="M12 3v5.5M12 15.5V21M3 12h5.5M15.5 12H21" />
+    </svg>
+  );
+}

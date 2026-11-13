@@ -27,3 +27,28 @@ describe('comparar vehículos (CAM-140)', () => {
     expect(parseAdminPath('/vehiculos/comparar/')).toEqual({ view: 'vehicle-comparison' });
   });
 });
+
+describe('plantillas de checklist (CAM-150)', () => {
+  it('tienen su dirección, y "plantillas" no se lee como el id de un vehículo', () => {
+    expect(adminPath({ view: 'checklist-templates' })).toBe('/vehiculos/plantillas');
+    expect(parseAdminPath('/vehiculos/plantillas')).toEqual({ view: 'checklist-templates' });
+  });
+});
+
+describe('pestaña Combustible del vehículo (CAM-156)', () => {
+  it('tiene su dirección, la del aviso de consumo alto', () => {
+    expect(adminPath({ view: 'vehicle', vehicleId: 'v-1', tab: 'combustible' })).toBe('/vehiculos/v-1/combustible');
+    expect(parseAdminPath('/vehiculos/v-1/combustible')).toEqual({ view: 'vehicle', vehicleId: 'v-1', tab: 'combustible' });
+  });
+});
+
+describe('neumáticos (CAM-157)', () => {
+  it('la pestaña del vehículo tiene la dirección del aviso de dibujo bajo', () => {
+    expect(parseAdminPath('/vehiculos/v-1/neumaticos')).toEqual({ view: 'vehicle', vehicleId: 'v-1', tab: 'neumaticos' });
+  });
+
+  it('el inventario tiene su dirección y "cubiertas" no se lee como un vehículo', () => {
+    expect(adminPath({ view: 'tires' })).toBe('/vehiculos/cubiertas');
+    expect(parseAdminPath('/vehiculos/cubiertas')).toEqual({ view: 'tires' });
+  });
+});

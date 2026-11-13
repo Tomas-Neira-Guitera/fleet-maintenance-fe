@@ -10,9 +10,20 @@ import {
 } from '../services/apiClient';
 import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
-import { checklistCacheKey, loadCache, saveCache } from '../offline/offlineCache';
+import { getTirePositions } from '../services/tiresService';
+import { getCoupling } from '../services/couplingService';
+import {
+  checklistCacheKey,
+  couplingCacheKey,
+  loadCache,
+  saveCache,
+  tirePositionsCacheKey,
+  VEHICLES_CACHE_KEY,
+} from '../offline/offlineCache';
 import { enqueueInspection, hasPendingInspections } from '../offline/pendingInspections';
 import { hasPhoto } from '../utils/defectPhoto';
+import { tireConditionLabel, toTireConditions, type TireConditionValue } from '../utils/tireFormat';
+import { canTow, canTowAny } from '../utils/vehicleTypes';
 import { newUuid } from '../utils/uuid';
 import type {
   ChecklistAnswer,
@@ -20,9 +31,12 @@ import type {
   ChecklistItemState,
   ChecklistSection,
   InspectionType,
+  TirePositions,
   Vehicle,
 } from '../types/domain';
 import { ChecklistItemCard } from './ChecklistItemCard';
+import { TrailerPicker } from './TrailerPicker';
+import { TireConditionPicker } from './TireConditionPicker';
 import { HealthRing, type RingStatus } from './HealthRing';
 import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, ShieldCheckIcon } from './icons';
 
@@ -43,6 +57,9 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
   VEHICLE_ON_TRIP: 'ya tiene un viaje abierto.',
   NO_OPEN_TRIP: 'ya no tiene un viaje abierto: alguien lo cerró.',
 };
+
+// CAM-157: el control del checklist base donde se marca qué cubierta tiene problemas.
+const TIRES_ITEM_ID = 'ext-neumaticos';
 
 // queued: sin señal, quedó guardada en el celular (CAM-153).
 type FlowStep = 'checklist' | 'summary' | 'success' | 'queued';
@@ -98,6 +115,68 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     };
   }, [vehicle.id, type, fallbackItems]);
   const items = useMemo(() => loadedItems ?? [], [loadedItems]);
+
+  // CAM-157: el dibujo del vehículo, para marcar qué cubierta tiene problemas si "Neumáticos" va en defecto. Sin
+  // señal, el último que se cargó; sin ninguno (o sin tipo), el chofer lo cuenta en la descripción.
+  const [tirePositions, setTirePositions] = useState<TirePositions | null>(null);
+  const [tireValues, setTireValues] = useState<TireConditionValue>({});
+  useEffect(() => {
+    if (type !== 'pre-trip') return;
+    let cancelled = false;
+    const cacheKey = tirePositionsCacheKey(vehicle.id);
+    const cached = () => {
+      const data = loadCache<TirePositions>(cacheKey)?.data;
+      // Antes se guardaba una lista de posiciones montadas: esa no sirve para dibujar.
+      return data && !Array.isArray(data) ? data : null;
+    };
+    getTirePositions(vehicle.id)
+      .then((loaded) => {
+        saveCache(cacheKey, loaded);
+        if (!cancelled) setTirePositions(loaded);
+      })
+      .catch(() => {
+        if (!cancelled) setTirePositions(cached());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicle.id, type]);
+  const canPickTires = Boolean(tirePositions?.positions.some((p) => p.mounted));
+
+  // CAM-157: el pre-viaje de un tractor o camión rígido dice qué remolque lleva. Arranca en el que tiene
+  // enganchado; si el chofer no lo cambia, no se manda y el enganche queda como estaba.
+  const tows = type === 'pre-trip' && canTowAny(vehicle.vehicleType);
+  const trailers = useMemo(
+    () =>
+      tows
+        ? (loadCache<Vehicle[]>(VEHICLES_CACHE_KEY)?.data ?? []).filter(
+            (v) => v.active !== false && canTow(vehicle.vehicleType, v.vehicleType),
+          )
+        : [],
+    [tows, vehicle.vehicleType],
+  );
+  const [initialTrailer, setInitialTrailer] = useState<string | null>(null);
+  const [trailerChoice, setTrailerChoice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tows) return;
+    let cancelled = false;
+    const cacheKey = couplingCacheKey(vehicle.id);
+    const apply = (current: string) => {
+      if (cancelled) return;
+      setInitialTrailer(current);
+      setTrailerChoice((prev) => prev ?? current);
+    };
+    getCoupling(vehicle.id)
+      .then((coupling) => {
+        saveCache(cacheKey, coupling.towing?.id ?? 'none');
+        apply(coupling.towing?.id ?? 'none');
+      })
+      .catch(() => apply(loadCache<string>(cacheKey)?.data ?? 'none'));
+    return () => {
+      cancelled = true;
+    };
+  }, [tows, vehicle.id]);
+  const trailerId = tows && trailerChoice !== null && trailerChoice !== initialTrailer ? trailerChoice : undefined;
   const checkItems = useMemo(() => items.filter((i) => i.type === 'check'), [items]);
 
   const [step, setStep] = useState<FlowStep>('checklist');
@@ -116,10 +195,25 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   }
 
   const defectCount = checkItems.filter((def) => stateOf(def).outcome === 'defect').length;
-  const allValid = items.every((def) => isItemValid(def, stateOf(def)));
+  const tiresInDefect = items.some((def) => def.id === TIRES_ITEM_ID && stateOf(def).outcome === 'defect');
+  const tireConditions = tiresInDefect ? toTireConditions(tireValues) : [];
+  // Con el dibujo disponible, hay que decir qué cubierta es.
+  const tiresValid = !tiresInDefect || !canPickTires || tireConditions.length > 0;
+  const allValid = items.every((def) => isItemValid(def, stateOf(def))) && tiresValid;
 
   function updateItem(id: string, next: ChecklistItemState) {
     setAnswers((prev) => ({ ...prev, [id]: next }));
+  }
+
+  function updateTires(next: TireConditionValue) {
+    setTireValues(next);
+    // Si el chofer todavía no escribió el título del defecto, se completa con lo primero que marcó.
+    const first = toTireConditions(next)[0]?.conditions[0];
+    setAnswers((prev) => {
+      const current = prev[TIRES_ITEM_ID];
+      if (!first || !current?.defect || current.defect.description.trim()) return prev;
+      return { ...prev, [TIRES_ITEM_ID]: { ...current, defect: { ...current.defect, description: tireConditionLabel(first) } } };
+    });
   }
 
   function handleContinue() {
@@ -167,7 +261,12 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     });
 
     // CAM-153: la hora en que la hizo y un id para que un reintento no la duplique.
-    const meta = { performedAt: new Date().toISOString(), clientSubmissionId: newUuid() };
+    const meta = {
+      performedAt: new Date().toISOString(),
+      clientSubmissionId: newUuid(),
+      tireConditions: tireConditions.length > 0 ? tireConditions : undefined,
+      trailerId,
+    };
     const queue = () =>
       enqueueInspection({
         id: meta.clientSubmissionId,
@@ -177,6 +276,8 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
         answers: fullAnswers,
         notes: notes.trim() || undefined,
         performedAt: meta.performedAt,
+        tireConditions: meta.tireConditions,
+        trailerId: meta.trailerId,
       });
 
     try {
@@ -314,6 +415,17 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
           <p className="muted summary-no-defects">Sin defectos reportados. Todo en orden.</p>
         )}
 
+        {tireConditions.length > 0 && (
+          <ul className="tire-picker__summary">
+            {tireConditions.map((t) => (
+              <li key={t.position}>
+                <strong>{tirePositions?.positions.find((p) => p.position === t.position)?.label ?? t.position}:</strong>{' '}
+                {t.conditions.map(tireConditionLabel).join(', ').toLowerCase()}
+              </li>
+            ))}
+          </ul>
+        )}
+
         <label className="confirm-check">
           <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
           Declaro que la información es correcta
@@ -375,11 +487,25 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
                 state={stateOf(def)}
                 onChange={(next) => updateItem(def.id, next)}
                 showValidation={showValidation}
+                defectExtra={
+                  def.id === TIRES_ITEM_ID && canPickTires && tirePositions ? (
+                    <TireConditionPicker
+                      tires={tirePositions}
+                      value={tireValues}
+                      onChange={updateTires}
+                      invalid={showValidation && !tiresValid}
+                    />
+                  ) : undefined
+                }
               />
             ))}
           </div>
         </section>
       ))}
+
+      {tows && trailerChoice !== null && (trailers.length > 0 || trailerChoice !== 'none') && (
+        <TrailerPicker trailers={trailers} value={trailerChoice} onChange={setTrailerChoice} />
+      )}
 
       {type === 'post-trip' && (
         <section className="checklist-section">

@@ -28,6 +28,10 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Kilometraje fuera de lo normal en AB123CD',
     message: 'Juan Pérez cerró un viaje de 1.250 km con AB123CD, más del doble de su promedio de 400 km por viaje.',
   },
+  fuel_consumption_anomaly: {
+    title: 'Consumo de combustible alto en AB123CD',
+    message: 'AB123CD consumió 45,0 L cada 100 km en los últimos 500 km, un 47% más que su promedio de 30,7 L.',
+  },
   work_order_finalized: {
     title: 'Orden de trabajo finalizada',
     message: 'Cambio de pastillas (AB123CD), hecha por Javier Romero.',

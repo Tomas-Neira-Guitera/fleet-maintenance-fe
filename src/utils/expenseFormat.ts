@@ -11,9 +11,11 @@ export const EXPENSE_CATEGORY_LABEL: Record<ExpenseCategory, string> = {
   otro: 'Otro',
 };
 
-/** Las que se pueden elegir al cargar un gasto operativo (CAM-109). */
+/**
+ * Las que se pueden elegir al cargar un gasto operativo (CAM-109). Combustible no: desde CAM-156 se carga
+ * como carga de combustible, con litros y km. Un gasto de combustible anterior sí se puede editar.
+ */
 export const VEHICLE_EXPENSE_CATEGORIES: VehicleExpenseCategory[] = [
-  'combustible',
   'seguro',
   'patente',
   'vtv',
@@ -27,4 +29,5 @@ export const EXPENSE_ORIGIN_LABEL: Record<ExpenseOrigin, string> = {
   defect: 'Correctivo',
   manual: 'Órdenes sueltas',
   operating: 'Operativo',
+  fuel: 'Combustible',
 };

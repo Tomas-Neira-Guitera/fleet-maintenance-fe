@@ -36,6 +36,8 @@ interface ExpensesSectionProps {
    * 12 meses, la misma ventana que muestra su tarjeta de costos.
    */
   initialVehicleId?: string;
+  /** CAM-156: una carga de combustible se corrige desde el vehículo, no desde Gastos. */
+  onOpenFuel?: (vehicleId: string) => void;
 }
 
 interface Filters {
@@ -55,9 +57,15 @@ const CATEGORIES: ExpenseCategory[] = [
   'peajes',
   'otro',
 ];
-const ORIGINS: ExpenseOrigin[] = ['plan', 'defect', 'manual', 'operating'];
+const ORIGINS: ExpenseOrigin[] = ['plan', 'defect', 'manual', 'operating', 'fuel'];
 // El color sigue al origen, no a su posición: filtrar no repinta los que quedan.
-const SERIES_COLORS = ['var(--fg-chart-1)', 'var(--fg-chart-2)', 'var(--fg-chart-3)', 'var(--fg-chart-4)'];
+const SERIES_COLORS = [
+  'var(--fg-chart-1)',
+  'var(--fg-chart-2)',
+  'var(--fg-chart-3)',
+  'var(--fg-chart-4)',
+  'var(--fg-warn)',
+];
 const TABLE_PAGE_SIZE = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -138,7 +146,7 @@ function overTime(expenses: Expense[], period: Period): ColumnDatum[] {
  * vehículo (CAM-109), en un solo lugar. El período se pide al backend; vehículo, categoría y origen
  * se filtran acá, y cada gráfico sirve también de filtro (se elige tocando un segmento o una barra).
  */
-export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionProps) {
+export function ExpensesSection({ onLogout, initialVehicleId, onOpenFuel }: ExpensesSectionProps) {
   const [period, setPeriod] = useState<Period>(() => (initialVehicleId ? lastTwelveMonths() : presetPeriod('year')));
   // Se incrementa para volver a pedir el mismo período (al cerrar una OT que pudo cambiar sus gastos).
   const [reloadKey, setReloadKey] = useState(0);
@@ -607,7 +615,8 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                             onClick={() => {
                               // Arrastrar para copiar la descripción o el N° de comprobante no abre la OT.
                               if (window.getSelection()?.toString()) return;
-                              if (expense.workOrderId === null) setExpenseForm(expense);
+                              if (expense.origin === 'fuel') onOpenFuel?.(expense.vehicleId);
+                              else if (expense.workOrderId === null) setExpenseForm(expense);
                               else if (openingWorkOrderId === null) void openWorkOrder(expense.workOrderId);
                             }}
                           >
@@ -639,7 +648,19 @@ export function ExpensesSection({ onLogout, initialVehicleId }: ExpensesSectionP
                               </span>
                             </td>
                             <td>
-                              {expense.workOrderId === null ? (
+                              {expense.origin === 'fuel' ? (
+                                <button
+                                  type="button"
+                                  className="expenses__wo-link"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenFuel?.(expense.vehicleId);
+                                  }}
+                                  title="Ver el consumo del vehículo"
+                                >
+                                  Carga de combustible
+                                </button>
+                              ) : expense.workOrderId === null ? (
                                 <button
                                   type="button"
                                   className="expenses__wo-link"

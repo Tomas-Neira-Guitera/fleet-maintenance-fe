@@ -10,7 +10,9 @@ import { getSessionUserId, getUsername, isNetworkError } from '../services/apiCl
 import { getVehicles } from '../services/vehiclesService';
 import type { Vehicle } from '../types/domain';
 import { formatDayAndTime } from '../utils/dateFormat';
-import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, LockClockIcon } from './icons';
+import { isTrailer } from '../utils/vehicleTypes';
+import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, FuelIcon, LockClockIcon } from './icons';
+import '../styles/fuel.css';
 
 interface VehicleListProps {
   onSelectVehicle: (vehicle: Vehicle) => void;
@@ -20,6 +22,8 @@ interface VehicleListProps {
   confirmation?: string | null;
   /** CAM-139: reportar un problema durante el viaje propio, sin cerrarlo. */
   onReportProblem: (vehicle: Vehicle) => void;
+  /** CAM-156: cargar combustible en un vehículo disponible o en el del viaje propio. */
+  onLoadFuel?: (vehicle: Vehicle) => void;
 }
 
 /** Quién tiene el vehículo en viaje (CAM-87), para que el chofer reconozca cuál es el suyo. */
@@ -53,7 +57,7 @@ function describePending(item: PendingInspection): string {
   return `${item.type === 'pre-trip' ? 'Pre-viaje' : 'Post-viaje'} de ${item.plate} (${formatDayAndTime(item.performedAt)})`;
 }
 
-export function VehicleList({ onSelectVehicle, notice, confirmation, onReportProblem }: VehicleListProps) {
+export function VehicleList({ onSelectVehicle, notice, confirmation, onReportProblem, onLoadFuel }: VehicleListProps) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   // CAM-153: sin señal se muestra la última flota cargada, con la hora.
@@ -146,7 +150,8 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
       {!vehicles && !error && <p className="muted">Cargando vehículos…</p>}
 
       <ul className="vehicle-list">
-        {vehicles?.map((serverVehicle) => {
+        {/* CAM-157: los remolques no tienen chofer: se ven y se mantienen desde el admin. */}
+        {vehicles?.filter((v) => !isTrailer(v.vehicleType)).map((serverVehicle) => {
           const pending = lastPendingByVehicle.get(serverVehicle.id);
           const vehicle = withPending(serverVehicle, pending, currentUserId);
           const onTrip = vehicle.status === 'on-trip';
@@ -157,6 +162,9 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
           const reasons = isBlocked ? (vehicle.blockReasons ?? []).map((r) => r.message) : [];
           // El viaje propio es lo que el chofer tiene pendiente de cerrar: no se atenúa como los ajenos.
           const isMine = onTrip && vehicle.currentTrip?.openedBy?.id === currentUserId;
+          // CAM-156: con señal, en uno disponible o en el del viaje propio (no en el viaje de otro chofer).
+          const canLoadFuel = Boolean(onLoadFuel) && !offlineSince && !isBlocked && (!onTrip || isMine);
+          const showReport = isMine && !pending;
           return (
             <li key={vehicle.id}>
               <button
@@ -196,12 +204,20 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
                 )}
               </button>
               {/* Con el pre-viaje todavía sin enviar, el servidor no conoce el viaje: el reporte en ruta espera la señal. */}
-              {isMine && !pending && (
+              {(showReport || canLoadFuel) && (
                 <div className="vehicle-list__trip-actions">
-                  <button type="button" className="vehicle-card__report" onClick={() => onReportProblem(vehicle)}>
-                    <AlertTriangleIcon aria-hidden="true" />
-                    Reportar un problema
-                  </button>
+                  {canLoadFuel && (
+                    <button type="button" className="vehicle-card__fuel" onClick={() => onLoadFuel?.(vehicle)}>
+                      <FuelIcon aria-hidden="true" />
+                      Cargar combustible
+                    </button>
+                  )}
+                  {showReport && (
+                    <button type="button" className="vehicle-card__report" onClick={() => onReportProblem(vehicle)}>
+                      <AlertTriangleIcon aria-hidden="true" />
+                      Reportar un problema
+                    </button>
+                  )}
                 </div>
               )}
             </li>

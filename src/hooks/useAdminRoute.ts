@@ -6,9 +6,16 @@ import type { AdminTab } from '../components/dashboard/AdminShell';
 // API en vez de una librería: son pocas rutas planas y no hace falta más que esto.
 
 /** Pestañas del detalle de un vehículo (CAM-127); "resumen" es /vehiculos/{id} a secas. */
-export type VehicleTab = 'resumen' | 'historial' | 'checklist' | 'documentacion';
+export type VehicleTab = 'resumen' | 'historial' | 'checklist' | 'documentacion' | 'combustible' | 'neumaticos';
 
-export const VEHICLE_TABS: VehicleTab[] = ['resumen', 'historial', 'checklist', 'documentacion'];
+export const VEHICLE_TABS: VehicleTab[] = [
+  'resumen',
+  'historial',
+  'checklist',
+  'documentacion',
+  'combustible',
+  'neumaticos',
+];
 
 export type AdminRoute =
   | { view: 'tab'; tab: AdminTab }
@@ -19,7 +26,11 @@ export type AdminRoute =
   // El detalle de una OT, abierto sobre la lista: el link del aviso de OT finalizada (CAM-98).
   | { view: 'work-order'; workOrderId: string }
   // Comparar vehículos (CAM-140), dentro de Vehículos.
-  | { view: 'vehicle-comparison' };
+  | { view: 'vehicle-comparison' }
+  // Plantillas de checklist (CAM-150), dentro de Vehículos.
+  | { view: 'checklist-templates' }
+  // Inventario de cubiertas (CAM-157), dentro de Vehículos.
+  | { view: 'tires' };
 
 // Mismo criterio que el id de /vehiculos/{id}: solo letras, números y guiones.
 const VEHICLE_ID = /^[A-Za-z0-9-]+$/;
@@ -38,10 +49,15 @@ const DEFAULT_ROUTE: AdminRoute = { view: 'tab', tab: 'resumen' };
 
 /** CAM-140. Va antes que /vehiculos/{id}: "comparar" también pasaría por un id. */
 const COMPARISON_PATH = '/vehiculos/comparar';
+/** CAM-150. Igual que COMPARISON_PATH, va antes que /vehiculos/{id}. */
+const TEMPLATES_PATH = '/vehiculos/plantillas';
+const TIRES_PATH = '/vehiculos/cubiertas';
 
 export function adminPath(route: AdminRoute): string {
   if (route.view === 'defects') return '/defectos';
   if (route.view === 'vehicle-comparison') return COMPARISON_PATH;
+  if (route.view === 'checklist-templates') return TEMPLATES_PATH;
+  if (route.view === 'tires') return TIRES_PATH;
   if (route.view === 'vehicle') {
     return route.tab && route.tab !== 'resumen' ? `/vehiculos/${route.vehicleId}/${route.tab}` : `/vehiculos/${route.vehicleId}`;
   }
@@ -55,13 +71,15 @@ export function parseAdminPath(pathname: string, search = ''): AdminRoute | null
   const path = pathname.replace(/\/+$/, '');
   if (path === '/defectos') return { view: 'defects' };
   if (path === COMPARISON_PATH) return { view: 'vehicle-comparison' };
+  if (path === TEMPLATES_PATH) return { view: 'checklist-templates' };
+  if (path === TIRES_PATH) return { view: 'tires' };
   if (path === TAB_PATHS.gastos) {
     const vehicleId = new URLSearchParams(search).get('vehiculo');
     if (vehicleId && VEHICLE_ID.test(vehicleId)) return { view: 'vehicle-expenses', vehicleId };
   }
   // Solo letras, números y guiones (los ids son UUID). El id sale de la URL, que puede armar
   // cualquiera, y los services lo interpolan crudo: "..%2Fusers" terminaría pidiendo otro endpoint.
-  const vehicle = /^\/vehiculos\/([A-Za-z0-9-]+)(?:\/(historial|checklist|documentacion))?$/.exec(path);
+  const vehicle = /^\/vehiculos\/([A-Za-z0-9-]+)(?:\/(historial|checklist|documentacion|combustible|neumaticos))?$/.exec(path);
   if (vehicle) return { view: 'vehicle', vehicleId: vehicle[1], tab: (vehicle[2] as VehicleTab | undefined) ?? 'resumen' };
   // CAM-133: el QR del camión lleva a su inspección; un admin que lo escanea ve el vehículo.
   const scanned = /^\/inspeccion\/([A-Za-z0-9-]+)$/.exec(path);

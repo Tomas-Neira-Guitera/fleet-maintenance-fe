@@ -3,12 +3,15 @@ import './App.css';
 import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
 import { RoadDefectForm } from './components/RoadDefectForm';
+import { FuelLoadScreen } from './components/FuelLoadScreen';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
 import { NotificationBell } from './components/NotificationBell';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { AdminShell } from './components/dashboard/AdminShell';
 import { VehicleComparisonSection } from './components/dashboard/VehicleComparisonSection';
+import { ChecklistTemplatesSection } from './components/dashboard/ChecklistTemplatesSection';
+import { TiresSection } from './components/dashboard/TiresSection';
 import { VehiclesSection } from './components/dashboard/VehiclesSection';
 import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
@@ -33,7 +36,9 @@ type Route =
   | { view: 'list' }
   | { view: 'flow'; vehicle: Vehicle; type: InspectionType }
   // CAM-139: reportar un problema durante el viaje, sin cerrarlo.
-  | { view: 'road-defect'; vehicle: Vehicle };
+  | { view: 'road-defect'; vehicle: Vehicle }
+  // CAM-156: cargar combustible.
+  | { view: 'fuel'; vehicle: Vehicle };
 
 /** Vista del admin, aparte para que el hook de ruteo solo corra con ese rol. */
 function AdminApp({ onLogout }: { onLogout: () => void }) {
@@ -41,7 +46,10 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
   const activeTab =
     route.view === 'tab'
       ? route.tab
-      : route.view === 'vehicle' || route.view === 'vehicle-comparison'
+      : route.view === 'vehicle' ||
+          route.view === 'vehicle-comparison' ||
+          route.view === 'checklist-templates' ||
+          route.view === 'tires'
         ? 'vehiculos'
         : route.view === 'vehicle-expenses'
           ? 'gastos'
@@ -77,15 +85,29 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             onSelectTab={(tab) => navigate({ view: 'vehicle', vehicleId: route.vehicleId, tab })}
             onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
             onViewExpenses={() => navigate({ view: 'vehicle-expenses', vehicleId: route.vehicleId })}
+            onOpenTires={() => navigate({ view: 'tires' })}
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
           />
         ) : route.view === 'vehicle-comparison' ? (
           <VehicleComparisonSection
             onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
             onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
           />
+        ) : route.view === 'tires' ? (
+          <TiresSection
+            onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId, tab: 'neumaticos' })}
+          />
+        ) : route.view === 'checklist-templates' ? (
+          <ChecklistTemplatesSection onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })} />
         ) : route.view === 'vehicle-expenses' ? (
           // key: llegar con otro vehículo, o volver a Gastos sin filtro, arranca la pestaña de cero.
-          <ExpensesSection key={route.vehicleId} onLogout={onLogout} initialVehicleId={route.vehicleId} />
+          <ExpensesSection
+            key={route.vehicleId}
+            onLogout={onLogout}
+            initialVehicleId={route.vehicleId}
+            onOpenFuel={(vehicleId) => navigate({ view: 'vehicle', vehicleId, tab: 'combustible' })}
+          />
         ) : route.view === 'work-order' ? (
           <WorkOrdersSection
             key={route.workOrderId}
@@ -96,13 +118,19 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
           <VehiclesSection
             onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
             onCompare={() => navigate({ view: 'vehicle-comparison' })}
+            onOpenTemplates={() => navigate({ view: 'checklist-templates' })}
+            onOpenTires={() => navigate({ view: 'tires' })}
           />
         ) : activeTab === 'planes' ? (
           <MaintenancePlansSection />
         ) : activeTab === 'ordenes-trabajo' ? (
           <WorkOrdersSection />
         ) : activeTab === 'gastos' ? (
-          <ExpensesSection key="todos" onLogout={onLogout} />
+          <ExpensesSection
+            key="todos"
+            onLogout={onLogout}
+            onOpenFuel={(vehicleId) => navigate({ view: 'vehicle', vehicleId, tab: 'combustible' })}
+          />
         ) : activeTab === 'usuarios' ? (
           <UsersSection onLogout={onLogout} />
         ) : activeTab === 'notificaciones' ? (
@@ -228,6 +256,18 @@ function App() {
     setRoute({ view: 'road-defect', vehicle });
   }
 
+  function handleLoadFuel(vehicle: Vehicle) {
+    setListNotice(null);
+    setListConfirmation(null);
+    setRoute({ view: 'fuel', vehicle });
+  }
+
+  function handleFuelDone(message: string) {
+    setListConfirmation(message);
+    setListKey((k) => k + 1);
+    setRoute({ view: 'list' });
+  }
+
   function handleRoadDefectDone(plate: string) {
     setListConfirmation(`Problema reportado en ${plate}. Cuando termines, cerrá el viaje con el post-viaje.`);
     setListKey((k) => k + 1);
@@ -285,6 +325,7 @@ function App() {
           key={listKey}
           onSelectVehicle={handleSelectVehicle}
           onReportProblem={handleReportProblem}
+          onLoadFuel={handleLoadFuel}
           notice={listNotice}
           confirmation={listConfirmation}
         />
@@ -303,6 +344,15 @@ function App() {
         <RoadDefectForm
           vehicle={route.vehicle}
           onDone={() => handleRoadDefectDone(route.vehicle.plate)}
+          onBack={handleFlowBack}
+          onUnavailable={handleFlowUnavailable}
+          onLogout={handleLogout}
+        />
+      )}
+      {route.view === 'fuel' && (
+        <FuelLoadScreen
+          vehicle={route.vehicle}
+          onDone={handleFuelDone}
           onBack={handleFlowBack}
           onUnavailable={handleFlowUnavailable}
           onLogout={handleLogout}
