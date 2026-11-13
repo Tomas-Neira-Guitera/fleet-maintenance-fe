@@ -17,6 +17,8 @@ export interface Vehicle {
   blockReasons?: BlockReason[];
   /** El viaje abierto, si está "en viaje" (CAM-87). */
   currentTrip?: CurrentTrip | null;
+  /** Fecha y hora del turno de taller de hoy, en el día argentino (CAM-143); null si no tiene. No bloquea. */
+  scheduledToday?: string | null;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
@@ -574,7 +576,9 @@ export type NotificationType =
   | 'vehicle_available'
   | 'trip_km_anomaly'
   | 'defect_resolved'
-  | 'defect_unattended';
+  | 'defect_unattended'
+  | 'scheduled_maintenance_upcoming'
+  | 'trip_started_with_maintenance';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';
