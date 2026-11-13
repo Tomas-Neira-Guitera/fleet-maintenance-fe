@@ -589,6 +589,7 @@ export type NotificationType =
   | 'vehicle_available'
   | 'trip_km_anomaly'
   | 'fuel_consumption_anomaly'
+  | 'tire_problem_reported'
   | 'defect_resolved'
   | 'defect_unattended'
   | 'scheduled_maintenance_upcoming'

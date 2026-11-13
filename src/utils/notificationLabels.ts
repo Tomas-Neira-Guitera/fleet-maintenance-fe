@@ -32,6 +32,10 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Consumo de combustible alto en AB123CD',
     message: 'AB123CD consumió 45,0 L cada 100 km en los últimos 500 km, un 47% más que su promedio de 30,7 L.',
   },
+  tire_problem_reported: {
+    title: 'Cubierta con problemas en AB123CD',
+    message: 'Juan Pérez reportó en AB123CD: Trasera derecha exterior (Michelin X Multi D N° 1234): se ve la tela o el alambre.',
+  },
   work_order_finalized: {
     title: 'Orden de trabajo finalizada',
     message: 'Cambio de pastillas (AB123CD), hecha por Javier Romero.',
@@ -104,7 +108,11 @@ export type NotificationTopic = 'defects' | 'work_orders' | 'maintenance' | 'doc
 
 /** Temas de la pantalla de configuración, en orden, con sus avisos. */
 export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types: NotificationType[] }[] = [
-  { id: 'defects', label: 'Defectos', types: ['blocking_defect_reported', 'recurring_defect', 'defect_unattended', 'defect_resolved'] },
+  {
+    id: 'defects',
+    label: 'Defectos',
+    types: ['blocking_defect_reported', 'tire_problem_reported', 'recurring_defect', 'defect_unattended', 'defect_resolved'],
+  },
   {
     id: 'work_orders',
     label: 'Órdenes de trabajo',
@@ -123,6 +131,7 @@ export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types:
     label: 'Viajes y disponibilidad',
     types: [
       'trip_km_anomaly',
+      'fuel_consumption_anomaly',
       'trip_started_with_maintenance',
       'trip_open_reminder',
       'scheduled_maintenance_upcoming',
