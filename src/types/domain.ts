@@ -17,6 +17,8 @@ export interface Vehicle {
   blockReasons?: BlockReason[];
   /** El viaje abierto, si está "en viaje" (CAM-87). */
   currentTrip?: CurrentTrip | null;
+  /** Fecha y hora del turno de taller de hoy, en el día argentino (CAM-143); null si no tiene. No bloquea. */
+  scheduledToday?: string | null;
   /** CAM-157, solo en el listado: en un remolque, quién lo arrastra; en un tractor o camión, qué remolque lleva. */
   coupledWith?: CouplingRef | null;
 }
@@ -144,6 +146,8 @@ export interface DefectSummary {
   source?: DefectSource;
   /** CAM-146: presente si apareció durante el viaje (en el pre-viaje ese control dio OK). */
   occurredOnTrip?: OccurredOnTrip | null;
+  /** CAM-142: días desde que se reportó, si está sin atender (más de 7 días sin OT abierta ni turno); si no, null. */
+  unattendedDays?: number | null;
 }
 
 /** CAM-146: el viaje en que apareció un defecto del post-viaje. */
@@ -517,6 +521,16 @@ export interface VehicleCosts {
   costPerKm: number | null;
 }
 
+/** CAM-149: un comentario de una OT, entre el admin y el técnico. No se edita ni se borra. */
+export interface WorkOrderComment {
+  id: string;
+  /** name es el nombre actual del usuario, o el que tenía al comentar si ya no existe. */
+  author: UserRef;
+  authorRole: 'ADMIN' | 'TECNICO';
+  text: string;
+  createdAt: string;
+}
+
 export interface WorkOrderPhoto {
   id: string;
   photoUrl: string;
@@ -574,7 +588,13 @@ export type NotificationType =
   | 'vehicle_unavailable'
   | 'vehicle_available'
   | 'trip_km_anomaly'
-  | 'fuel_consumption_anomaly';
+  | 'fuel_consumption_anomaly'
+  | 'tire_problem_reported'
+  | 'defect_resolved'
+  | 'defect_unattended'
+  | 'scheduled_maintenance_upcoming'
+  | 'trip_started_with_maintenance'
+  | 'work_order_comment';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';

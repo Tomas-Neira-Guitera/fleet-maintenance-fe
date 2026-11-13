@@ -32,6 +32,10 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Consumo de combustible alto en AB123CD',
     message: 'AB123CD consumió 45,0 L cada 100 km en los últimos 500 km, un 47% más que su promedio de 30,7 L.',
   },
+  tire_problem_reported: {
+    title: 'Cubierta con problemas en AB123CD',
+    message: 'Juan Pérez reportó en AB123CD: Trasera derecha exterior (Michelin X Multi D N° 1234): se ve la tela o el alambre.',
+  },
   work_order_finalized: {
     title: 'Orden de trabajo finalizada',
     message: 'Cambio de pastillas (AB123CD), hecha por Javier Romero.',
@@ -77,23 +81,62 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Tu vehículo vuelve a estar disponible',
     message: 'AB123CD ya puede salir. Se resolvió con la orden de trabajo «Pérdida de aire en frenos».',
   },
+  defect_unattended: {
+    title: '2 defectos sin atender en AB123CD',
+    message: '2 defectos llevan más de 7 días sin OT ni turno: Luz de freno; Espejo roto.',
+  },
+  defect_resolved: {
+    title: 'Se resolvió un defecto que reportaste',
+    message: 'AB123CD: se resolvió «Luz de freno». Lámpara reemplazada.',
+  },
+  work_order_comment: {
+    title: 'Comentario del técnico',
+    message: 'Javier Romero en Cambio de pastillas (AB123CD): «¿Lo reparo o lo cambio? El disco está marcado.»',
+  },
+  scheduled_maintenance_upcoming: {
+    title: 'Turno de taller de AB123CD',
+    message:
+      'AB123CD tiene turno de taller mañana 13/11 a las 15:00: «Cambio de aceite». Tenelo en cuenta para volver a tiempo.',
+  },
+  trip_started_with_maintenance: {
+    title: 'AB123CD salió de viaje con turno de taller',
+    message: 'Juan Pérez salió con AB123CD a las 10:20, y tiene turno de taller hoy a las 15:00: «Cambio de aceite».',
+  },
 };
 
 export type NotificationTopic = 'defects' | 'work_orders' | 'maintenance' | 'documents' | 'trips';
 
 /** Temas de la pantalla de configuración, en orden, con sus avisos. */
 export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types: NotificationType[] }[] = [
-  { id: 'defects', label: 'Defectos', types: ['blocking_defect_reported', 'recurring_defect'] },
+  {
+    id: 'defects',
+    label: 'Defectos',
+    types: ['blocking_defect_reported', 'tire_problem_reported', 'recurring_defect', 'defect_unattended', 'defect_resolved'],
+  },
   {
     id: 'work_orders',
     label: 'Órdenes de trabajo',
-    types: ['work_order_finalized', 'work_order_assigned', 'work_order_unassigned', 'work_order_cancelled'],
+    types: [
+      'work_order_finalized',
+      'work_order_comment',
+      'work_order_assigned',
+      'work_order_unassigned',
+      'work_order_cancelled',
+    ],
   },
   { id: 'maintenance', label: 'Mantenimiento preventivo', types: ['maintenance_due_soon', 'maintenance_overdue'] },
   { id: 'documents', label: 'Documentación', types: ['document_due_soon', 'document_expired'] },
   {
     id: 'trips',
     label: 'Viajes y disponibilidad',
-    types: ['trip_km_anomaly', 'trip_open_reminder', 'vehicle_unavailable', 'vehicle_available'],
+    types: [
+      'trip_km_anomaly',
+      'fuel_consumption_anomaly',
+      'trip_started_with_maintenance',
+      'trip_open_reminder',
+      'scheduled_maintenance_upcoming',
+      'vehicle_unavailable',
+      'vehicle_available',
+    ],
   },
 ];

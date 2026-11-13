@@ -500,6 +500,58 @@
   color: rgba(62, 74, 66, 0.75);
 }
 
+/* CAM-143: turno de taller hoy. No bloquea: solo avisa. */
+.vehicle-card__workshop {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9A6A23;
+}
+
+/* CAM-143: advertencia antes del pre-viaje de un vehículo con turno de taller hoy. */
+.schedule-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(62, 74, 66, 0.45);
+}
+
+.schedule-warning__card {
+  width: 100%;
+  max-width: 440px;
+  padding: 24px 20px 20px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+  box-shadow: var(--fg-shadow-pop);
+  text-align: center;
+}
+
+.schedule-warning__icon {
+  width: 32px;
+  height: 32px;
+  color: var(--fg-warn);
+}
+
+.schedule-warning__title {
+  margin: 12px 0 4px;
+  font-family: var(--fg-font-display);
+  font-size: 18px;
+  color: var(--fg-text);
+}
+
+.schedule-warning__text {
+  margin: 0 0 20px;
+  color: var(--fg-text-muted);
+}
+
+.schedule-warning__actions {
+  display: flex;
+  gap: 12px;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -1212,12 +1264,18 @@
   color: rgba(62, 74, 66, 0.65);
 }
 
-/* CAM-146: filtro "Ocurridos en el viaje" y la marca de cada defecto. */
+/* CAM-146 y CAM-142: filtros de Defectos y la marca de cada defecto. Cada botón ocupa lo que necesita su texto,
+   en un renglón; si no entran (en el celular), pasan abajo en vez de apretarse. */
 .defect-filter {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  max-width: 420px;
   margin-bottom: 12px;
+}
+
+.defect-filter .wo-execution-toggle__btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .occurred-on-trip {
@@ -1509,6 +1567,18 @@
   margin-top: 6px;
 }
 
+/* CAM-142: marca "Sin atender hace N días" de un defecto, en Defectos. */
+.defect-unattended-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+  white-space: nowrap;
+}
+
 /* CAM-139: marca "Reportado en viaje" de un defecto, en Defectos y en el historial del vehículo. */
 .defect-origin-tag {
   display: inline-block;
@@ -1519,4 +1589,70 @@
   background: var(--fg-warn-bg);
   color: var(--fg-warn);
   white-space: nowrap;
+}
+
+/* CAM-149: comentarios de una OT, en el detalle del admin y en la pantalla del técnico. */
+.wo-comments__list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wo-comments__item {
+  padding: 10px 12px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-bg);
+  border: var(--fg-border);
+}
+
+.wo-comments__meta {
+  margin: 0 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
+.wo-comments__author {
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.wo-comments__role {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--fg-hover);
+}
+
+.wo-comments__text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--fg-text);
+}
+
+.wo-comments__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.wo-comments .wo-comments__send {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+.wo-comments__hint {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--fg-text-muted);
 }

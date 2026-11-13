@@ -4,11 +4,12 @@ import { ACCEPTED_PHOTO_TYPES, uploadDefectPhoto } from '../../services/photosSe
 import { addWorkOrderPhoto, deleteWorkOrderPhoto, updateWorkOrder } from '../../services/workOrdersService';
 import type { WorkOrder, WorkOrderPauseReason, WorkOrderSourceType } from '../../types/domain';
 import { formatDayAndTime } from '../../utils/dateFormat';
-import { describePause, isValidCompletedKm } from '../../utils/workOrderFormat';
+import { describePause, isOpenWorkOrder, isValidCompletedKm } from '../../utils/workOrderFormat';
 import { CameraIcon, ClipboardListIcon, ClockIcon, ShieldCheckIcon, WrenchIcon } from '../icons';
 import { DictatedTextarea } from '../DictatedTextarea';
 import { PauseWorkOrderForm } from '../PauseWorkOrderForm';
 import { PhotoViewer } from '../PhotoViewer';
+import { WorkOrderComments } from '../WorkOrderComments';
 
 /** Qué se cierra al finalizar, para la pantalla de éxito. Una OT manual no tiene origen que cerrar. */
 const CLOSED_SOURCE_LABEL: Record<WorkOrderSourceType, string | null> = {
@@ -268,6 +269,9 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
           </div>
         </section>
       )}
+
+      {/* CAM-149: para coordinar con el admin sin salir de la app. */}
+      <WorkOrderComments workOrderId={wo.id} canComment={isOpenWorkOrder(wo)} variant="technician" />
 
       {wo.status === 'en_proceso' && pausing && (
         <section className="checklist-section">

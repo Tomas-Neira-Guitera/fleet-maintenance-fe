@@ -17,9 +17,15 @@ export const VEHICLE_TABS: VehicleTab[] = [
   'neumaticos',
 ];
 
+/** Filtros de Defectos que viven en la URL: ocurridos en el viaje (CAM-146) y sin atender (CAM-142). */
+export type DefectsFilter = 'on-trip' | 'unattended';
+
+const DEFECTS_FILTER_PARAM: Record<DefectsFilter, string> = { 'on-trip': 'en-viaje', unattended: 'sin-atender' };
+
 export type AdminRoute =
   | { view: 'tab'; tab: AdminTab }
-  | { view: 'defects' }
+  // filter: sin filtro son todos; "N sin atender" del Resumen lleva a /defectos?filtro=sin-atender.
+  | { view: 'defects'; filter?: DefectsFilter }
   | { view: 'vehicle'; vehicleId: string; tab?: VehicleTab }
   // Gastos ya filtrada por un vehículo: el "Ver gastos" del detalle (CAM-105).
   | { view: 'vehicle-expenses'; vehicleId: string }
@@ -54,7 +60,7 @@ const TEMPLATES_PATH = '/vehiculos/plantillas';
 const TIRES_PATH = '/vehiculos/cubiertas';
 
 export function adminPath(route: AdminRoute): string {
-  if (route.view === 'defects') return '/defectos';
+  if (route.view === 'defects') return route.filter ? `/defectos?filtro=${DEFECTS_FILTER_PARAM[route.filter]}` : '/defectos';
   if (route.view === 'vehicle-comparison') return COMPARISON_PATH;
   if (route.view === 'checklist-templates') return TEMPLATES_PATH;
   if (route.view === 'tires') return TIRES_PATH;
@@ -69,7 +75,11 @@ export function adminPath(route: AdminRoute): string {
 /** null si la ruta no es del admin (incluida "/"); el que llama decide a dónde va. */
 export function parseAdminPath(pathname: string, search = ''): AdminRoute | null {
   const path = pathname.replace(/\/+$/, '');
-  if (path === '/defectos') return { view: 'defects' };
+  if (path === '/defectos') {
+    const param = new URLSearchParams(search).get('filtro');
+    const filter = (Object.keys(DEFECTS_FILTER_PARAM) as DefectsFilter[]).find((f) => DEFECTS_FILTER_PARAM[f] === param);
+    return filter ? { view: 'defects', filter } : { view: 'defects' };
+  }
   if (path === COMPARISON_PATH) return { view: 'vehicle-comparison' };
   if (path === TEMPLATES_PATH) return { view: 'checklist-templates' };
   if (path === TIRES_PATH) return { view: 'tires' };

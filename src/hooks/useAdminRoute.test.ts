@@ -20,6 +20,16 @@ describe('rutas del detalle del vehículo (CAM-127)', () => {
   });
 });
 
+describe('filtros de Defectos (CAM-142)', () => {
+  it('sin atender y en el viaje van en la dirección; uno desconocido es la lista entera', () => {
+    expect(adminPath({ view: 'defects' })).toBe('/defectos');
+    expect(adminPath({ view: 'defects', filter: 'unattended' })).toBe('/defectos?filtro=sin-atender');
+    expect(parseAdminPath('/defectos', '?filtro=sin-atender')).toEqual({ view: 'defects', filter: 'unattended' });
+    expect(parseAdminPath('/defectos', '?filtro=en-viaje')).toEqual({ view: 'defects', filter: 'on-trip' });
+    expect(parseAdminPath('/defectos', '?filtro=otro')).toEqual({ view: 'defects' });
+  });
+});
+
 describe('comparar vehículos (CAM-140)', () => {
   it('tiene su dirección, y "comparar" no se lee como el id de un vehículo', () => {
     expect(adminPath({ view: 'vehicle-comparison' })).toBe('/vehiculos/comparar');

@@ -810,6 +810,20 @@
   color: var(--fg-text);
 }
 
+/* CAM-142: "N sin atender", debajo del título; lleva a Defectos con ese filtro. */
+.recent-defects-card__unattended {
+  align-self: flex-start;
+  border: none;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .recent-defects-card__view-all {
   background: none;
   border: none;
