@@ -1,4 +1,4 @@
-import type { ChecklistAnswer, InspectionType, SubmitInspectionResult, TreadReading } from '../types/domain';
+import type { ChecklistAnswer, InspectionType, SubmitInspectionResult, TireConditionInput } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 interface WireAnswer {
@@ -29,8 +29,8 @@ export function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
 export interface SubmissionMeta {
   performedAt?: string;
   clientSubmissionId?: string;
-  /** CAM-157: dibujo de las cubiertas, solo en el pre-viaje. */
-  treadReadings?: TreadReading[];
+  /** CAM-157: las cubiertas con problemas; solo con "Neumáticos" en defecto. */
+  tireConditions?: TireConditionInput[];
   /** CAM-157: el remolque que lleva ("none": sin remolque); sin el campo, el enganche no cambia. */
   trailerId?: string;
 }
@@ -52,7 +52,7 @@ export async function submitInspection(
       notes,
       performedAt: meta.performedAt,
       clientSubmissionId: meta.clientSubmissionId,
-      treadReadings: meta.treadReadings?.length ? meta.treadReadings : undefined,
+      tireConditions: meta.tireConditions?.length ? meta.tireConditions : undefined,
       trailerId: meta.trailerId,
     }),
   });

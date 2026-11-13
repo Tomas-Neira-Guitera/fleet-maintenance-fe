@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { ChecklistItemDef, ChecklistItemState } from '../types/domain';
 import { AlertTriangleIcon } from './icons';
 import { DefectFields } from './DefectFields';
@@ -8,6 +9,8 @@ interface ChecklistItemCardProps {
   state: ChecklistItemState;
   onChange: (next: ChecklistItemState) => void;
   showValidation?: boolean;
+  /** Se muestra arriba de la carga del defecto, solo con el ítem en defecto (CAM-157: qué cubierta). */
+  defectExtra?: ReactNode;
 }
 
 function isDefectValid(state: ChecklistItemState): boolean {
@@ -16,7 +19,7 @@ function isDefectValid(state: ChecklistItemState): boolean {
   return isDefectDetailValid({ defect: state.defect, uploading: state.uploading });
 }
 
-export function ChecklistItemCard({ def, state, onChange, showValidation }: ChecklistItemCardProps) {
+export function ChecklistItemCard({ def, state, onChange, showValidation, defectExtra }: ChecklistItemCardProps) {
   if (def.type === 'number') {
     const invalid = Boolean(showValidation && def.required && !state.numberValue?.trim());
     return (
@@ -78,6 +81,7 @@ export function ChecklistItemCard({ def, state, onChange, showValidation }: Chec
         </button>
       </div>
 
+      {hasDefect && defectExtra}
       {hasDefect && defect && (
         <DefectFields
           idPrefix={def.id}

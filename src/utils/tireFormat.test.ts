@@ -1,24 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { formatTread, parseTreadInputs, tireLabel } from './tireFormat';
+import { tireConditionLabel, tireHealth, tireLabel } from './tireFormat';
 
 describe('formato de las cubiertas (CAM-157)', () => {
   it('arma el nombre como en los avisos', () => {
     expect(tireLabel({ brand: 'Michelin', model: 'X Multi', code: '1234' })).toBe('Michelin X Multi N° 1234');
     expect(tireLabel({ brand: 'Fate', model: null, code: null })).toBe('Fate');
-    expect(formatTread(1.4)).toBe('1,4 mm');
   });
 
-  it('lee el dibujo con coma o punto y saltea lo vacío', () => {
-    expect(parseTreadInputs({ 'del-izq': '4,5', 'del-der': ' ', 'tras-izq': '8' })).toEqual([
-      { position: 'del-izq', depthMm: 4.5 },
-      { position: 'tras-izq', depthMm: 8 },
-    ]);
-    expect(parseTreadInputs({})).toEqual([]);
-  });
-
-  it('rechaza valores fuera de 0-30 mm o con más de un decimal', () => {
-    expect(parseTreadInputs({ 'del-izq': '45' })).toBeNull();
-    expect(parseTreadInputs({ 'del-izq': '4,55' })).toBeNull();
-    expect(parseTreadInputs({ 'del-izq': 'abc' })).toBeNull();
+  it('nombra los estados y pinta según la severidad del defecto', () => {
+    expect(tireConditionLabel('se-ve-la-tela')).toBe('Se ve la tela o el alambre');
+    expect(tireHealth({ condition: null })).toBe('ok');
+    expect(tireHealth(null)).toBe('ok');
+    const report = {
+      vehicleId: 'v-1', plate: 'AB123CD', position: 'e1-izq', positionLabel: 'Delantera izquierda',
+      conditions: ['pinchada' as const], conditionLabels: ['Pinchada'], reportedAt: '2026-11-01T10:00:00Z',
+      reportedBy: 'chofer1', defectId: 'd-1', active: true,
+    };
+    expect(tireHealth({ condition: { ...report, severity: 'non-blocking' } })).toBe('warn');
+    expect(tireHealth({ condition: { ...report, severity: 'blocking' } })).toBe('crit');
   });
 });

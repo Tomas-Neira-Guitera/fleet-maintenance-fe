@@ -5,14 +5,14 @@ import type { VehicleTirePosition, VehicleTires } from '../../types/domain';
 import { formatShortDate } from '../../utils/dateFormat';
 import { formatCostPerKm } from '../../utils/fuelFormat';
 import { currencyFormatter, numberFormatter } from '../../utils/maintenanceFormat';
-import { formatTread, tireLabel } from '../../utils/tireFormat';
+import { tireHealth, tireLabel } from '../../utils/tireFormat';
 import { vehicleTypeLabel } from '../../utils/vehicleTypes';
-import { MountTireModal, TreadReadingsModal, UnmountTireModal } from './TireModals';
+import { MountTireModal, UnmountTireModal } from './TireModals';
 import { VehicleTopView } from './VehicleTopView';
 import '../../styles/dashboard.css';
 import '../../styles/tires.css';
 
-type Action = { kind: 'mount' | 'unmount'; slot: VehicleTirePosition } | { kind: 'treads' };
+type Action = { kind: 'mount' | 'unmount'; slot: VehicleTirePosition };
 
 interface VehicleTiresTabProps {
   vehicleId: string;
@@ -25,8 +25,9 @@ interface VehicleTiresTabProps {
 }
 
 /**
- * CAM-157: el vehículo visto de arriba con sus cubiertas. Las posiciones salen de su tipo. Tocar una cubierta
- * muestra al costado sus datos y qué hacer con ella; para rotar, se toca "Rotar" y después la posición destino.
+ * CAM-157: el vehículo visto de arriba con sus cubiertas, pintadas según lo que reportaron los choferes. Las
+ * posiciones salen de su tipo. Tocar una cubierta muestra al costado sus datos y qué hacer con ella; para rotar,
+ * se toca "Rotar" y después la posición destino.
  */
 export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEditVehicle }: VehicleTiresTabProps) {
   const [data, setData] = useState<VehicleTires | null>(null);
@@ -42,8 +43,13 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
       .then((loaded) => {
         if (cancelled) return;
         setData(loaded);
-        // Arranca con la primera cubierta montada elegida, para que el panel no quede vacío.
-        setSelected(loaded.positions.find((p) => p.tire)?.position ?? loaded.positions[0]?.position ?? null);
+        // Arranca con la primera con problemas (o la primera montada), para que el panel no quede vacío.
+        setSelected(
+          loaded.positions.find((p) => tireHealth(p.tire) !== 'ok')?.position ??
+            loaded.positions.find((p) => p.tire)?.position ??
+            loaded.positions[0]?.position ??
+            null,
+        );
       })
       .catch(() => {
         if (!cancelled) setError('No se pudieron cargar las cubiertas del vehículo.');
@@ -82,7 +88,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
 
   const slot = data?.positions.find((p) => p.position === selected) ?? null;
   const tire = slot?.tire ?? null;
-  const anyMounted = data?.positions.some((p) => p.tire) ?? false;
+  const problems = data?.positions.filter((p) => tireHealth(p.tire) !== 'ok').length ?? 0;
   const fromLabel = data?.positions.find((p) => p.position === rotatingFrom)?.label;
 
   return (
@@ -92,16 +98,12 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
           <h2 className="vehicle-detail__card-title">Neumáticos</h2>
           {data?.vehicleType && (
             <p className="vehicle-detail__item-meta">
-              {vehicleTypeLabel(data.vehicleType)} · dibujo mínimo {formatTread(data.minTreadMm)} · el auxilio no suma km
+              {vehicleTypeLabel(data.vehicleType)} · el auxilio no suma km
+              {problems > 0 && ` · ${problems} ${problems === 1 ? 'cubierta' : 'cubiertas'} a revisar`}
             </p>
           )}
         </div>
         <div className="tires-header__actions">
-          {!readOnly && anyMounted && (
-            <button type="button" className="vehicle-detail__action-btn" onClick={() => setAction({ kind: 'treads' })}>
-              Cargar dibujo
-            </button>
-          )}
           {onOpenTires && (
             <button type="button" className="vehicle-detail__action-btn" onClick={onOpenTires}>
               Ver todas las cubiertas
@@ -132,13 +134,23 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
             <VehicleTopView
               vehicleType={data.vehicleType}
               positions={data.positions}
+              stateOf={(position) => {
+                const t = data.positions.find((p) => p.position === position)?.tire;
+                return t ? tireHealth(t) : 'empty';
+              }}
+              describe={(position) => {
+                const t = data.positions.find((p) => p.position === position)?.tire;
+                if (!t) return 'sin cubierta';
+                return t.condition ? `${tireLabel(t)}, ${t.condition.conditionLabels.join(', ').toLowerCase()}` : tireLabel(t);
+              }}
               selected={selected}
               rotatingFrom={rotatingFrom}
               onSelect={(p) => void handleSelect(p)}
             />
             <div className="tires-legend" aria-hidden="true">
-              <span className="tires-legend__ok">Montada</span>
-              <span className="tires-legend__low">Dibujo bajo</span>
+              <span className="tires-legend__ok">Sin problemas</span>
+              <span className="tires-legend__warn">A revisar</span>
+              <span className="tires-legend__crit">Grave</span>
               <span className="tires-legend__empty">Sin cubierta</span>
             </div>
           </div>
@@ -160,6 +172,18 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
                 {tire ? (
                   <>
                     <h3 className="tire-panel__name">{tireLabel(tire)}</h3>
+                    {tire.condition ? (
+                      <div className={`tire-panel__condition tire-panel__condition--${tireHealth(tire)}`}>
+                        <strong>{tire.condition.conditionLabels.join(' · ')}</strong>
+                        <span>
+                          Lo reportó {tire.condition.reportedBy ?? 'un chofer'} el {formatShortDate(tire.condition.reportedAt)}
+                          {tire.condition.severity === 'blocking' ? ', como defecto bloqueante' : ''}. Se va cuando se
+                          resuelve el defecto o se saca la cubierta.
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="tire-panel__ok">Sin problemas reportados.</p>
+                    )}
                     <dl className="tire-panel__facts">
                       <div>
                         <dt>Medida</dt>
@@ -168,14 +192,6 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
                       <div>
                         <dt>Km recorridos</dt>
                         <dd>{numberFormatter.format(tire.km)} km</dd>
-                      </div>
-                      <div>
-                        <dt>Dibujo</dt>
-                        <dd className={tire.lastTread?.belowMinimum ? 'tire-slot__tread--low' : undefined}>
-                          {tire.lastTread
-                            ? `${formatTread(tire.lastTread.depthMm)} · ${formatShortDate(tire.lastTread.measuredAt)}`
-                            : 'Sin medir'}
-                        </dd>
                       </div>
                       <div>
                         <dt>Costo por km</dt>
@@ -271,9 +287,6 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
       )}
       {data && action?.kind === 'unmount' && (
         <UnmountTireModal vehicle={data} slot={action.slot} onClose={() => setAction(null)} onDone={done} />
-      )}
-      {data && action?.kind === 'treads' && (
-        <TreadReadingsModal vehicle={data} onClose={() => setAction(null)} onDone={done} />
       )}
     </section>
   );

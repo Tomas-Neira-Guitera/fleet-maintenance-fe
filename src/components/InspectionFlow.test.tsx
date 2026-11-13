@@ -85,7 +85,7 @@ async function confirmAndSend(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(() => {
   checklistMock.mockImplementation(async (_id, type) => (type === 'pre-trip' ? PRE_TRIP : POST_TRIP));
-  tirePositionsMock.mockResolvedValue([]);
+  tirePositionsMock.mockResolvedValue({ vehicleType: null, positions: [] });
   saveUsername('carlos.gomez');
   resetPendingInspectionsForTests();
 });
@@ -227,58 +227,96 @@ describe('InspectionFlow — pre-viaje', () => {
   });
 });
 
-describe('InspectionFlow — dibujo de las cubiertas (CAM-157)', () => {
-  const POSITIONS = [
-    { position: 'del-izq', label: 'Delantera izquierda' },
-    { position: 'del-der', label: 'Delantera derecha' },
-  ];
+describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
+  const pos = (position: string, label: string, axle: number, side: 'izq' | 'der' | null, mounted = true) => ({
+    position, label, axle, side, wheel: 'simple' as const, mounted,
+  });
+  const UTILITARIO = {
+    vehicleType: 'utilitario',
+    positions: [
+      pos('e1-izq', 'Delantera izquierda', 1, 'izq'),
+      pos('e1-der', 'Delantera derecha', 1, 'der'),
+      pos('e2-izq', 'Trasera izquierda', 2, 'izq'),
+      pos('e2-der', 'Trasera derecha', 2, 'der'),
+      pos('auxilio', 'Auxilio', 0, null, false),
+    ],
+  };
 
-  it('sin cubiertas montadas no aparece el bloque', async () => {
+  it('el dibujo aparece recién al marcar Neumáticos con defecto', async () => {
+    const user = userEvent.setup();
+    tirePositionsMock.mockResolvedValue(UTILITARIO);
     renderFlow();
     await screen.findByRole('heading', { name: 'Pre-viaje' });
-    expect(screen.queryByText('Dibujo de las cubiertas (opcional)')).not.toBeInTheDocument();
+    expect(screen.queryByText('¿Qué cubierta tiene el problema?')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(await screen.findByText('¿Qué cubierta tiene el problema?')).toBeInTheDocument();
+    // Una posición sin cubierta no se puede elegir.
+    expect(screen.getByRole('button', { name: 'Auxilio: sin cubierta' })).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('manda solo lo que el chofer anotó, con coma o punto', async () => {
+  it('manda la cubierta y lo que el chofer vio, y completa el título si está vacío', async () => {
     const user = userEvent.setup();
-    tirePositionsMock.mockResolvedValue(POSITIONS);
+    tirePositionsMock.mockResolvedValue(UTILITARIO);
     submitMock.mockResolvedValue(result('pre-trip'));
     renderFlow();
 
-    await user.type(await screen.findByLabelText('Delantera izquierda'), '4,5');
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    await user.click(screen.getByRole('button', { name: 'Trasera derecha: sin marcar' }));
+    await user.click(screen.getByRole('button', { name: 'Poco dibujo' }));
+    await user.click(screen.getByRole('button', { name: 'Pinchada' }));
+    // El título vacío se completa con lo primero que marcó.
+    expect(screen.getByLabelText('Título (obligatorio)')).toHaveValue('Poco dibujo');
+
     await goToSummary(user);
-    expect(screen.getByText('Dibujo anotado en 1 cubierta.')).toBeInTheDocument();
+    expect(screen.getByText(/pinchada, poco dibujo/)).toBeInTheDocument();
     await confirmAndSend(user);
 
-    expect(submitMock.mock.calls[0][4]?.treadReadings).toEqual([{ position: 'del-izq', depthMm: 4.5 }]);
+    expect(submitMock.mock.calls[0][4]?.tireConditions).toEqual([
+      { position: 'e2-der', conditions: ['pinchada', 'poco-dibujo'] },
+    ]);
   });
 
-  it('un valor inválido no deja seguir', async () => {
+  it('con el dibujo disponible hay que decir qué cubierta es', async () => {
     const user = userEvent.setup();
-    tirePositionsMock.mockResolvedValue(POSITIONS);
+    tirePositionsMock.mockResolvedValue(UTILITARIO);
     renderFlow();
 
-    await user.type(await screen.findByLabelText('Delantera derecha'), '45');
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    await user.type(screen.getByLabelText('Título (obligatorio)'), 'Gastada');
     await user.type(screen.getByLabelText('Kilómetros actuales'), '84320');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
 
-    expect(screen.getByText(/Entre 0 y 30 mm/)).toBeInTheDocument();
+    expect(screen.getByText('Marcá al menos una cubierta y qué le ves.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Resumen' })).not.toBeInTheDocument();
   });
 
-  it('sin señal usa las últimas posiciones que se cargaron', async () => {
-    tirePositionsMock.mockRejectedValue(new TypeError('Failed to fetch'));
-    saveCache(`tire-positions.${VEHICLE.id}`, POSITIONS);
+  it('sin tipo (o sin dibujo) se reporta como cualquier defecto', async () => {
+    const user = userEvent.setup();
+    submitMock.mockResolvedValue(result('pre-trip'));
     renderFlow();
 
-    expect(await screen.findByLabelText('Delantera izquierda')).toBeInTheDocument();
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(screen.queryByText('¿Qué cubierta tiene el problema?')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Título (obligatorio)'), 'Gastada');
+    await goToSummary(user);
+    await confirmAndSend(user);
+    expect(submitMock.mock.calls[0][4]?.tireConditions).toBeUndefined();
+  });
+
+  it('sin señal usa el último dibujo que se cargó', async () => {
+    const user = userEvent.setup();
+    tirePositionsMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    saveCache(`tire-positions.${VEHICLE.id}`, UTILITARIO);
+    renderFlow();
+
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(await screen.findByText('¿Qué cubierta tiene el problema?')).toBeInTheDocument();
   });
 
   it('el post-viaje no pide el dibujo', async () => {
-    tirePositionsMock.mockResolvedValue(POSITIONS);
     renderFlow('post-trip');
     await screen.findByRole('heading', { name: 'Post-viaje' });
-    expect(screen.queryByText('Dibujo de las cubiertas (opcional)')).not.toBeInTheDocument();
     expect(tirePositionsMock).not.toHaveBeenCalled();
   });
 });

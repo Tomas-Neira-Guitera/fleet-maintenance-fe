@@ -17,6 +17,8 @@ export interface Vehicle {
   blockReasons?: BlockReason[];
   /** El viaje abierto, si está "en viaje" (CAM-87). */
   currentTrip?: CurrentTrip | null;
+  /** CAM-157, solo en el listado: en un remolque, quién lo arrastra; en un tractor o camión, qué remolque lleva. */
+  coupledWith?: CouplingRef | null;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
@@ -801,11 +803,30 @@ export interface VehicleFuel {
 /** CAM-157: neumáticos. */
 export type TireStatus = 'stock' | 'mounted' | 'retired';
 
-export interface TreadMeasurement {
-  depthMm: number;
-  measuredAt: string;
-  measuredBy: string | null;
-  belowMinimum: boolean;
+/** Lo que el chofer ve a simple vista en una cubierta, del más grave al más leve. */
+export type TireConditionCode =
+  | 'se-ve-la-tela'
+  | 'bulto'
+  | 'corte-flanco'
+  | 'pinchada'
+  | 'baja-presion'
+  | 'desgaste-irregular'
+  | 'poco-dibujo';
+
+/** Un relevamiento de una cubierta; active: su defecto sigue abierto y la cubierta montada. */
+export interface TireConditionReport {
+  vehicleId: string;
+  plate: string;
+  position: string;
+  positionLabel: string;
+  conditions: TireConditionCode[];
+  conditionLabels: string[];
+  /** La del defecto que lo acompaña. */
+  severity: 'blocking' | 'non-blocking' | null;
+  reportedAt: string;
+  reportedBy: string | null;
+  defectId: string | null;
+  active: boolean;
 }
 
 export interface Tire {
@@ -816,7 +837,6 @@ export interface Tire {
   size: string;
   purchaseDate: string;
   cost: number;
-  initialTreadMm: number | null;
   status: TireStatus;
   retiredAt: string | null;
   retiredReason: string | null;
@@ -831,7 +851,8 @@ export interface Tire {
     mountedAt: string;
     mountedKm: number;
   } | null;
-  lastTread: TreadMeasurement | null;
+  /** El último problema reportado que sigue abierto; null si no tiene. */
+  condition: TireConditionReport | null;
 }
 
 export interface TireMounting {
@@ -864,7 +885,6 @@ export interface VehicleTires {
   /** Código del catálogo (utils/vehicleTypes); null: sin tipo, sin posiciones. */
   vehicleType: string | null;
   odometerKm: number;
-  minTreadMm: number;
   positions: VehicleTirePosition[];
   history: TireMounting[];
 }
@@ -872,7 +892,7 @@ export interface VehicleTires {
 export interface TireDetail {
   tire: Tire;
   mountings: TireMounting[];
-  treads: TreadMeasurement[];
+  reports: TireConditionReport[];
 }
 
 export interface TireBrandComparison {
@@ -888,16 +908,16 @@ export interface TireBrandComparison {
   }[];
 }
 
-/** Una medición del dibujo, en el pre-viaje o cargada por el admin. */
-export interface TreadReading {
+/** Una cubierta con problemas, en una inspección (con "Neumáticos" en defecto). */
+export interface TireConditionInput {
   position: string;
-  depthMm: number;
+  conditions: TireConditionCode[];
 }
 
-/** Posición con cubierta montada, para el pre-viaje del chofer. */
-export interface TirePositionRef {
-  position: string;
-  label: string;
+/** Para el pre-viaje del chofer: todas las posiciones; solo se reportan las que tienen cubierta. */
+export interface TirePositions {
+  vehicleType: string | null;
+  positions: (Omit<VehicleTirePosition, 'tire'> & { mounted: boolean })[];
 }
 
 /** Enganche de remolques (CAM-157): en un remolque, towedBy; en un tractor o camión rígido, towing. */

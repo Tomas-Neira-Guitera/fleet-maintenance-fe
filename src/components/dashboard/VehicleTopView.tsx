@@ -1,16 +1,28 @@
 import type { KeyboardEvent } from 'react';
 import type { VehicleTirePosition } from '../../types/domain';
-import { tireLabel } from '../../utils/tireFormat';
 import { vehicleTypeDef } from '../../utils/vehicleTypes';
 import '../../styles/tires.css';
 
+/** Una posición para dibujar: sale de la pestaña Neumáticos del admin o del pre-viaje del chofer. */
+export type TopViewPosition = Omit<VehicleTirePosition, 'tire'>;
+
+/** ok: sin problemas; warn: a revisar; crit: grave; empty: sin cubierta. */
+export type TopViewState = 'ok' | 'warn' | 'crit' | 'empty';
+
 interface VehicleTopViewProps {
   vehicleType: string;
-  positions: VehicleTirePosition[];
+  positions: TopViewPosition[];
+  stateOf: (position: string) => TopViewState;
+  /** Lo que se lee al pasar o con lector de pantalla, después del nombre de la posición. */
+  describe?: (position: string) => string;
   selected: string | null;
   /** En una rotación, la cubierta que se está moviendo. */
   rotatingFrom?: string | null;
+  /** Posiciones que no se pueden tocar (por ejemplo, sin cubierta en el pre-viaje). */
+  isDisabled?: (position: string) => boolean;
   onSelect: (position: string) => void;
+  /** Más chico, para el celular. */
+  compact?: boolean;
 }
 
 const W = 360;
@@ -28,7 +40,7 @@ function axleYs(axles: number, trailer: boolean, height: number): number[] {
   return [78, ...Array.from({ length: axles - 1 }, (_, i) => last - (axles - 2 - i) * AXLE_GAP)];
 }
 
-function tireX(p: VehicleTirePosition): number {
+function tireX(p: TopViewPosition): number {
   const leftOuter = BODY_X - GAP - TIRE_W;
   const rightOuter = BODY_X + BODY_W + GAP;
   if (p.wheel === 'simple') return p.side === 'izq' ? leftOuter : rightOuter;
@@ -36,29 +48,21 @@ function tireX(p: VehicleTirePosition): number {
   return p.wheel === 'exterior' ? rightOuter + TIRE_W + 3 : rightOuter;
 }
 
-function tireClass(p: VehicleTirePosition, selected: string | null, rotatingFrom?: string | null): string {
-  const state = !p.tire ? 'empty' : p.tire.lastTread?.belowMinimum ? 'low' : 'ok';
-  return [
-    'top-view__tire',
-    `top-view__tire--${state}`,
-    p.position === selected ? 'top-view__tire--selected' : '',
-    p.position === rotatingFrom ? 'top-view__tire--rotating' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
-
-function ariaLabel(p: VehicleTirePosition): string {
-  if (!p.tire) return `${p.label}: sin cubierta`;
-  const tread = p.tire.lastTread?.belowMinimum ? ', dibujo por debajo del mínimo' : '';
-  return `${p.label}: ${tireLabel(p.tire)}${tread}`;
-}
-
 /**
- * CAM-157: el vehículo visto de arriba, con el frente hacia arriba y cada cubierta en su lugar. Gris punteado: sin
- * cubierta; oscuro: montada; rojo: dibujo por debajo del mínimo. Tocar una cubierta la elige.
+ * CAM-157: el vehículo visto de arriba, con el frente hacia arriba y cada cubierta en su lugar, pintada según su
+ * estado (sin problemas, a revisar, grave o sin cubierta). Tocar una cubierta la elige.
  */
-export function VehicleTopView({ vehicleType, positions, selected, rotatingFrom, onSelect }: VehicleTopViewProps) {
+export function VehicleTopView({
+  vehicleType,
+  positions,
+  stateOf,
+  describe,
+  selected,
+  rotatingFrom,
+  isDisabled,
+  onSelect,
+  compact = false,
+}: VehicleTopViewProps) {
   const def = vehicleTypeDef(vehicleType);
   if (!def) return null;
   const trailer = def.kind === 'semitrailer' || def.kind === 'full_trailer';
@@ -69,16 +73,57 @@ export function VehicleTopView({ vehicleType, positions, selected, rotatingFrom,
   const bodyBottom = height - 34;
   const spare = positions.find((p) => p.axle === 0);
 
+  function label(p: TopViewPosition): string {
+    const detail = describe?.(p.position);
+    return detail ? `${p.label}: ${detail}` : p.label;
+  }
+
+  function className(p: TopViewPosition): string {
+    return [
+      'top-view__tire',
+      `top-view__tire--${stateOf(p.position)}`,
+      p.position === selected ? 'top-view__tire--selected' : '',
+      p.position === rotatingFrom ? 'top-view__tire--rotating' : '',
+      isDisabled?.(p.position) ? 'top-view__tire--disabled' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  function select(position: string) {
+    if (!isDisabled?.(position)) onSelect(position);
+  }
+
   function keyDown(e: KeyboardEvent<SVGGElement>, position: string) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onSelect(position);
+      select(position);
     }
+  }
+
+  function tire(p: TopViewPosition, x: number, y: number, w: number, h: number) {
+    const disabled = Boolean(isDisabled?.(p.position));
+    return (
+      <g
+        key={p.position}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-label={label(p)}
+        aria-pressed={p.position === selected}
+        aria-disabled={disabled || undefined}
+        className={className(p)}
+        onClick={() => select(p.position)}
+        onKeyDown={(e) => keyDown(e, p.position)}
+      >
+        <title>{label(p)}</title>
+        <rect x={x} y={y} width={w} height={h} rx={6} />
+      </g>
+    );
   }
 
   return (
     <svg
-      className="top-view"
+      className={`top-view${compact ? ' top-view--compact' : ''}`}
       viewBox={`0 0 ${W} ${height}`}
       role="group"
       aria-label={`${def.label} visto de arriba, con el frente hacia arriba`}
@@ -114,36 +159,9 @@ export function VehicleTopView({ vehicleType, positions, selected, rotatingFrom,
 
       {positions
         .filter((p) => p.axle > 0)
-        .map((p) => (
-          <g
-            key={p.position}
-            role="button"
-            tabIndex={0}
-            aria-label={ariaLabel(p)}
-            aria-pressed={p.position === selected}
-            className={tireClass(p, selected, rotatingFrom)}
-            onClick={() => onSelect(p.position)}
-            onKeyDown={(e) => keyDown(e, p.position)}
-          >
-            <title>{ariaLabel(p)}</title>
-            <rect x={tireX(p)} y={ys[p.axle - 1] - TIRE_H / 2} width={TIRE_W} height={TIRE_H} rx={6} />
-          </g>
-        ))}
+        .map((p) => tire(p, tireX(p), ys[p.axle - 1] - TIRE_H / 2, TIRE_W, TIRE_H))}
 
-      {spare && (
-        <g
-          role="button"
-          tabIndex={0}
-          aria-label={ariaLabel(spare)}
-          aria-pressed={spare.position === selected}
-          className={tireClass(spare, selected, rotatingFrom)}
-          onClick={() => onSelect(spare.position)}
-          onKeyDown={(e) => keyDown(e, spare.position)}
-        >
-          <title>{ariaLabel(spare)}</title>
-          <rect x={W / 2 - TIRE_H / 2} y={height - 26} width={TIRE_H} height={TIRE_W} rx={6} />
-        </g>
-      )}
+      {spare && tire(spare, W / 2 - TIRE_H / 2, height - 26, TIRE_H, TIRE_W)}
       {spare && (
         <text x={W / 2 + TIRE_H / 2 + 8} y={height - 11} className="top-view__axle-label">
           Auxilio

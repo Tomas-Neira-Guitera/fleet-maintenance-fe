@@ -4,7 +4,6 @@ import {
   createTire,
   getTires,
   mountTire,
-  recordTreads,
   unmountTire,
   updateTire,
   type TireInput,
@@ -12,7 +11,7 @@ import {
 import type { Tire, VehicleTirePosition, VehicleTires } from '../../types/domain';
 import { toLocalDateKey } from '../../utils/localDate';
 import { numberFormatter } from '../../utils/maintenanceFormat';
-import { parseTreadInputs, tireLabel } from '../../utils/tireFormat';
+import { tireLabel } from '../../utils/tireFormat';
 import { CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
 import '../../styles/tires.css';
@@ -211,76 +210,6 @@ export function UnmountTireModal({ vehicle, slot, onClose, onDone }: VehicleModa
   );
 }
 
-/** El admin carga el dibujo medido en el taller. */
-export function TreadReadingsModal({
-  vehicle,
-  onClose,
-  onDone,
-}: Omit<VehicleModalProps, 'slot'>) {
-  const mounted = vehicle.positions.filter((p) => p.tire);
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const readings = parseTreadInputs(values);
-
-  async function handleSubmit() {
-    if (!readings || readings.length === 0) return;
-    setSaving(true);
-    setError(null);
-    try {
-      onDone(await recordTreads(vehicle.vehicleId, readings));
-    } catch (err) {
-      setError(errorText(err, 'No se pudo cargar el dibujo.'));
-      setSaving(false);
-    }
-  }
-
-  return (
-    <ModalShell
-      title="Cargar dibujo"
-      subtitle={`${vehicle.plate} · en mm, lo que dejes vacío no se carga`}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="secondary-btn" onClick={onClose} disabled={saving}>
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={handleSubmit}
-            disabled={saving || !readings || readings.length === 0}
-          >
-            {saving ? 'Guardando…' : 'Guardar'}
-          </button>
-        </>
-      }
-    >
-      <ul className="tread-card__list">
-        {mounted.map((p) => (
-          <li key={p.position} className="tread-card__row">
-            <label htmlFor={`admin-tread-${p.position}`}>{p.label}</label>
-            <span className="tread-card__input">
-              <input
-                id={`admin-tread-${p.position}`}
-                type="text"
-                inputMode="decimal"
-                className="schedule-picker__input"
-                value={values[p.position] ?? ''}
-                onChange={(e) => setValues((prev) => ({ ...prev, [p.position]: e.target.value }))}
-                maxLength={4}
-              />
-              <span aria-hidden="true">mm</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-      {readings === null && <p className="field-error">Entre 0 y 30 mm, con hasta un decimal.</p>}
-      {error && <p className="error-banner">{error}</p>}
-    </ModalShell>
-  );
-}
-
 interface TireFormModalProps {
   tire?: Tire;
   onClose: () => void;
@@ -296,7 +225,6 @@ export function TireFormModal({ tire, onClose, onSaved }: TireFormModalProps) {
     size: tire?.size ?? '',
     purchaseDate: tire?.purchaseDate ?? toLocalDateKey(new Date()),
     cost: tire ? String(tire.cost) : '',
-    initialTreadMm: tire?.initialTreadMm != null ? String(tire.initialTreadMm) : '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -313,7 +241,6 @@ export function TireFormModal({ tire, onClose, onSaved }: TireFormModalProps) {
       size: form.size.trim(),
       purchaseDate: form.purchaseDate,
       cost: Number(form.cost),
-      initialTreadMm: form.initialTreadMm.trim() ? Number(form.initialTreadMm.replace(',', '.')) : undefined,
     };
     try {
       onSaved(tire ? await updateTire(tire.id, input) : await createTire(input));
@@ -361,10 +288,6 @@ export function TireFormModal({ tire, onClose, onSaved }: TireFormModalProps) {
       <label className="schedule-picker__field">
         Costo ($)
         <input type="number" min={0} step="0.01" className="schedule-picker__input" value={form.cost} onChange={(e) => set({ cost: e.target.value })} />
-      </label>
-      <label className="schedule-picker__field">
-        Dibujo nuevo en mm (opcional)
-        <input type="text" inputMode="decimal" className="schedule-picker__input" value={form.initialTreadMm} maxLength={4} onChange={(e) => set({ initialTreadMm: e.target.value })} placeholder="Ej: 16" />
       </label>
       {error && <p className="error-banner">{error}</p>}
     </ModalShell>

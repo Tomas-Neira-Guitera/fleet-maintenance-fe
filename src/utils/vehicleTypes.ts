@@ -58,3 +58,38 @@ export function canTowAny(code: string | null | undefined): boolean {
   const kind = vehicleTypeDef(code)?.kind;
   return kind === 'tractor' || kind === 'rigid';
 }
+
+export interface TypePosition {
+  position: string;
+  label: string;
+  /** 1 el de adelante, 0 el auxilio. */
+  axle: number;
+}
+
+/** Las posiciones de un tipo, en orden de eje y con el nombre que usa el backend (VehicleType.labelOf). */
+export function positionsOf(code: string | null | undefined): TypePosition[] {
+  const def = vehicleTypeDef(code);
+  if (!def) return [];
+  const trailer = isTrailer(def.code);
+  const out: TypePosition[] = [];
+  def.axles.forEach((wheels, i) => {
+    const axle = i + 1;
+    const base = (side: 'izq' | 'der') => {
+      const word = side === 'izq' ? 'izquierda' : 'derecha';
+      if (trailer || (axle > 1 && def.axles.length > 2)) return `Eje ${axle} ${word}`;
+      return `${axle === 1 ? 'Delantera' : 'Trasera'} ${word}`;
+    };
+    if (wheels === 'simple') {
+      out.push({ position: `e${axle}-izq`, label: base('izq'), axle }, { position: `e${axle}-der`, label: base('der'), axle });
+    } else {
+      out.push(
+        { position: `e${axle}-izq-ext`, label: `${base('izq')} exterior`, axle },
+        { position: `e${axle}-izq-int`, label: `${base('izq')} interior`, axle },
+        { position: `e${axle}-der-int`, label: `${base('der')} interior`, axle },
+        { position: `e${axle}-der-ext`, label: `${base('der')} exterior`, axle },
+      );
+    }
+  });
+  out.push({ position: 'auxilio', label: 'Auxilio', axle: 0 });
+  return out;
+}

@@ -3,13 +3,15 @@ import { ApiError } from '../../services/apiClient';
 import { getChecklistTemplates } from '../../services/checklistTemplatesService';
 import { createVehicle, updateVehicle } from '../../services/vehiclesService';
 import type { ChecklistTemplate, Vehicle } from '../../types/domain';
-import { VEHICLE_TYPES, vehicleTypeDef } from '../../utils/vehicleTypes';
+import { VEHICLE_TYPES, isTrailer, vehicleTypeDef } from '../../utils/vehicleTypes';
 import { CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
 
 interface VehicleFormModalProps {
   /** Si viene, edita ese vehículo; si no, da de alta uno nuevo. */
   vehicle?: Vehicle;
+  /** CAM-157: en el alta, si es un remolque (solo ofrece esos tipos). Al editar sale del tipo que tiene. */
+  trailer?: boolean;
   onClose: () => void;
   onSaved: (vehicle: Vehicle) => void;
 }
@@ -19,8 +21,13 @@ interface VehicleFormModalProps {
  * acciones, según si `vehicle` viene o no. El kilometraje inicial solo se
  * pide en el alta: corregirlo después es tarea de PATCH /odometer, no de acá.
  */
-export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModalProps) {
+export function VehicleFormModal({ vehicle, trailer = false, onClose, onSaved }: VehicleFormModalProps) {
   const isEdit = Boolean(vehicle);
+  // Un vehículo viejo sin tipo del catálogo puede elegir cualquiera; si no, se queda en su grupo.
+  const currentType = vehicleTypeDef(vehicle?.vehicleType);
+  const asTrailer = currentType ? isTrailer(currentType.code) : trailer;
+  const typeOptions = isEdit && !currentType ? VEHICLE_TYPES : VEHICLE_TYPES.filter((t) => isTrailer(t.code) === asTrailer);
+  const noun = asTrailer ? 'remolque' : 'vehículo';
 
   const [plate, setPlate] = useState(vehicle?.plate ?? '');
   const [brand, setBrand] = useState(vehicle?.brand ?? '');
@@ -85,7 +92,7 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal modal--narrow">
         <header className="modal__header">
-          <h2 className="modal__title">{isEdit ? 'Editar vehículo' : 'Nuevo vehículo'}</h2>
+          <h2 className="modal__title">{isEdit ? `Editar ${noun}` : `Nuevo ${noun}`}</h2>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Cerrar">
             <CloseIcon width={18} height={18} />
           </button>
@@ -132,7 +139,7 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
               <option value="" disabled>
                 Elegí el tipo
               </option>
-              {VEHICLE_TYPES.map((t) => (
+              {typeOptions.map((t) => (
                 <option key={t.code} value={t.code}>
                   {t.label} — {t.hint}
                 </option>
@@ -172,7 +179,7 @@ export function VehicleFormModal({ vehicle, onClose, onSaved }: VehicleFormModal
               />
             </label>
           )}
-          {!isEdit && templates.length > 0 && (
+          {!isEdit && !asTrailer && templates.length > 0 && (
             <label className="schedule-picker__field">
               Plantilla de checklist (opcional)
               <select

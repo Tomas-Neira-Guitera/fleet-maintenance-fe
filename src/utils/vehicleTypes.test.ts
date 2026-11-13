@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canTow, isTrailer, VEHICLE_TYPES, vehicleTypeLabel } from './vehicleTypes';
+import { canTow, isTrailer, positionsOf, VEHICLE_TYPES, vehicleTypeLabel } from './vehicleTypes';
 
 describe('catálogo de tipos de vehículo (CAM-157)', () => {
   it('cuenta las cubiertas como el backend', () => {
@@ -23,5 +23,16 @@ describe('catálogo de tipos de vehículo (CAM-157)', () => {
     expect(isTrailer('acoplado')).toBe(true);
     expect(isTrailer('utilitario')).toBe(false);
     expect(vehicleTypeLabel(null)).toBe('Sin definir');
+  });
+
+  it('nombra las posiciones como el backend', () => {
+    expect(positionsOf('utilitario').map((p) => p.label)).toEqual([
+      'Delantera izquierda', 'Delantera derecha', 'Trasera izquierda', 'Trasera derecha', 'Auxilio',
+    ]);
+    const tractor = positionsOf('tractor_6x4');
+    expect(tractor).toHaveLength(11);
+    expect(tractor.find((p) => p.position === 'e3-der-int')?.label).toBe('Eje 3 derecha interior');
+    expect(positionsOf('acoplado')[0].label).toBe('Eje 1 izquierda exterior');
+    expect(positionsOf(null)).toEqual([]);
   });
 });

@@ -2,14 +2,13 @@ import type {
   Tire,
   TireBrandComparison,
   TireDetail,
-  TirePositionRef,
+  TirePositions,
   TireStatus,
-  TreadReading,
   VehicleTires,
 } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
-// CAM-157: neumáticos. Todo del admin, salvo las posiciones montadas, que también pide el chofer.
+// CAM-157: neumáticos. Todo del admin, salvo las posiciones del vehículo, que también pide el chofer.
 
 export interface TireInput {
   code?: string;
@@ -18,7 +17,6 @@ export interface TireInput {
   size: string;
   purchaseDate: string;
   cost: number;
-  initialTreadMm?: number;
 }
 
 async function send<T>(path: string, method: string, body: unknown, fallback: string): Promise<T> {
@@ -91,13 +89,7 @@ export function rotateTires(vehicleId: string, from: string, to: string): Promis
   return send(`/vehicles/${vehicleId}/tires/rotate`, 'POST', { from, to }, 'No se pudo rotar la cubierta');
 }
 
-export function recordTreads(vehicleId: string, readings: TreadReading[]): Promise<VehicleTires> {
-  return send(`/vehicles/${vehicleId}/tire-treads`, 'POST', { readings }, 'No se pudo cargar el dibujo');
-}
-
-/** Para el pre-viaje: las posiciones que ruedan y tienen cubierta. */
-export async function getTirePositions(vehicleId: string): Promise<TirePositionRef[]> {
-  const body = await getJson<{ items: TirePositionRef[] }>(`/vehicles/${vehicleId}/tire-positions`,
-    'No se pudieron obtener las cubiertas');
-  return body.items;
+/** Para el pre-viaje: el dibujo del vehículo y qué posiciones tienen cubierta. */
+export function getTirePositions(vehicleId: string): Promise<TirePositions> {
+  return getJson<TirePositions>(`/vehicles/${vehicleId}/tire-positions`, 'No se pudieron obtener las cubiertas');
 }

@@ -5,7 +5,7 @@
 import { ApiError, describeApiError, getSessionUserId, isNetworkError, isSessionExpired } from '../services/apiClient';
 import { submitInspection } from '../services/inspectionsService';
 import { uploadDefectPhoto } from '../services/photosService';
-import type { ChecklistAnswer, InspectionType, TreadReading } from '../types/domain';
+import type { ChecklistAnswer, InspectionType, TireConditionInput } from '../types/domain';
 
 export interface PendingInspection {
   /** También es el clientSubmissionId: con él el servidor reconoce un reintento. */
@@ -17,8 +17,8 @@ export interface PendingInspection {
   answers: ChecklistAnswer[];
   notes?: string;
   performedAt: string;
-  /** CAM-157: el dibujo de las cubiertas que anotó en el pre-viaje. */
-  treadReadings?: TreadReading[];
+  /** CAM-157: las cubiertas con problemas, con "Neumáticos" en defecto. */
+  tireConditions?: TireConditionInput[];
   /** CAM-157: el remolque que eligió en el pre-viaje. */
   trailerId?: string;
   status: 'pending' | 'rejected';
@@ -181,7 +181,7 @@ async function sync(): Promise<SyncResult> {
       await submitInspection(item.vehicleId, item.type, answers, item.notes, {
         performedAt: item.performedAt,
         clientSubmissionId: item.id,
-        treadReadings: item.treadReadings,
+        tireConditions: item.tireConditions,
         trailerId: item.trailerId,
       });
       await store.remove(item.id);
