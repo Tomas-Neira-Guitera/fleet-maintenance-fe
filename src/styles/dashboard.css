@@ -355,6 +355,20 @@
 /* Chip de filtro "Ver desactivados"/"Ver dados de baja" (Planes y Vehículos
    comparten esta clase): más chico y con menos peso que "+ Nuevo ..." a
    propósito -- es un filtro de vista, no una acción. */
+/* CAM-157: pestañas Vehículos / Remolques. */
+.vehicles-section__tabs {
+  margin-bottom: 16px;
+}
+
+.vehicles-section__tab-count {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--fg-bg);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .vehicles-section__toggle {
   display: inline-flex;
   align-items: center;

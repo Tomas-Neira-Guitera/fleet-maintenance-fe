@@ -19,6 +19,8 @@ export interface Vehicle {
   currentTrip?: CurrentTrip | null;
   /** Fecha y hora del turno de taller de hoy, en el día argentino (CAM-143); null si no tiene. No bloquea. */
   scheduledToday?: string | null;
+  /** CAM-157, solo en el listado: en un remolque, quién lo arrastra; en un tractor o camión, qué remolque lleva. */
+  coupledWith?: CouplingRef | null;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
@@ -478,7 +480,8 @@ export interface WorkOrderExpense {
  * De dónde nació un gasto: una OT de un plan (preventivo), de un defecto (correctivo) o suelta, o
  * ninguna OT, si es un gasto operativo del vehículo (CAM-109).
  */
-export type ExpenseOrigin = 'plan' | 'defect' | 'manual' | 'operating';
+/** fuel: una carga de combustible (CAM-156), que se edita desde el vehículo y no desde Gastos. */
+export type ExpenseOrigin = 'plan' | 'defect' | 'manual' | 'operating' | 'fuel';
 
 /**
  * Un gasto con su vehículo y, si sale de una, su OT -- GET /api/expenses (CAM-52, CAM-109). En un gasto
@@ -585,6 +588,7 @@ export type NotificationType =
   | 'vehicle_unavailable'
   | 'vehicle_available'
   | 'trip_km_anomaly'
+  | 'fuel_consumption_anomaly'
   | 'defect_resolved'
   | 'defect_unattended'
   | 'scheduled_maintenance_upcoming'
@@ -758,4 +762,204 @@ export interface VehicleComparison {
   to: string;
   vehicles: VehicleComparisonRow[];
   fleet: VehicleComparisonAverages;
+}
+
+/** CAM-150: plantilla de controles que el admin copia a varios vehículos. */
+export interface ChecklistTemplateItem {
+  id: string;
+  label: string;
+  type: ChecklistItemType;
+  section: Exclude<ChecklistSection, 'posttrip'>;
+}
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  items: ChecklistTemplateItem[];
+  createdAt: string;
+}
+
+export interface ApplyChecklistTemplateResult {
+  templateId: string;
+  added: number;
+  skipped: number;
+  vehicles: { vehicleId: string; plate: string; added: number; skipped: number; skippedLabels: string[] }[];
+}
+
+/** CAM-156: una carga de combustible. consumption: el tramo de tanque lleno a tanque lleno que cierra. */
+export interface FuelLoad {
+  id: string;
+  vehicleId: string;
+  plate: string;
+  loadedAt: string;
+  liters: number;
+  amount: number;
+  odometerKm: number;
+  fullTank: boolean;
+  createdBy: UserRef | null;
+  consumption: { km: number; liters: number; litersPer100Km: number; costPerKm: number } | null;
+  alert: { litersPer100Km: number; averageLitersPer100Km: number } | null;
+}
+
+export interface FuelPeriod {
+  liters: number;
+  amount: number;
+  measuredKm: number;
+  litersPer100Km: number | null;
+  costPerKm: number | null;
+}
+
+export interface VehicleFuel {
+  vehicleId: string;
+  plate: string;
+  months: number;
+  summary: FuelPeriod & { loadCount: number };
+  /** month: "2026-06". */
+  monthly: (FuelPeriod & { month: string })[];
+  loads: FuelLoad[];
+}
+
+/** CAM-157: neumáticos. */
+export type TireStatus = 'stock' | 'mounted' | 'retired';
+
+/** Lo que el chofer ve a simple vista en una cubierta, del más grave al más leve. */
+export type TireConditionCode =
+  | 'se-ve-la-tela'
+  | 'bulto'
+  | 'corte-flanco'
+  | 'pinchada'
+  | 'baja-presion'
+  | 'desgaste-irregular'
+  | 'poco-dibujo';
+
+/** Un relevamiento de una cubierta; active: su defecto sigue abierto y la cubierta montada. */
+export interface TireConditionReport {
+  vehicleId: string;
+  plate: string;
+  position: string;
+  positionLabel: string;
+  conditions: TireConditionCode[];
+  conditionLabels: string[];
+  /** La del defecto que lo acompaña. */
+  severity: 'blocking' | 'non-blocking' | null;
+  reportedAt: string;
+  reportedBy: string | null;
+  defectId: string | null;
+  active: boolean;
+}
+
+export interface Tire {
+  id: string;
+  code: string | null;
+  brand: string;
+  model: string | null;
+  size: string;
+  purchaseDate: string;
+  cost: number;
+  status: TireStatus;
+  retiredAt: string | null;
+  retiredReason: string | null;
+  /** Lo que rodó en todos sus montajes; el auxilio no suma. */
+  km: number;
+  costPerKm: number | null;
+  current: {
+    vehicleId: string;
+    plate: string;
+    position: string;
+    positionLabel: string;
+    mountedAt: string;
+    mountedKm: number;
+  } | null;
+  /** El último problema reportado que sigue abierto; null si no tiene. */
+  condition: TireConditionReport | null;
+}
+
+export interface TireMounting {
+  tireId: string;
+  tireLabel: string;
+  vehicleId: string;
+  plate: string;
+  position: string;
+  positionLabel: string;
+  mountedAt: string;
+  mountedKm: number;
+  removedAt: string | null;
+  removedKm: number | null;
+  km: number;
+}
+
+export interface VehicleTirePosition {
+  position: string;
+  label: string;
+  /** 1 el delantero, 0 el auxilio. */
+  axle: number;
+  side: 'izq' | 'der' | null;
+  wheel: 'simple' | 'exterior' | 'interior';
+  tire: Tire | null;
+}
+
+export interface VehicleTires {
+  vehicleId: string;
+  plate: string;
+  /** Código del catálogo (utils/vehicleTypes); null: sin tipo, sin posiciones. */
+  vehicleType: string | null;
+  odometerKm: number;
+  positions: VehicleTirePosition[];
+  history: TireMounting[];
+}
+
+export interface TireDetail {
+  tire: Tire;
+  mountings: TireMounting[];
+  reports: TireConditionReport[];
+}
+
+export interface TireBrandComparison {
+  minKm: number;
+  brands: {
+    brand: string;
+    tires: number;
+    retired: number;
+    totalKm: number;
+    totalCost: number;
+    costPerKm: number;
+    averageKm: number;
+  }[];
+}
+
+/** Una cubierta con problemas, en una inspección (con "Neumáticos" en defecto). */
+export interface TireConditionInput {
+  position: string;
+  conditions: TireConditionCode[];
+}
+
+/** Para el pre-viaje del chofer: todas las posiciones; solo se reportan las que tienen cubierta. */
+export interface TirePositions {
+  vehicleType: string | null;
+  positions: (Omit<VehicleTirePosition, 'tire'> & { mounted: boolean })[];
+}
+
+/** Enganche de remolques (CAM-157): en un remolque, towedBy; en un tractor o camión rígido, towing. */
+export interface CouplingRef {
+  id: string;
+  plate: string;
+  vehicleType: string | null;
+  coupledAt: string;
+}
+
+export interface Coupling {
+  vehicleId: string;
+  towedBy: CouplingRef | null;
+  towing: CouplingRef | null;
+  /** Los tipos que puede arrastrar. */
+  canTow: string[];
+  history: {
+    trailerId: string;
+    trailerPlate: string;
+    towingId: string;
+    towingPlate: string;
+    coupledAt: string;
+    uncoupledAt: string | null;
+    coupledBy: string | null;
+  }[];
 }

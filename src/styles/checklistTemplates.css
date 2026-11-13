@@ -1,0 +1,152 @@
+/* CAM-150: plantillas de checklist. */
+.checklist-templates {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
+}
+
+.checklist-templates__list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.checklist-templates__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checklist-templates__card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.checklist-templates__card-header .vehicle-detail__card-title {
+  margin: 0;
+}
+
+.checklist-templates__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--fg-text);
+  flex: 1;
+}
+
+.checklist-templates__items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.checklist-templates__actions .primary-btn {
+  white-space: nowrap;
+}
+
+.checklist-templates__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.template-form__items {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.template-form__items legend {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-text);
+  margin-bottom: 4px;
+}
+
+.template-form__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 120px 38px;
+  gap: 8px;
+  align-items: center;
+}
+
+.template-form__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+  color: var(--fg-critical);
+  cursor: pointer;
+}
+
+.template-form__remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.apply-template__preview {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.apply-template__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.apply-template__toolbar input[type='search'] {
+  flex: 1;
+}
+
+.apply-template__vehicle-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apply-template__result-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+  color: var(--fg-text);
+}
+
+@media (max-width: 640px) {
+  .template-form__row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 38px;
+  }
+
+  .template-form__row .template-form__label {
+    grid-column: 1 / -1;
+  }
+}
+
+.vehicle-checklist__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

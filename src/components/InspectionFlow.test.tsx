@@ -5,6 +5,8 @@ import { ApiError, saveUsername } from '../services/apiClient';
 import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
 import { uploadDefectPhoto } from '../services/photosService';
+import { getTirePositions } from '../services/tiresService';
+import { getCoupling } from '../services/couplingService';
 import { checklistCacheKey, saveCache } from '../offline/offlineCache';
 import { listPendingInspections, resetPendingInspectionsForTests } from '../offline/pendingInspections';
 import type { ChecklistItemDef, InspectionType, SubmitInspectionResult, Vehicle } from '../types/domain';
@@ -16,10 +18,14 @@ vi.mock('../services/photosService', () => ({
   ACCEPTED_PHOTO_TYPES: 'image/jpeg,image/png',
   uploadDefectPhoto: vi.fn(),
 }));
+vi.mock('../services/tiresService', () => ({ getTirePositions: vi.fn() }));
+vi.mock('../services/couplingService', () => ({ getCoupling: vi.fn() }));
 
 const checklistMock = vi.mocked(getVehicleChecklist);
 const submitMock = vi.mocked(submitInspection);
 const uploadMock = vi.mocked(uploadDefectPhoto);
+const tirePositionsMock = vi.mocked(getTirePositions);
+const couplingMock = vi.mocked(getCoupling);
 
 const VEHICLE: Vehicle = { id: 'veh-1', plate: 'AB123CD', brand: 'Iveco', model: 'Daily', status: 'available' };
 
@@ -79,6 +85,7 @@ async function confirmAndSend(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(() => {
   checklistMock.mockImplementation(async (_id, type) => (type === 'pre-trip' ? PRE_TRIP : POST_TRIP));
+  tirePositionsMock.mockResolvedValue({ vehicleType: null, positions: [] });
   saveUsername('carlos.gomez');
   resetPendingInspectionsForTests();
 });
@@ -217,6 +224,147 @@ describe('InspectionFlow — pre-viaje', () => {
     expect(screen.getByText('4 controles en OK')).toBeInTheDocument();
     await goToSummary(user);
     expect(screen.getByText('Sin defectos reportados. Todo en orden.')).toBeInTheDocument();
+  });
+});
+
+describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
+  const pos = (position: string, label: string, axle: number, side: 'izq' | 'der' | null, mounted = true) => ({
+    position, label, axle, side, wheel: 'simple' as const, mounted,
+  });
+  const UTILITARIO = {
+    vehicleType: 'utilitario',
+    positions: [
+      pos('e1-izq', 'Delantera izquierda', 1, 'izq'),
+      pos('e1-der', 'Delantera derecha', 1, 'der'),
+      pos('e2-izq', 'Trasera izquierda', 2, 'izq'),
+      pos('e2-der', 'Trasera derecha', 2, 'der'),
+      pos('auxilio', 'Auxilio', 0, null, false),
+    ],
+  };
+
+  it('el dibujo aparece recién al marcar Neumáticos con defecto', async () => {
+    const user = userEvent.setup();
+    tirePositionsMock.mockResolvedValue(UTILITARIO);
+    renderFlow();
+    await screen.findByRole('heading', { name: 'Pre-viaje' });
+    expect(screen.queryByText('¿Qué cubierta tiene el problema?')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(await screen.findByText('¿Qué cubierta tiene el problema?')).toBeInTheDocument();
+    // Una posición sin cubierta no se puede elegir.
+    expect(screen.getByRole('button', { name: 'Auxilio: sin cubierta' })).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('manda la cubierta y lo que el chofer vio, y completa el título si está vacío', async () => {
+    const user = userEvent.setup();
+    tirePositionsMock.mockResolvedValue(UTILITARIO);
+    submitMock.mockResolvedValue(result('pre-trip'));
+    renderFlow();
+
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    await user.click(screen.getByRole('button', { name: 'Trasera derecha: sin marcar' }));
+    await user.click(screen.getByRole('button', { name: 'Poco dibujo' }));
+    await user.click(screen.getByRole('button', { name: 'Pinchada' }));
+    // El título vacío se completa con lo primero que marcó.
+    expect(screen.getByLabelText('Título (obligatorio)')).toHaveValue('Poco dibujo');
+
+    await goToSummary(user);
+    expect(screen.getByText(/pinchada, poco dibujo/)).toBeInTheDocument();
+    await confirmAndSend(user);
+
+    expect(submitMock.mock.calls[0][4]?.tireConditions).toEqual([
+      { position: 'e2-der', conditions: ['pinchada', 'poco-dibujo'] },
+    ]);
+  });
+
+  it('con el dibujo disponible hay que decir qué cubierta es', async () => {
+    const user = userEvent.setup();
+    tirePositionsMock.mockResolvedValue(UTILITARIO);
+    renderFlow();
+
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    await user.type(screen.getByLabelText('Título (obligatorio)'), 'Gastada');
+    await user.type(screen.getByLabelText('Kilómetros actuales'), '84320');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(screen.getByText('Marcá al menos una cubierta y qué le ves.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Resumen' })).not.toBeInTheDocument();
+  });
+
+  it('sin tipo (o sin dibujo) se reporta como cualquier defecto', async () => {
+    const user = userEvent.setup();
+    submitMock.mockResolvedValue(result('pre-trip'));
+    renderFlow();
+
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(screen.queryByText('¿Qué cubierta tiene el problema?')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Título (obligatorio)'), 'Gastada');
+    await goToSummary(user);
+    await confirmAndSend(user);
+    expect(submitMock.mock.calls[0][4]?.tireConditions).toBeUndefined();
+  });
+
+  it('sin señal usa el último dibujo que se cargó', async () => {
+    const user = userEvent.setup();
+    tirePositionsMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    saveCache(`tire-positions.${VEHICLE.id}`, UTILITARIO);
+    renderFlow();
+
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(await screen.findByText('¿Qué cubierta tiene el problema?')).toBeInTheDocument();
+  });
+
+  it('el post-viaje no pide el dibujo', async () => {
+    renderFlow('post-trip');
+    await screen.findByRole('heading', { name: 'Post-viaje' });
+    expect(tirePositionsMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('InspectionFlow — remolque del tractor (CAM-157)', () => {
+  const TRACTOR: Vehicle = { ...VEHICLE, vehicleType: 'tractor_4x2' };
+  const SEMI = { id: 'semi-1', plate: 'ZZ001AA', brand: 'Helvética', model: 'Tri-eje', status: 'available' as const, vehicleType: 'semirremolque_3_ejes' };
+  const ACOPLADO = { ...SEMI, id: 'aco-1', plate: 'ZZ002BB', vehicleType: 'acoplado' };
+
+  function renderTractor() {
+    saveCache('vehicles', [TRACTOR, SEMI, ACOPLADO]);
+    couplingMock.mockResolvedValue({ vehicleId: TRACTOR.id, towedBy: null, towing: null, canTow: [], history: [] });
+    submitMock.mockResolvedValue(result('pre-trip'));
+    render(<InspectionFlow vehicle={TRACTOR} type="pre-trip" onDone={vi.fn()} onBack={vi.fn()} onUnavailable={vi.fn()} onLogout={vi.fn()} />);
+  }
+
+  it('ofrece solo los semirremolques y manda el elegido', async () => {
+    const user = userEvent.setup();
+    renderTractor();
+
+    const picker = await screen.findByLabelText('¿Qué remolque llevás?');
+    expect(within(picker).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Sin remolque',
+      'ZZ001AA · Semirremolque 3 ejes',
+    ]);
+    await user.selectOptions(picker, 'semi-1');
+    await goToSummary(user);
+    await confirmAndSend(user);
+
+    expect(submitMock.mock.calls[0][4]?.trailerId).toBe('semi-1');
+  });
+
+  it('si no lo cambia, no manda nada y el enganche queda como estaba', async () => {
+    const user = userEvent.setup();
+    renderTractor();
+
+    await screen.findByLabelText('¿Qué remolque llevás?');
+    await goToSummary(user);
+    await confirmAndSend(user);
+
+    expect(submitMock.mock.calls[0][4]?.trailerId).toBeUndefined();
+  });
+
+  it('un utilitario no tiene remolque', async () => {
+    renderFlow();
+    await screen.findByRole('heading', { name: 'Pre-viaje' });
+    expect(screen.queryByLabelText('¿Qué remolque llevás?')).not.toBeInTheDocument();
+    expect(couplingMock).not.toHaveBeenCalled();
   });
 });
 
