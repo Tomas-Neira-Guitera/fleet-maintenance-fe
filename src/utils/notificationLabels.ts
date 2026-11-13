@@ -81,6 +81,10 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Se resolvió un defecto que reportaste',
     message: 'AB123CD: se resolvió «Luz de freno». Lámpara reemplazada.',
   },
+  work_order_comment: {
+    title: 'Comentario del técnico',
+    message: 'Javier Romero en Cambio de pastillas (AB123CD): «¿Lo reparo o lo cambio? El disco está marcado.»',
+  },
   scheduled_maintenance_upcoming: {
     title: 'Turno de taller de AB123CD',
     message:
@@ -100,7 +104,13 @@ export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types:
   {
     id: 'work_orders',
     label: 'Órdenes de trabajo',
-    types: ['work_order_finalized', 'work_order_assigned', 'work_order_unassigned', 'work_order_cancelled'],
+    types: [
+      'work_order_finalized',
+      'work_order_comment',
+      'work_order_assigned',
+      'work_order_unassigned',
+      'work_order_cancelled',
+    ],
   },
   { id: 'maintenance', label: 'Mantenimiento preventivo', types: ['maintenance_due_soon', 'maintenance_overdue'] },
   { id: 'documents', label: 'Documentación', types: ['document_due_soon', 'document_expired'] },

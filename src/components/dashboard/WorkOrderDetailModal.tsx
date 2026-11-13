@@ -19,6 +19,7 @@ import { WorkOrderResponsibleField } from './WorkOrderResponsibleField';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 import { PauseWorkOrderForm } from '../PauseWorkOrderForm';
 import { PhotoViewer } from '../PhotoViewer';
+import { WorkOrderComments } from '../WorkOrderComments';
 import '../../styles/dashboard.css';
 
 function formatDateTime(iso: string): string {
@@ -550,6 +551,8 @@ export function WorkOrderDetailModal({ workOrder, onClose, onUpdated }: WorkOrde
               </>
             )}
           </div>
+
+          <WorkOrderComments workOrderId={wo.id} canComment={isOpen} variant="admin" />
         </div>
 
         <footer className="modal__footer">

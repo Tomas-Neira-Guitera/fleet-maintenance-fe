@@ -518,6 +518,16 @@ export interface VehicleCosts {
   costPerKm: number | null;
 }
 
+/** CAM-149: un comentario de una OT, entre el admin y el técnico. No se edita ni se borra. */
+export interface WorkOrderComment {
+  id: string;
+  /** name es el nombre actual del usuario, o el que tenía al comentar si ya no existe. */
+  author: UserRef;
+  authorRole: 'ADMIN' | 'TECNICO';
+  text: string;
+  createdAt: string;
+}
+
 export interface WorkOrderPhoto {
   id: string;
   photoUrl: string;
@@ -578,7 +588,8 @@ export type NotificationType =
   | 'defect_resolved'
   | 'defect_unattended'
   | 'scheduled_maintenance_upcoming'
-  | 'trip_started_with_maintenance';
+  | 'trip_started_with_maintenance'
+  | 'work_order_comment';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';
