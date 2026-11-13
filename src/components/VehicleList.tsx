@@ -10,6 +10,7 @@ import { getSessionUserId, getUsername, isNetworkError } from '../services/apiCl
 import { getVehicles } from '../services/vehiclesService';
 import type { Vehicle } from '../types/domain';
 import { formatDayAndTime } from '../utils/dateFormat';
+import { scheduledTodayTime } from '../utils/scheduledToday';
 import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, LockClockIcon } from './icons';
 
 interface VehicleListProps {
@@ -157,6 +158,8 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
           const reasons = isBlocked ? (vehicle.blockReasons ?? []).map((r) => r.message) : [];
           // El viaje propio es lo que el chofer tiene pendiente de cerrar: no se atenúa como los ajenos.
           const isMine = onTrip && vehicle.currentTrip?.openedBy?.id === currentUserId;
+          // CAM-143: no bloquea, solo avisa. Al elegirlo para el pre-viaje sale además una advertencia.
+          const workshopTime = scheduledTodayTime(vehicle);
           return (
             <li key={vehicle.id}>
               <button
@@ -172,6 +175,7 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
                   </span>
                   {tripLine && <span className="vehicle-card__trip">{tripLine}</span>}
                   {pending && <span className="vehicle-card__trip">Pendiente de envío</span>}
+                  {workshopTime && <span className="vehicle-card__workshop">Turno de taller hoy, {workshopTime}</span>}
                   {reasons.map((reason) => (
                     <span key={reason} className="vehicle-card__reason">
                       {reason}

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
 import { RoadDefectForm } from './components/RoadDefectForm';
+import { ScheduledTodayWarning } from './components/ScheduledTodayWarning';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
 import { NotificationBell } from './components/NotificationBell';
@@ -23,6 +24,7 @@ import { startPendingInspectionsSync } from './offline/pendingInspections';
 import { ApiError, authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
 import { getVehicle } from './services/vehiclesService';
 import { parseInspectionPath } from './utils/publicUrl';
+import { scheduledTodayTime } from './utils/scheduledToday';
 import { disablePush } from './utils/webPush';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
@@ -138,6 +140,8 @@ function App() {
   const [scannedVehicleId, setScannedVehicleId] = useState<string | null>(() =>
     parseInspectionPath(window.location.pathname),
   );
+  // CAM-143: el vehículo elegido para el pre-viaje que tiene turno de taller hoy, esperando que el chofer decida.
+  const [workshopWarning, setWorkshopWarning] = useState<{ vehicle: Vehicle; time: string } | null>(null);
 
   // Sin sesión se deja la URL como está: si era el link a un vehículo, el admin cae ahí al
   // loguearse. El chofer y el técnico no tienen rutas, así que no se quedan con una del admin.
@@ -190,6 +194,7 @@ function App() {
   function handleDriverNotificationLink(link: string) {
     const vehicleId = parseInspectionPath(new URL(link, window.location.origin).pathname);
     if (vehicleId) {
+      setWorkshopWarning(null);
       setRoute({ view: 'list' });
       setScannedVehicleId(vehicleId);
     }
@@ -216,6 +221,7 @@ function App() {
     setListNotice(null);
     setListConfirmation(null);
     setScannedVehicleId(null);
+    setWorkshopWarning(null);
     setRoute({ view: 'list' });
   }
 
@@ -224,7 +230,22 @@ function App() {
     const type: InspectionType = vehicle.status === 'on-trip' ? 'post-trip' : 'pre-trip';
     setListNotice(null);
     setListConfirmation(null);
+    // CAM-143: con turno de taller hoy, antes de salir se pregunta. Por acá pasan la lista y el QR (CAM-133).
+    const workshopTime = type === 'pre-trip' ? scheduledTodayTime(vehicle) : null;
+    if (workshopTime) {
+      setWorkshopWarning({ vehicle, time: workshopTime });
+      return;
+    }
     setRoute({ view: 'flow', vehicle, type });
+  }
+
+  // Estable: la advertencia lo usa en un efecto (Escape).
+  const handleWorkshopCancel = useCallback(() => setWorkshopWarning(null), []);
+
+  function handleWorkshopContinue() {
+    if (!workshopWarning) return;
+    setRoute({ view: 'flow', vehicle: workshopWarning.vehicle, type: 'pre-trip' });
+    setWorkshopWarning(null);
   }
 
   function handleReportProblem(vehicle: Vehicle) {
@@ -311,6 +332,14 @@ function App() {
           onBack={handleFlowBack}
           onUnavailable={handleFlowUnavailable}
           onLogout={handleLogout}
+        />
+      )}
+      {workshopWarning && (
+        <ScheduledTodayWarning
+          vehicle={workshopWarning.vehicle}
+          time={workshopWarning.time}
+          onContinue={handleWorkshopContinue}
+          onCancel={handleWorkshopCancel}
         />
       )}
     </main>

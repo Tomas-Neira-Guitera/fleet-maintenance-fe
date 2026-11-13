@@ -81,6 +81,15 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     title: 'Se resolvió un defecto que reportaste',
     message: 'AB123CD: se resolvió «Luz de freno». Lámpara reemplazada.',
   },
+  scheduled_maintenance_upcoming: {
+    title: 'Turno de taller de AB123CD',
+    message:
+      'AB123CD tiene turno de taller mañana 13/11 a las 15:00: «Cambio de aceite». Tenelo en cuenta para volver a tiempo.',
+  },
+  trip_started_with_maintenance: {
+    title: 'AB123CD salió de viaje con turno de taller',
+    message: 'Juan Pérez salió con AB123CD a las 10:20, y tiene turno de taller hoy a las 15:00: «Cambio de aceite».',
+  },
 };
 
 export type NotificationTopic = 'defects' | 'work_orders' | 'maintenance' | 'documents' | 'trips';
@@ -98,6 +107,13 @@ export const NOTIFICATION_TOPICS: { id: NotificationTopic; label: string; types:
   {
     id: 'trips',
     label: 'Viajes y disponibilidad',
-    types: ['trip_km_anomaly', 'trip_open_reminder', 'vehicle_unavailable', 'vehicle_available'],
+    types: [
+      'trip_km_anomaly',
+      'trip_started_with_maintenance',
+      'trip_open_reminder',
+      'scheduled_maintenance_upcoming',
+      'vehicle_unavailable',
+      'vehicle_available',
+    ],
   },
 ];
