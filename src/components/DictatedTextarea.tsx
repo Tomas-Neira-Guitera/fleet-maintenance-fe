@@ -1,3 +1,4 @@
+import type { KeyboardEvent, Ref } from 'react';
 import { useDictation } from '../hooks/useDictation';
 import { MicIcon, StopIcon } from './icons';
 
@@ -9,6 +10,11 @@ interface DictatedTextareaProps {
   rows?: number;
   placeholder?: string;
   disabled?: boolean;
+  /** CAM-149: atajos de teclado de quien lo usa (en los comentarios, Enter envía). */
+  onKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  /** Id del texto de ayuda que describe el campo (por ejemplo, el de los atajos). */
+  describedBy?: string;
+  textareaRef?: Ref<HTMLTextAreaElement>;
 }
 
 function appendDictated(current: string, text: string, maxLength?: number): string {
@@ -22,7 +28,18 @@ function appendDictated(current: string, text: string, maxLength?: number): stri
  * CAM-32: campo de texto largo que también se puede dictar. Lo dictado se agrega al final y
  * queda editable. Si el navegador no soporta el dictado, el botón no aparece y se escribe.
  */
-export function DictatedTextarea({ id, value, onChange, maxLength, rows = 3, placeholder, disabled }: DictatedTextareaProps) {
+export function DictatedTextarea({
+  id,
+  value,
+  onChange,
+  maxLength,
+  rows = 3,
+  placeholder,
+  disabled,
+  onKeyDown,
+  describedBy,
+  textareaRef,
+}: DictatedTextareaProps) {
   const { supported, listening, interim, error, toggle } = useDictation((text) =>
     onChange(appendDictated(value, text, maxLength)),
   );
@@ -30,6 +47,7 @@ export function DictatedTextarea({ id, value, onChange, maxLength, rows = 3, pla
   return (
     <div className="dictated-field">
       <textarea
+        ref={textareaRef}
         id={id}
         className="defect-textarea"
         rows={rows}
@@ -37,6 +55,8 @@ export function DictatedTextarea({ id, value, onChange, maxLength, rows = 3, pla
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        aria-describedby={describedBy}
         disabled={disabled}
       />
       <div className="dictated-field__bar">
