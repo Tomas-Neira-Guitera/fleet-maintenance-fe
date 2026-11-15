@@ -1539,30 +1539,70 @@
   color: var(--fg-critical-text);
 }
 
-/* CAM-139: "Reportar un problema", debajo de la tarjeta del viaje propio en la flota del chofer. */
-.vehicle-list__trip-actions {
+/* "Mi viaje": con un viaje abierto, el chofer ve solo ese viaje en lugar de la flota. */
+.my-trip {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 6px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.vehicle-card__report {
+.my-trip__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--fg-white);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 16px;
+}
+
+.my-trip__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.my-trip__close {
+  flex: 0 0 auto;
+}
+
+.my-trip__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.my-trip__action {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 44px;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
   padding: 0 14px;
   border-radius: var(--fg-radius);
-  border: 1px solid var(--fg-critical);
+  border: var(--fg-border);
   background: var(--fg-white);
-  color: var(--fg-critical-text);
+  color: var(--fg-text);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
 }
 
-.vehicle-card__report svg {
-  width: 16px;
-  height: 16px;
+.my-trip__action svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* CAM-139: el reporte en ruta, con el rojo de los problemas. */
+.my-trip__action--report {
+  border-color: var(--fg-critical);
+  color: var(--fg-critical-text);
+}
+
+.my-trip__action:disabled {
+  border-color: var(--fg-border-color);
+  background: var(--fg-bg);
+  color: var(--fg-text-muted);
 }
 
 .road-defect__select {

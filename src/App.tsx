@@ -22,10 +22,18 @@ import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
 import { NotificationSettingsSection } from './components/dashboard/NotificationSettingsSection';
 import { adminPath, parseAdminPath, useAdminRoute } from './hooks/useAdminRoute';
-import { clearOfflineCache } from './offline/offlineCache';
-import { startPendingInspectionsSync } from './offline/pendingInspections';
-import { ApiError, authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
-import { getVehicle } from './services/vehiclesService';
+import { clearOfflineCache, loadCache, VEHICLES_CACHE_KEY } from './offline/offlineCache';
+import { listPendingInspections, startPendingInspectionsSync } from './offline/pendingInspections';
+import {
+  ApiError,
+  authHeaders,
+  clearSession,
+  getSession,
+  getSessionUserId,
+  isSessionTokenExpired,
+} from './services/apiClient';
+import { getVehicle, getVehicles } from './services/vehiclesService';
+import { findMyTrip } from './utils/myTrip';
 import { parseInspectionPath } from './utils/publicUrl';
 import { scheduledTodayTime } from './utils/scheduledToday';
 import { disablePush } from './utils/webPush';
@@ -41,6 +49,17 @@ type Route =
   | { view: 'road-defect'; vehicle: Vehicle }
   // CAM-156: cargar combustible.
   | { view: 'fuel'; vehicle: Vehicle };
+
+/** El viaje abierto del chofer, con la flota (o la guardada sin señal) y lo que tiene pendiente de envío. */
+async function loadMyTrip(): Promise<Vehicle | null> {
+  try {
+    const vehicles = await getVehicles().catch(() => loadCache<Vehicle[]>(VEHICLES_CACHE_KEY)?.data ?? null);
+    if (!vehicles) return null;
+    return findMyTrip(vehicles, await listPendingInspections(), getSessionUserId());
+  } catch {
+    return null;
+  }
+}
 
 /** Vista del admin, aparte para que el hook de ruteo solo corra con ese rol. */
 function AdminApp({ onLogout }: { onLogout: () => void }) {
@@ -191,9 +210,16 @@ function App() {
     if (role !== 'CHOFER' || !scannedVehicleId) return;
     let cancelled = false;
     getVehicle(scannedVehicleId)
-      .then((vehicle) => {
+      .then(async (vehicle) => {
+        const myTrip = await loadMyTrip();
         if (cancelled) return;
-        if (vehicle.active === false) {
+        // Un solo viaje abierto por chofer: con otro vehículo en viaje, se queda en "Mi viaje".
+        if (myTrip && myTrip.id !== vehicle.id) {
+          setListNotice(`Tenés un viaje abierto con ${myTrip.plate}: cerralo antes de tomar otro vehículo.`);
+        } else if (myTrip) {
+          // Es el de su viaje: post-viaje, aunque el pre-viaje siga guardado sin señal.
+          handleSelectVehicle(myTrip);
+        } else if (vehicle.active === false) {
           setListNotice(`${vehicle.plate} está dado de baja.`);
         } else if (vehicle.blocked && vehicle.status !== 'on-trip') {
           const reasons = (vehicle.blockReasons ?? []).map((r) => r.message).join('; ');
