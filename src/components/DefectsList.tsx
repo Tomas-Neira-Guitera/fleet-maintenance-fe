@@ -1,19 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getDefects } from '../services/defectsService';
+import { getDefects, isReportedOnRoad } from '../services/defectsService';
 import { getWorkOrders } from '../services/workOrdersService';
+import type { DefectsFilter } from '../hooks/useAdminRoute';
 import type { DefectSummary, WorkOrder } from '../types/domain';
 import { ArrowLeftIcon, CameraIcon, WrenchIcon } from './icons';
+import { OPEN_WORK_ORDER_STATUSES, WORK_ORDER_STATUS_LABEL } from '../utils/workOrderFormat';
+import { OccurredOnTripNote } from './OccurredOnTripNote';
 import { PhotoViewer } from './PhotoViewer';
 import { SeverityBadge } from './SeverityBadge';
 import { SchedulePickerModal } from './dashboard/SchedulePickerModal';
 
 interface DefectsListProps {
   onBack?: () => void;
+  /** Viene de la URL (CAM-142): sin filtro son todos. */
+  filter?: DefectsFilter;
+  onFilterChange: (filter: DefectsFilter | undefined) => void;
 }
 
-/** "OT asignada · tecnico2", "OT en proceso · sin técnico", "OT asignada · Taller Norte". */
+const FILTERS: { id: DefectsFilter | undefined; label: string }[] = [
+  { id: undefined, label: 'Todos' },
+  { id: 'on-trip', label: 'Ocurridos en el viaje' },
+  { id: 'unattended', label: 'Sin atender' },
+];
+
+/** CAM-146 y CAM-142: qué defectos entran en cada filtro. */
+function matchesFilter(defect: DefectSummary, filter: DefectsFilter | undefined): boolean {
+  if (filter === 'on-trip') return Boolean(defect.occurredOnTrip);
+  if (filter === 'unattended') return defect.unattendedDays != null;
+  return true;
+}
+
+const EMPTY_FILTER_MESSAGE: Record<DefectsFilter, string> = {
+  'on-trip': 'Ningún defecto apareció durante un viaje.',
+  unattended: 'No hay defectos sin atender: todos tienen una OT o un turno, o se reportaron hace poco.',
+};
+
+/** "OT asignada · tecnico2", "OT en proceso · sin técnico", "OT en espera · Taller Norte". */
 function describeOpenWorkOrder(wo: WorkOrder): string {
-  const status = wo.status === 'en_proceso' ? 'OT en proceso' : 'OT asignada';
+  const status = `OT ${WORK_ORDER_STATUS_LABEL[wo.status].toLowerCase()}`;
   const who =
     wo.executionType === 'externo' ? (wo.externalProvider ?? 'taller externo') : (wo.technicianUsername ?? 'sin técnico');
   return `${status} · ${who}`;
@@ -32,7 +56,7 @@ function openWorkOrdersByDefect(workOrders: WorkOrder[]): Map<string, WorkOrder>
   return map;
 }
 
-export function DefectsList({ onBack }: DefectsListProps) {
+export function DefectsList({ onBack, filter, onFilterChange }: DefectsListProps) {
   const [defects, setDefects] = useState<DefectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scheduling, setScheduling] = useState<DefectSummary | null>(null);
@@ -44,14 +68,15 @@ export function DefectsList({ onBack }: DefectsListProps) {
   // Id del último pedido de OTs: una respuesta vieja que llega tarde no pisa a una más nueva
   // (ni se aplica después de salir de la pantalla, que pone el contador en -1).
   const workOrdersRequestRef = useRef(0);
+  const visibleDefects = defects?.filter((d) => matchesFilter(d, filter));
 
   // Solo las abiertas: el historial de OTs cerradas crece sin límite y acá no hace falta.
   const loadOpenWorkOrders = useCallback(() => {
     const requestId = ++workOrdersRequestRef.current;
-    Promise.all([getWorkOrders({ status: 'asignada' }), getWorkOrders({ status: 'en_proceso' })])
-      .then(([assigned, inProgress]) => {
+    Promise.all(OPEN_WORK_ORDER_STATUSES.map((status) => getWorkOrders({ status })))
+      .then((byStatus) => {
         if (requestId === workOrdersRequestRef.current) {
-          setOpenWorkOrders(openWorkOrdersByDefect([...assigned, ...inProgress]));
+          setOpenWorkOrders(openWorkOrdersByDefect(byStatus.flat()));
         }
       })
       .catch(() => {
@@ -94,8 +119,31 @@ export function DefectsList({ onBack }: DefectsListProps) {
 
       {defects && defects.length === 0 && <p className="muted">No hay defectos reportados.</p>}
 
+      {defects && defects.length > 0 && (
+        <div className="defect-filter" role="group" aria-label="Filtrar defectos">
+          {FILTERS.map(({ id, label }) => {
+            const active = filter === id;
+            return (
+              <button
+                key={label}
+                type="button"
+                className={`wo-execution-toggle__btn${active ? ' wo-execution-toggle__btn--active' : ''}`}
+                aria-pressed={active}
+                onClick={() => onFilterChange(id)}
+              >
+                {label} ({defects.filter((d) => matchesFilter(d, id)).length})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {filter && defects && defects.length > 0 && visibleDefects?.length === 0 && (
+        <p className="muted">{EMPTY_FILTER_MESSAGE[filter]}</p>
+      )}
+
       <ul className="defect-summary-list">
-        {defects?.map((defect) => {
+        {visibleDefects?.map((defect) => {
           const openWorkOrder = openWorkOrders.get(defect.id);
           const resolved = defect.status === 'resuelto';
           return (
@@ -107,6 +155,18 @@ export function DefectsList({ onBack }: DefectsListProps) {
                   <span className="vehicle-meta__plate">{defect.vehiclePlate}</span>
                   {' · '}
                   {formatDate(defect.createdAt)}
+                  {defect.unattendedDays != null && (
+                    <>
+                      {' · '}
+                      <span className="defect-unattended-tag">Sin atender hace {defect.unattendedDays} días</span>
+                    </>
+                  )}
+                  {isReportedOnRoad(defect) && (
+                    <>
+                      {' · '}
+                      <span className="defect-origin-tag">Reportado en viaje</span>
+                    </>
+                  )}
                   {defect.photoUrl && (
                     <>
                       {' · '}
@@ -117,6 +177,9 @@ export function DefectsList({ onBack }: DefectsListProps) {
                     </>
                   )}
                 </span>
+                {defect.occurredOnTrip && (
+                  <OccurredOnTripNote occurredOnTrip={defect.occurredOnTrip} reportedBy={defect.reportedBy} />
+                )}
                 {openWorkOrder && !resolved && (
                   <span className="defect-summary-item__work-order">
                     <WrenchIcon width={13} height={13} aria-hidden="true" />
@@ -158,6 +221,12 @@ export function DefectsList({ onBack }: DefectsListProps) {
           onScheduled={() => {
             setScheduling(null);
             loadOpenWorkOrders();
+            // CAM-142: con la OT o el turno nuevos, el defecto deja de estar sin atender.
+            getDefects()
+              .then(setDefects)
+              .catch(() => {
+                // Queda la lista anterior: la marca se corrige al volver a entrar.
+              });
           }}
         />
       )}

@@ -1,0 +1,123 @@
+/* Documento del historial del vehículo (CAM-130). En pantalla no se ve: solo existe para imprimirse. */
+.history-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  /* Solo mientras el documento existe: un Ctrl+P en cualquier otra pantalla imprime la app como siempre. */
+  body:has(> .history-print) {
+    background: #fff;
+  }
+
+  body:has(> .history-print) > :not(.history-print) {
+    display: none;
+  }
+
+  .history-print {
+    display: block;
+    color: #000;
+    font-size: 9.5pt;
+    line-height: 1.35;
+  }
+
+  .history-print h1 {
+    margin: 0 0 8px;
+    font-family: var(--fg-font-display);
+    font-size: 17pt;
+  }
+
+  .history-print h2 {
+    margin: 0 0 6px;
+    font-family: var(--fg-font-display);
+    font-size: 11.5pt;
+    break-after: avoid;
+  }
+
+  .history-print p {
+    margin: 0 0 6px;
+  }
+
+  .history-print__header {
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1.5pt solid #000;
+  }
+
+  .history-print__brand {
+    font-size: 8.5pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .history-print__header dl {
+    display: flex;
+    gap: 28px;
+    margin: 0;
+  }
+
+  .history-print__header dt {
+    font-size: 8pt;
+  }
+
+  .history-print__header dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .history-print__section {
+    margin-bottom: 16px;
+  }
+
+  .history-print table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  /* El encabezado se repite en cada hoja, y una fila no se parte entre dos. */
+  .history-print thead {
+    display: table-header-group;
+  }
+
+  .history-print tr {
+    break-inside: avoid;
+  }
+
+  .history-print th,
+  .history-print td {
+    padding: 3px 6px 3px 0;
+    border-bottom: 0.5pt solid #999;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .history-print th {
+    border-bottom: 1pt solid #000;
+    font-size: 8.5pt;
+    white-space: nowrap;
+  }
+
+  /* Los textos libres se parten donde haga falta, y dejan entero lo corto: la fecha es siempre la
+     primera columna, y sin esto la tabla la achica hasta cortar "Bloqueante" o un usuario al medio. */
+  .history-print td:first-child,
+  .history-print .history-print__short {
+    white-space: nowrap;
+  }
+
+  .history-print .history-print__amount {
+    padding-right: 0;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .history-print__costs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+}

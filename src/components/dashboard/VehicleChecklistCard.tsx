@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useVisibleRows } from '../../hooks/useVisibleRows';
 import { ApiError } from '../../services/apiClient';
 import {
   deleteVehicleChecklistItem,
@@ -10,25 +9,28 @@ import type { VehicleChecklistItem } from '../../types/domain';
 import { CHECKLIST_SECTIONS } from '../../utils/checklistSections';
 import { TrashIcon } from '../icons';
 import { AddChecklistItemModal } from './AddChecklistItemModal';
+import { ApplyChecklistTemplateModal } from './ApplyChecklistTemplateModal';
 import '../../styles/dashboard.css';
-
-const VISIBLE_ITEMS = 4;
 
 interface VehicleChecklistCardProps {
   vehicleId: string;
   plate: string;
+  /** CAM-150: un vehículo dado de baja no recibe plantillas. */
+  inactive?: boolean;
 }
 
 /**
  * CAM-31: ítems de inspección del vehículo. "Quitar" saca un ítem del checklist del chofer pero lo
  * deja cargado en el vehículo; "Eliminar" (solo ítems agregados) lo borra del vehículo.
  */
-export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardProps) {
+export function VehicleChecklistCard({ vehicleId, plate, inactive = false }: VehicleChecklistCardProps) {
   const [items, setItems] = useState<VehicleChecklistItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const { ref: scrollRef, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_ITEMS, items?.length ?? 0);
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
+  // Se recarga después de aplicar una plantilla.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +44,7 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
     return () => {
       cancelled = true;
     };
-  }, [vehicleId]);
+  }, [vehicleId, reloadKey]);
 
   async function handleToggle(item: VehicleChecklistItem) {
     setBusyId(item.id);
@@ -78,9 +80,16 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
       <header className="vehicle-checklist__header">
         <h2 className="vehicle-detail__card-title">Checklist de inspección ({totalCount} ítems)</h2>
         {items && (
-          <button type="button" className="vehicle-detail__action-btn" onClick={() => setAdding(true)}>
-            + Agregar ítem
-          </button>
+          <div className="vehicle-checklist__header-actions">
+            {!inactive && (
+              <button type="button" className="vehicle-detail__action-btn" onClick={() => setApplyingTemplate(true)}>
+                Aplicar plantilla
+              </button>
+            )}
+            <button type="button" className="vehicle-detail__action-btn" onClick={() => setAdding(true)}>
+              + Agregar ítem
+            </button>
+          </div>
         )}
       </header>
       <p className="vehicle-detail__item-meta">
@@ -91,7 +100,8 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
       {!items && !error && <p className="muted">Cargando checklist…</p>}
 
       {items && (
-        <div ref={scrollRef} className="vehicle-checklist__scroll scroll-list" style={maxHeight ? { maxHeight } : undefined}>
+        // Con su propia pestaña (CAM-127) se ven todos los ítems, sin scroll interno.
+        <div className="vehicle-checklist__sections">
           {CHECKLIST_SECTIONS.map(({ key, label: sectionLabel }) => {
             const sectionItems = items.filter((i) => i.section === key);
             if (sectionItems.length === 0) return null;
@@ -156,6 +166,15 @@ export function VehicleChecklistCard({ vehicleId, plate }: VehicleChecklistCardP
           onAdded={(created) => {
             setItems((prev) => (prev ? [...prev, created] : [created]));
             setAdding(false);
+          }}
+        />
+      )}
+      {applyingTemplate && (
+        <ApplyChecklistTemplateModal
+          vehicle={{ id: vehicleId, plate }}
+          onClose={() => setApplyingTemplate(false)}
+          onApplied={(result) => {
+            if (result.added > 0) setReloadKey((k) => k + 1);
           }}
         />
       )}

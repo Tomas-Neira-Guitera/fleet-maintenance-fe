@@ -359,6 +359,48 @@
   margin: 0;
 }
 
+/* CAM-153: sin señal -- la flota guardada y las inspecciones que esperan para enviarse. */
+.offline-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--fg-warn-bg);
+  color: var(--fg-text);
+  border-radius: var(--fg-radius);
+  padding: 12px 14px;
+  font-size: 14px;
+  margin: 0;
+}
+
+.offline-banner p {
+  margin: 0;
+}
+
+.offline-banner__list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
+.offline-rejected {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.offline-rejected p {
+  margin: 0;
+}
+
+.photo-preview__pending {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
 /* CAM-85: la sesión venció al enviar la inspección; el aviso trae el botón para volver a entrar. */
 .session-expired {
   display: flex;
@@ -446,10 +488,68 @@
   white-space: nowrap;
 }
 
+/* CAM-127: por qué un vehículo no está disponible. */
+.vehicle-card__reason {
+  font-size: 13px;
+  color: var(--fg-critical);
+}
+
 /* CAM-87: quién tiene el vehículo en viaje, debajo del modelo. */
 .vehicle-card__trip {
   font-size: 12px;
   color: rgba(62, 74, 66, 0.75);
+}
+
+/* CAM-143: turno de taller hoy. No bloquea: solo avisa. */
+.vehicle-card__workshop {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9A6A23;
+}
+
+/* CAM-143: advertencia antes del pre-viaje de un vehículo con turno de taller hoy. */
+.schedule-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(62, 74, 66, 0.45);
+}
+
+.schedule-warning__card {
+  width: 100%;
+  max-width: 440px;
+  padding: 24px 20px 20px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+  box-shadow: var(--fg-shadow-pop);
+  text-align: center;
+}
+
+.schedule-warning__icon {
+  width: 32px;
+  height: 32px;
+  color: var(--fg-warn);
+}
+
+.schedule-warning__title {
+  margin: 12px 0 4px;
+  font-family: var(--fg-font-display);
+  font-size: 18px;
+  color: var(--fg-text);
+}
+
+.schedule-warning__text {
+  margin: 0 0 20px;
+  color: var(--fg-text-muted);
+}
+
+.schedule-warning__actions {
+  display: flex;
+  gap: 12px;
 }
 
 .status-pill {
@@ -477,6 +577,12 @@
 .status-pill--crit {
   background: var(--fg-crit-bg);
   color: var(--fg-critical);
+}
+
+/* CAM-148: OT en espera, frenada por un motivo. El mismo azul que su badge en el admin. */
+.status-pill--info {
+  background: rgba(71, 104, 165, 0.12);
+  color: var(--fg-chart-1);
 }
 
 /* Estado neutro: algo pendiente que todavía no arrancó (ej. OT asignada, CAM-60). */
@@ -811,6 +917,65 @@
   background: var(--fg-white);
 }
 
+/* CAM-148: poner una OT en espera, en la vista del técnico y en el detalle del admin. */
+.pause-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pause-form__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.pause-form__select,
+.pause-form__textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: var(--fg-border);
+  padding: 10px 12px;
+  font-family: var(--fg-font-body);
+  font-size: 14px;
+  color: var(--fg-text);
+  background: var(--fg-white);
+}
+
+.pause-form__textarea {
+  resize: vertical;
+}
+
+.pause-form__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* CAM-148: "Poner en espera" del técnico, a todo el ancho y arriba de Volver/Finalizar. */
+.technician-wo__pause-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* El motivo y desde cuándo, mientras la OT está en espera. */
+.pause-summary {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fg-text);
+}
+
+.pause-summary__since {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--fg-text-muted);
+}
+
 /* CAM-84: mismo color que el botón de dictado (.dictate-btn), así la foto -- obligatoria en un
    defecto bloqueante -- no queda con menos peso visual que el dictado, que es opcional. */
 .photo-attach-btn {
@@ -1099,6 +1264,41 @@
   color: rgba(62, 74, 66, 0.65);
 }
 
+/* CAM-146 y CAM-142: filtros de Defectos y la marca de cada defecto. Cada botón ocupa lo que necesita su texto,
+   en un renglón; si no entran (en el celular), pasan abajo en vez de apretarse. */
+.defect-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.defect-filter .wo-execution-toggle__btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.occurred-on-trip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.occurred-on-trip__badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-warn-bg);
+  color: var(--fg-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.occurred-on-trip__meta {
+  color: var(--fg-text-muted);
+}
+
 /* OT abierta que está resolviendo el defecto (CAM-60), debajo de la patente y la fecha. */
 .defect-summary-item__work-order {
   display: inline-flex;
@@ -1328,4 +1528,131 @@
   color: rgba(62, 74, 66, 0.8);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* CAM-139: un bloqueante reportado en viaje. */
+.success-icon--crit {
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+}
+
+/* CAM-139: "Reportar un problema", debajo de la tarjeta del viaje propio en la flota del chofer. */
+.vehicle-list__trip-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.vehicle-card__report {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--fg-radius);
+  border: 1px solid var(--fg-critical);
+  background: var(--fg-white);
+  color: var(--fg-critical);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.vehicle-card__report svg {
+  width: 16px;
+  height: 16px;
+}
+
+.road-defect__select {
+  font-family: var(--fg-font-body);
+  margin-top: 6px;
+}
+
+/* CAM-142: marca "Sin atender hace N días" de un defecto, en Defectos. */
+.defect-unattended-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-crit-bg);
+  color: var(--fg-critical);
+  white-space: nowrap;
+}
+
+/* CAM-139: marca "Reportado en viaje" de un defecto, en Defectos y en el historial del vehículo. */
+.defect-origin-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-warn-bg);
+  color: var(--fg-warn);
+  white-space: nowrap;
+}
+
+/* CAM-149: comentarios de una OT, en el detalle del admin y en la pantalla del técnico. */
+.wo-comments__list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wo-comments__item {
+  padding: 10px 12px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-bg);
+  border: var(--fg-border);
+}
+
+.wo-comments__meta {
+  margin: 0 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 12px;
+  color: var(--fg-text-muted);
+}
+
+.wo-comments__author {
+  font-weight: 600;
+  color: var(--fg-text);
+}
+
+.wo-comments__role {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--fg-hover);
+}
+
+.wo-comments__text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--fg-text);
+}
+
+.wo-comments__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.wo-comments .wo-comments__send {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+.wo-comments__hint {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--fg-text-muted);
 }

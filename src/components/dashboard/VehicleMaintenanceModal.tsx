@@ -7,6 +7,7 @@ import { CompleteMaintenanceModal } from './CompleteMaintenanceModal';
 import { StatusBadge } from './StatusBadge';
 import { SchedulePickerModal } from './SchedulePickerModal';
 import '../../styles/dashboard.css';
+import { DOCUMENT_TYPE_LABELS } from '../../utils/documentLabels';
 
 interface VehicleMaintenanceModalProps {
   vehicleId: string;
@@ -164,7 +165,11 @@ export function VehicleMaintenanceModal({
                       <span className="vehicle-maintenance-list__name">{a.planName}</span>
                       <StatusBadge status={a.status} />
                     </div>
-                    <p className="vehicle-maintenance-list__detail">{describeAssignment(a)}</p>
+                    <p className="vehicle-maintenance-list__detail">
+                      {describeAssignment(a)}
+                      {/* CAM-127: el vencimiento sale del documento cargado (la VTV), no del intervalo. */}
+                      {a.dueDateFromDocument && a.documentType && ` · según ${DOCUMENT_TYPE_LABELS[a.documentType]}`}
+                    </p>
                     <p className="vehicle-maintenance-list__detail vehicle-maintenance-list__detail--muted">
                       {completedIds.has(a.id) && describeLastDone(a) ? (
                         <>

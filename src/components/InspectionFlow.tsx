@@ -1,17 +1,42 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getPreTripItems, POST_TRIP_ITEMS } from '../checklist/checklistDefinitions';
-import { ApiError, describeApiError, getUsername, isSessionExpired, SESSION_EXPIRED_MESSAGE } from '../services/apiClient';
+import {
+  ApiError,
+  describeApiError,
+  getUsername,
+  isNetworkError,
+  isSessionExpired,
+  SESSION_EXPIRED_MESSAGE,
+} from '../services/apiClient';
 import { getVehicleChecklist } from '../services/checklistService';
 import { submitInspection } from '../services/inspectionsService';
+import { getTirePositions } from '../services/tiresService';
+import { getCoupling } from '../services/couplingService';
+import {
+  checklistCacheKey,
+  couplingCacheKey,
+  loadCache,
+  saveCache,
+  tirePositionsCacheKey,
+  VEHICLES_CACHE_KEY,
+} from '../offline/offlineCache';
+import { enqueueInspection, hasPendingInspections } from '../offline/pendingInspections';
+import { hasPhoto } from '../utils/defectPhoto';
+import { tireConditionLabel, toTireConditions, type TireConditionValue } from '../utils/tireFormat';
+import { canTow, canTowAny } from '../utils/vehicleTypes';
+import { newUuid } from '../utils/uuid';
 import type {
   ChecklistAnswer,
   ChecklistItemDef,
   ChecklistItemState,
   ChecklistSection,
   InspectionType,
+  TirePositions,
   Vehicle,
 } from '../types/domain';
 import { ChecklistItemCard } from './ChecklistItemCard';
+import { TrailerPicker } from './TrailerPicker';
+import { TireConditionPicker } from './TireConditionPicker';
 import { HealthRing, type RingStatus } from './HealthRing';
 import { AlertOctagonIcon, AlertTriangleIcon, CheckCircleIcon, ShieldCheckIcon } from './icons';
 
@@ -27,13 +52,17 @@ interface InspectionFlowProps {
 
 // 409 del envío: otro chofer (o el admin) cambió el estado del vehículo mientras tanto.
 const UNAVAILABLE_MESSAGES: Record<string, string> = {
-  VEHICLE_BLOCKED: 'tiene un defecto bloqueante sin resolver y no puede salir.',
+  VEHICLE_BLOCKED: 'no puede salir: tiene un defecto bloqueante o un documento vencido.',
   VEHICLE_INACTIVE: 'fue dado de baja.',
   VEHICLE_ON_TRIP: 'ya tiene un viaje abierto.',
   NO_OPEN_TRIP: 'ya no tiene un viaje abierto: alguien lo cerró.',
 };
 
-type FlowStep = 'checklist' | 'summary' | 'success';
+// CAM-157: el control del checklist base donde se marca qué cubierta tiene problemas.
+const TIRES_ITEM_ID = 'ext-neumaticos';
+
+// queued: sin señal, quedó guardada en el celular (CAM-153).
+type FlowStep = 'checklist' | 'summary' | 'success' | 'queued';
 
 const SECTION_LABEL: Record<ChecklistSection, string> = {
   exterior: 'Inspección visual (exterior)',
@@ -55,7 +84,7 @@ function isItemValid(def: ChecklistItemDef, state: ChecklistItemState): boolean 
   if (state.outcome !== 'defect') return true;
   const defect = state.defect;
   if (!defect || !defect.description.trim()) return false;
-  if (defect.severity === 'blocking' && (!defect.photoUrl || state.uploading)) return false;
+  if (defect.severity === 'blocking' && (!hasPhoto(defect) || state.uploading)) return false;
   return true;
 }
 
@@ -71,18 +100,83 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   const [loadedItems, setLoadedItems] = useState<ChecklistItemDef[] | null>(null);
   useEffect(() => {
     let cancelled = false;
+    // CAM-153: sin señal, el último checklist que se cargó de ese vehículo.
+    const cacheKey = checklistCacheKey(vehicle.id, type);
     getVehicleChecklist(vehicle.id, type)
       .then((loaded) => {
+        saveCache(cacheKey, loaded);
         if (!cancelled) setLoadedItems(loaded);
       })
       .catch(() => {
-        if (!cancelled) setLoadedItems(fallbackItems);
+        if (!cancelled) setLoadedItems(loadCache<ChecklistItemDef[]>(cacheKey)?.data ?? fallbackItems);
       });
     return () => {
       cancelled = true;
     };
   }, [vehicle.id, type, fallbackItems]);
   const items = useMemo(() => loadedItems ?? [], [loadedItems]);
+
+  // CAM-157: el dibujo del vehículo, para marcar qué cubierta tiene problemas si "Neumáticos" va en defecto. Sin
+  // señal, el último que se cargó; sin ninguno (o sin tipo), el chofer lo cuenta en la descripción.
+  const [tirePositions, setTirePositions] = useState<TirePositions | null>(null);
+  const [tireValues, setTireValues] = useState<TireConditionValue>({});
+  useEffect(() => {
+    if (type !== 'pre-trip') return;
+    let cancelled = false;
+    const cacheKey = tirePositionsCacheKey(vehicle.id);
+    const cached = () => {
+      const data = loadCache<TirePositions>(cacheKey)?.data;
+      // Antes se guardaba una lista de posiciones montadas: esa no sirve para dibujar.
+      return data && !Array.isArray(data) ? data : null;
+    };
+    getTirePositions(vehicle.id)
+      .then((loaded) => {
+        saveCache(cacheKey, loaded);
+        if (!cancelled) setTirePositions(loaded);
+      })
+      .catch(() => {
+        if (!cancelled) setTirePositions(cached());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicle.id, type]);
+  const canPickTires = Boolean(tirePositions?.positions.some((p) => p.mounted));
+
+  // CAM-157: el pre-viaje de un tractor o camión rígido dice qué remolque lleva. Arranca en el que tiene
+  // enganchado; si el chofer no lo cambia, no se manda y el enganche queda como estaba.
+  const tows = type === 'pre-trip' && canTowAny(vehicle.vehicleType);
+  const trailers = useMemo(
+    () =>
+      tows
+        ? (loadCache<Vehicle[]>(VEHICLES_CACHE_KEY)?.data ?? []).filter(
+            (v) => v.active !== false && canTow(vehicle.vehicleType, v.vehicleType),
+          )
+        : [],
+    [tows, vehicle.vehicleType],
+  );
+  const [initialTrailer, setInitialTrailer] = useState<string | null>(null);
+  const [trailerChoice, setTrailerChoice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tows) return;
+    let cancelled = false;
+    const cacheKey = couplingCacheKey(vehicle.id);
+    const apply = (current: string) => {
+      if (cancelled) return;
+      setInitialTrailer(current);
+      setTrailerChoice((prev) => prev ?? current);
+    };
+    getCoupling(vehicle.id)
+      .then((coupling) => {
+        saveCache(cacheKey, coupling.towing?.id ?? 'none');
+        apply(coupling.towing?.id ?? 'none');
+      })
+      .catch(() => apply(loadCache<string>(cacheKey)?.data ?? 'none'));
+    return () => {
+      cancelled = true;
+    };
+  }, [tows, vehicle.id]);
+  const trailerId = tows && trailerChoice !== null && trailerChoice !== initialTrailer ? trailerChoice : undefined;
   const checkItems = useMemo(() => items.filter((i) => i.type === 'check'), [items]);
 
   const [step, setStep] = useState<FlowStep>('checklist');
@@ -101,10 +195,25 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   }
 
   const defectCount = checkItems.filter((def) => stateOf(def).outcome === 'defect').length;
-  const allValid = items.every((def) => isItemValid(def, stateOf(def)));
+  const tiresInDefect = items.some((def) => def.id === TIRES_ITEM_ID && stateOf(def).outcome === 'defect');
+  const tireConditions = tiresInDefect ? toTireConditions(tireValues) : [];
+  // Con el dibujo disponible, hay que decir qué cubierta es.
+  const tiresValid = !tiresInDefect || !canPickTires || tireConditions.length > 0;
+  const allValid = items.every((def) => isItemValid(def, stateOf(def))) && tiresValid;
 
   function updateItem(id: string, next: ChecklistItemState) {
     setAnswers((prev) => ({ ...prev, [id]: next }));
+  }
+
+  function updateTires(next: TireConditionValue) {
+    setTireValues(next);
+    // Si el chofer todavía no escribió el título del defecto, se completa con lo primero que marcó.
+    const first = toTireConditions(next)[0]?.conditions[0];
+    setAnswers((prev) => {
+      const current = prev[TIRES_ITEM_ID];
+      if (!first || !current?.defect || current.defect.description.trim()) return prev;
+      return { ...prev, [TIRES_ITEM_ID]: { ...current, defect: { ...current.defect, description: tireConditionLabel(first) } } };
+    });
   }
 
   function handleContinue() {
@@ -151,15 +260,50 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
       };
     });
 
+    // CAM-153: la hora en que la hizo y un id para que un reintento no la duplique.
+    const meta = {
+      performedAt: new Date().toISOString(),
+      clientSubmissionId: newUuid(),
+      tireConditions: tireConditions.length > 0 ? tireConditions : undefined,
+      trailerId,
+    };
+    const queue = () =>
+      enqueueInspection({
+        id: meta.clientSubmissionId,
+        vehicleId: vehicle.id,
+        plate: vehicle.plate,
+        type,
+        answers: fullAnswers,
+        notes: notes.trim() || undefined,
+        performedAt: meta.performedAt,
+        tireConditions: meta.tireConditions,
+        trailerId: meta.trailerId,
+      });
+
     try {
-      const { inspection } = await submitInspection(vehicle.id, type, fullAnswers, notes.trim() || undefined);
+      // Sin señal, con una foto que no se pudo subir, o con otras esperando (para respetar el orden): a la cola.
+      const mustQueue =
+        !navigator.onLine || fullAnswers.some((a) => a.defect?.pendingPhoto) || (await hasPendingInspections());
+      if (mustQueue) {
+        await queue();
+        setStep('queued');
+        return;
+      }
+      const { inspection } = await submitInspection(vehicle.id, type, fullAnswers, notes.trim() || undefined, meta);
       setHasBlockingDefect(inspection.hasBlockingDefect);
       setStep('success');
     } catch (err) {
+      if (isNetworkError(err)) {
+        await queue();
+        setStep('queued');
+        return;
+      }
       const unavailable = err instanceof ApiError && err.status === 409 && UNAVAILABLE_MESSAGES[err.errorCode ?? ''];
       if (unavailable) {
-        // CAM-89: no tiene sentido reintentar; se avisa y se vuelve a la flota, ya actualizada.
-        onUnavailable(`No se envió la inspección: ${vehicle.plate} ${unavailable}`);
+        // CAM-89: no tiene sentido reintentar; se avisa y se vuelve a la flota, ya actualizada. Si está
+        // bloqueado, el backend dice por qué (CAM-127: defecto o documento vencido).
+        const blockedByServer = err.errorCode === 'VEHICLE_BLOCKED' && err.message.startsWith(vehicle.plate);
+        onUnavailable(`No se envió la inspección: ${blockedByServer ? err.message : `${vehicle.plate} ${unavailable}`}`);
       } else if (isSessionExpired(err)) {
         // CAM-85: el chofer de la inspección sale del token, así que sin sesión no se puede enviar.
         setSessionExpired(true);
@@ -179,6 +323,30 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     return (
       <div className="screen">
         <p className="muted">Cargando checklist…</p>
+      </div>
+    );
+  }
+
+  if (step === 'queued') {
+    return (
+      <div className="screen screen--success">
+        <div className="success-icon success-icon--ok">
+          <ShieldCheckIcon />
+        </div>
+        <h1 className="screen__title">Inspección guardada</h1>
+        <p className="screen__subtitle">
+          {`El ${type === 'post-trip' ? 'post-viaje' : 'pre-viaje'} de ${vehicle.plate} quedó guardado en el celular. `}
+          Se envía solo cuando vuelva la señal, en el orden en que hiciste las inspecciones.
+        </p>
+        {summaryData.anyBlocking && (
+          <div className="alert alert--critical">
+            <AlertOctagonIcon className="alert__icon" />
+            <span>Reportaste un defecto bloqueante: no salgas con el vehículo. Mantenimiento se entera al enviarse.</span>
+          </div>
+        )}
+        <button type="button" className="primary-btn" onClick={onDone}>
+          Volver a la flota
+        </button>
       </div>
     );
   }
@@ -247,6 +415,17 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
           <p className="muted summary-no-defects">Sin defectos reportados. Todo en orden.</p>
         )}
 
+        {tireConditions.length > 0 && (
+          <ul className="tire-picker__summary">
+            {tireConditions.map((t) => (
+              <li key={t.position}>
+                <strong>{tirePositions?.positions.find((p) => p.position === t.position)?.label ?? t.position}:</strong>{' '}
+                {t.conditions.map(tireConditionLabel).join(', ').toLowerCase()}
+              </li>
+            ))}
+          </ul>
+        )}
+
         <label className="confirm-check">
           <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
           Declaro que la información es correcta
@@ -308,11 +487,25 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
                 state={stateOf(def)}
                 onChange={(next) => updateItem(def.id, next)}
                 showValidation={showValidation}
+                defectExtra={
+                  def.id === TIRES_ITEM_ID && canPickTires && tirePositions ? (
+                    <TireConditionPicker
+                      tires={tirePositions}
+                      value={tireValues}
+                      onChange={updateTires}
+                      invalid={showValidation && !tiresValid}
+                    />
+                  ) : undefined
+                }
               />
             ))}
           </div>
         </section>
       ))}
+
+      {tows && trailerChoice !== null && (trailers.length > 0 || trailerChoice !== 'none') && (
+        <TrailerPicker trailers={trailers} value={trailerChoice} onChange={setTrailerChoice} />
+      )}
 
       {type === 'post-trip' && (
         <section className="checklist-section">

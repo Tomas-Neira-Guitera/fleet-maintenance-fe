@@ -1,12 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import { VehicleList } from './components/VehicleList';
 import { InspectionFlow } from './components/InspectionFlow';
+import { RoadDefectForm } from './components/RoadDefectForm';
+import { FuelLoadScreen } from './components/FuelLoadScreen';
+import { ScheduledTodayWarning } from './components/ScheduledTodayWarning';
 import { DefectsList } from './components/DefectsList';
 import { Login } from './components/Login';
 import { NotificationBell } from './components/NotificationBell';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { AdminShell } from './components/dashboard/AdminShell';
+import { VehicleComparisonSection } from './components/dashboard/VehicleComparisonSection';
+import { ChecklistTemplatesSection } from './components/dashboard/ChecklistTemplatesSection';
+import { TiresSection } from './components/dashboard/TiresSection';
 import { VehiclesSection } from './components/dashboard/VehiclesSection';
 import { VehicleDetail } from './components/dashboard/VehicleDetail';
 import { MaintenancePlansSection } from './components/dashboard/MaintenancePlansSection';
@@ -16,13 +22,25 @@ import { ExpensesSection } from './components/dashboard/ExpensesSection';
 import { UsersSection } from './components/dashboard/UsersSection';
 import { NotificationSettingsSection } from './components/dashboard/NotificationSettingsSection';
 import { adminPath, parseAdminPath, useAdminRoute } from './hooks/useAdminRoute';
-import { authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
+import { clearOfflineCache } from './offline/offlineCache';
+import { startPendingInspectionsSync } from './offline/pendingInspections';
+import { ApiError, authHeaders, clearSession, getSession, isSessionTokenExpired } from './services/apiClient';
+import { getVehicle } from './services/vehiclesService';
+import { parseInspectionPath } from './utils/publicUrl';
+import { scheduledTodayTime } from './utils/scheduledToday';
 import { disablePush } from './utils/webPush';
 import type { InspectionType, Role, Vehicle } from './types/domain';
 
 // Pantallas del chofer. Las del admin van por URL (CAM-82, useAdminRoute); el chofer y el técnico
-// siguen en "/" porque sus flujos tienen datos a medio cargar que una recarga perdería igual.
-type Route = { view: 'list' } | { view: 'flow'; vehicle: Vehicle; type: InspectionType };
+// siguen en "/" porque sus flujos tienen datos a medio cargar que una recarga perdería igual. La
+// excepción es /inspeccion/{vehicleId}, la dirección del QR del camión (CAM-133): abre su inspección.
+type Route =
+  | { view: 'list' }
+  | { view: 'flow'; vehicle: Vehicle; type: InspectionType }
+  // CAM-139: reportar un problema durante el viaje, sin cerrarlo.
+  | { view: 'road-defect'; vehicle: Vehicle }
+  // CAM-156: cargar combustible.
+  | { view: 'fuel'; vehicle: Vehicle };
 
 /** Vista del admin, aparte para que el hook de ruteo solo corra con ese rol. */
 function AdminApp({ onLogout }: { onLogout: () => void }) {
@@ -30,7 +48,10 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
   const activeTab =
     route.view === 'tab'
       ? route.tab
-      : route.view === 'vehicle'
+      : route.view === 'vehicle' ||
+          route.view === 'vehicle-comparison' ||
+          route.view === 'checklist-templates' ||
+          route.view === 'tires'
         ? 'vehiculos'
         : route.view === 'vehicle-expenses'
           ? 'gastos'
@@ -56,18 +77,43 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         onLogout={onLogout}
       >
         {route.view === 'defects' ? (
-          <DefectsList onBack={() => navigate({ view: 'tab', tab: 'resumen' })} />
+          <DefectsList
+            filter={route.filter}
+            onFilterChange={(filter) => navigate({ view: 'defects', filter })}
+            onBack={() => navigate({ view: 'tab', tab: 'resumen' })}
+          />
         ) : route.view === 'vehicle' ? (
           <VehicleDetail
             // key: pasar de un vehículo a otro (atrás/adelante) remonta el detalle en vez de mezclar datos.
             key={route.vehicleId}
             vehicleId={route.vehicleId}
+            tab={route.tab}
+            onSelectTab={(tab) => navigate({ view: 'vehicle', vehicleId: route.vehicleId, tab })}
             onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
             onViewExpenses={() => navigate({ view: 'vehicle-expenses', vehicleId: route.vehicleId })}
+            onOpenTires={() => navigate({ view: 'tires' })}
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
           />
+        ) : route.view === 'vehicle-comparison' ? (
+          <VehicleComparisonSection
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
+            onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
+          />
+        ) : route.view === 'tires' ? (
+          <TiresSection
+            onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })}
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId, tab: 'neumaticos' })}
+          />
+        ) : route.view === 'checklist-templates' ? (
+          <ChecklistTemplatesSection onBack={() => navigate({ view: 'tab', tab: 'vehiculos' })} />
         ) : route.view === 'vehicle-expenses' ? (
           // key: llegar con otro vehículo, o volver a Gastos sin filtro, arranca la pestaña de cero.
-          <ExpensesSection key={route.vehicleId} onLogout={onLogout} initialVehicleId={route.vehicleId} />
+          <ExpensesSection
+            key={route.vehicleId}
+            onLogout={onLogout}
+            initialVehicleId={route.vehicleId}
+            onOpenFuel={(vehicleId) => navigate({ view: 'vehicle', vehicleId, tab: 'combustible' })}
+          />
         ) : route.view === 'work-order' ? (
           <WorkOrdersSection
             key={route.workOrderId}
@@ -75,13 +121,22 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             onDetailClosed={() => navigate({ view: 'tab', tab: 'ordenes-trabajo' })}
           />
         ) : activeTab === 'vehiculos' ? (
-          <VehiclesSection onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })} />
+          <VehiclesSection
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
+            onCompare={() => navigate({ view: 'vehicle-comparison' })}
+            onOpenTemplates={() => navigate({ view: 'checklist-templates' })}
+            onOpenTires={() => navigate({ view: 'tires' })}
+          />
         ) : activeTab === 'planes' ? (
           <MaintenancePlansSection />
         ) : activeTab === 'ordenes-trabajo' ? (
           <WorkOrdersSection />
         ) : activeTab === 'gastos' ? (
-          <ExpensesSection key="todos" onLogout={onLogout} />
+          <ExpensesSection
+            key="todos"
+            onLogout={onLogout}
+            onOpenFuel={(vehicleId) => navigate({ view: 'vehicle', vehicleId, tab: 'combustible' })}
+          />
         ) : activeTab === 'usuarios' ? (
           <UsersSection onLogout={onLogout} />
         ) : activeTab === 'notificaciones' ? (
@@ -90,7 +145,11 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
             onGoToUsers={() => navigate({ view: 'tab', tab: 'usuarios' })}
           />
         ) : (
-          <AdminDashboard onViewDefects={() => navigate({ view: 'defects' })} />
+          <AdminDashboard
+            onViewDefects={() => navigate({ view: 'defects' })}
+            onViewUnattendedDefects={() => navigate({ view: 'defects', filter: 'unattended' })}
+            onOpenVehicle={(vehicleId) => navigate({ view: 'vehicle', vehicleId })}
+          />
         )}
       </AdminShell>
     </main>
@@ -103,6 +162,14 @@ function App() {
   const [listKey, setListKey] = useState(0);
   // Por qué el chofer volvió a la flota sin poder enviar la inspección (CAM-89).
   const [listNotice, setListNotice] = useState<string | null>(null);
+  // Qué se hizo antes de volver a la flota (CAM-139: el problema reportado en viaje).
+  const [listConfirmation, setListConfirmation] = useState<string | null>(null);
+  // CAM-133: el vehículo del QR escaneado. Sobrevive al login: sin sesión se entra y se sigue a ese vehículo.
+  const [scannedVehicleId, setScannedVehicleId] = useState<string | null>(() =>
+    parseInspectionPath(window.location.pathname),
+  );
+  // CAM-143: el vehículo elegido para el pre-viaje que tiene turno de taller hoy, esperando que el chofer decida.
+  const [workshopWarning, setWorkshopWarning] = useState<{ vehicle: Vehicle; time: string } | null>(null);
 
   // Sin sesión se deja la URL como está: si era el link a un vehículo, el admin cae ahí al
   // loguearse. El chofer y el técnico no tienen rutas, así que no se quedan con una del admin.
@@ -111,6 +178,55 @@ function App() {
       window.history.replaceState(null, '', '/');
     }
   }, [role]);
+
+  // CAM-153: mientras el chofer tiene la app abierta, las inspecciones guardadas sin señal se mandan solas.
+  useEffect(() => {
+    if (role !== 'CHOFER') return;
+    return startPendingInspectionsSync();
+  }, [role]);
+
+  // CAM-133: el chofer va directo a la inspección del QR, con la misma regla que la lista: con un
+  // viaje abierto, post-viaje. Un técnico va a su vista; el admin, al detalle del vehículo (useAdminRoute).
+  useEffect(() => {
+    if (role !== 'CHOFER' || !scannedVehicleId) return;
+    let cancelled = false;
+    getVehicle(scannedVehicleId)
+      .then((vehicle) => {
+        if (cancelled) return;
+        if (vehicle.active === false) {
+          setListNotice(`${vehicle.plate} está dado de baja.`);
+        } else if (vehicle.blocked && vehicle.status !== 'on-trip') {
+          const reasons = (vehicle.blockReasons ?? []).map((r) => r.message).join('; ');
+          setListNotice(`${vehicle.plate} no puede salir${reasons ? `: ${reasons}` : ''}.`);
+        } else {
+          handleSelectVehicle(vehicle);
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setListNotice(
+          err instanceof ApiError && err.status === 404
+            ? 'El código QR no corresponde a ningún vehículo de la flota.'
+            : 'No se pudo abrir el vehículo del código QR. Elegilo de la lista.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setScannedVehicleId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [role, scannedVehicleId]);
+
+  /** Aviso del chofer (CAM-102/103): su link lleva a la inspección del vehículo, igual que el QR. */
+  function handleDriverNotificationLink(link: string) {
+    const vehicleId = parseInspectionPath(new URL(link, window.location.origin).pathname);
+    if (vehicleId) {
+      setWorkshopWarning(null);
+      setRoute({ view: 'list' });
+      setScannedVehicleId(vehicleId);
+    }
+  }
 
   function handleLogin(loggedRole: Role, _username: string) {
     setRole(loggedRole);
@@ -124,10 +240,16 @@ function App() {
     // usuario, y si entra otro, al abrir la campanita pasan a ser suyas.
     if (!isSessionTokenExpired()) void disablePush(authHeaders());
     clearSession();
+    // CAM-153: la flota guardada para trabajar sin señal es del que se fue. Las inspecciones pendientes no se
+    // borran: son de ese chofer y se mandan cuando vuelva a entrar.
+    clearOfflineCache();
     // El próximo que entre arranca de cero, no en la última pantalla del admin anterior.
     window.history.replaceState(null, '', '/');
     setRole(null);
     setListNotice(null);
+    setListConfirmation(null);
+    setScannedVehicleId(null);
+    setWorkshopWarning(null);
     setRoute({ view: 'list' });
   }
 
@@ -135,11 +257,52 @@ function App() {
     // Decisión de producto (CAM-11): un vehículo con viaje abierto solo puede cerrarlo (post-viaje).
     const type: InspectionType = vehicle.status === 'on-trip' ? 'post-trip' : 'pre-trip';
     setListNotice(null);
+    setListConfirmation(null);
+    // CAM-143: con turno de taller hoy, antes de salir se pregunta. Por acá pasan la lista y el QR (CAM-133).
+    const workshopTime = type === 'pre-trip' ? scheduledTodayTime(vehicle) : null;
+    if (workshopTime) {
+      setWorkshopWarning({ vehicle, time: workshopTime });
+      return;
+    }
     setRoute({ view: 'flow', vehicle, type });
+  }
+
+  // Estable: la advertencia lo usa en un efecto (Escape).
+  const handleWorkshopCancel = useCallback(() => setWorkshopWarning(null), []);
+
+  function handleWorkshopContinue() {
+    if (!workshopWarning) return;
+    setRoute({ view: 'flow', vehicle: workshopWarning.vehicle, type: 'pre-trip' });
+    setWorkshopWarning(null);
+  }
+
+  function handleReportProblem(vehicle: Vehicle) {
+    setListNotice(null);
+    setListConfirmation(null);
+    setRoute({ view: 'road-defect', vehicle });
+  }
+
+  function handleLoadFuel(vehicle: Vehicle) {
+    setListNotice(null);
+    setListConfirmation(null);
+    setRoute({ view: 'fuel', vehicle });
+  }
+
+  function handleFuelDone(message: string) {
+    setListConfirmation(message);
+    setListKey((k) => k + 1);
+    setRoute({ view: 'list' });
+  }
+
+  function handleRoadDefectDone(plate: string) {
+    setListConfirmation(`Problema reportado en ${plate}. Cuando termines, cerrá el viaje con el post-viaje.`);
+    setListKey((k) => k + 1);
+    setRoute({ view: 'list' });
   }
 
   function handleFlowUnavailable(message: string) {
     setListNotice(message);
+    setListConfirmation(null);
     setListKey((k) => k + 1);
     setRoute({ view: 'list' });
   }
@@ -175,16 +338,23 @@ function App() {
 
   return (
     <main className="app mobile-shell">
-      {route.view !== 'flow' && (
+      {route.view === 'list' && (
         <nav className="top-nav top-nav--chofer">
-          <NotificationBell />
+          <NotificationBell onOpenLink={handleDriverNotificationLink} />
           <button type="button" className="top-nav__logout" onClick={handleLogout}>
             Cerrar sesión
           </button>
         </nav>
       )}
       {route.view === 'list' && (
-        <VehicleList key={listKey} onSelectVehicle={handleSelectVehicle} notice={listNotice} />
+        <VehicleList
+          key={listKey}
+          onSelectVehicle={handleSelectVehicle}
+          onReportProblem={handleReportProblem}
+          onLoadFuel={handleLoadFuel}
+          notice={listNotice}
+          confirmation={listConfirmation}
+        />
       )}
       {route.view === 'flow' && (
         <InspectionFlow
@@ -194,6 +364,32 @@ function App() {
           onBack={handleFlowBack}
           onUnavailable={handleFlowUnavailable}
           onLogout={handleLogout}
+        />
+      )}
+      {route.view === 'road-defect' && (
+        <RoadDefectForm
+          vehicle={route.vehicle}
+          onDone={() => handleRoadDefectDone(route.vehicle.plate)}
+          onBack={handleFlowBack}
+          onUnavailable={handleFlowUnavailable}
+          onLogout={handleLogout}
+        />
+      )}
+      {route.view === 'fuel' && (
+        <FuelLoadScreen
+          vehicle={route.vehicle}
+          onDone={handleFuelDone}
+          onBack={handleFlowBack}
+          onUnavailable={handleFlowUnavailable}
+          onLogout={handleLogout}
+        />
+      )}
+      {workshopWarning && (
+        <ScheduledTodayWarning
+          vehicle={workshopWarning.vehicle}
+          time={workshopWarning.time}
+          onContinue={handleWorkshopContinue}
+          onCancel={handleWorkshopCancel}
         />
       )}
     </main>

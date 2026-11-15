@@ -1,25 +1,28 @@
 import { useEffect, useState } from 'react';
 import { useVisibleRows } from '../../hooks/useVisibleRows';
-import { getDefects } from '../../services/defectsService';
+import { getDefects, isReportedOnRoad } from '../../services/defectsService';
 import type { DefectSummary } from '../../types/domain';
 import { formatRelativeReportTime } from '../../utils/relativeTime';
 import { SeverityBadge } from '../SeverityBadge';
 import '../../styles/dashboard.css';
 
-const VISIBLE_DEFECTS = 4;
+const VISIBLE_DEFECTS = 6;
 
 interface RecentDefectsCardProps {
   onViewAll: () => void;
+  /** CAM-142: lleva a Defectos con el filtro "Sin atender". */
+  onViewUnattended: () => void;
 }
 
 function describeReport(defect: DefectSummary): string {
   const { label, isToday } = formatRelativeReportTime(defect.createdAt);
   const parts = [isToday ? `Reportado ${label}` : label];
   if (defect.reportedBy) parts.push(defect.reportedBy);
+  if (isReportedOnRoad(defect)) parts.push('en viaje');
   return parts.join(' · ');
 }
 
-export function RecentDefectsCard({ onViewAll }: RecentDefectsCardProps) {
+export function RecentDefectsCard({ onViewAll, onViewUnattended }: RecentDefectsCardProps) {
   const [defects, setDefects] = useState<DefectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +41,7 @@ export function RecentDefectsCard({ onViewAll }: RecentDefectsCardProps) {
   }, []);
 
   const recent = defects?.filter((d) => d.status === 'open') ?? null;
+  const unattendedCount = defects?.filter((d) => d.unattendedDays != null).length ?? 0;
   const { ref: scrollRef, maxHeight } = useVisibleRows<HTMLDivElement>(VISIBLE_DEFECTS, recent?.length ?? 0);
 
   return (
@@ -48,6 +52,12 @@ export function RecentDefectsCard({ onViewAll }: RecentDefectsCardProps) {
           Ver todos →
         </button>
       </header>
+
+      {unattendedCount > 0 && (
+        <button type="button" className="recent-defects-card__unattended" onClick={onViewUnattended}>
+          {unattendedCount} sin atender →
+        </button>
+      )}
 
       {error && <p className="error-banner">{error}</p>}
       {!recent && !error && <p className="muted">Cargando defectos…</p>}

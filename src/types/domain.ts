@@ -11,13 +11,25 @@ export interface Vehicle {
   chassisNumber?: string | null;
   odometerKm?: number;
   active?: boolean;
-  /** true si tiene un defecto bloqueante sin resolver: no puede iniciar un viaje (CAM-89). */
+  /** true si no puede iniciar un viaje: defecto bloqueante abierto o documento vencido (CAM-89, CAM-127). */
   blocked?: boolean;
+  /** Por qué no puede salir (CAM-127); vacío si puede. */
+  blockReasons?: BlockReason[];
   /** El viaje abierto, si está "en viaje" (CAM-87). */
   currentTrip?: CurrentTrip | null;
+  /** Fecha y hora del turno de taller de hoy, en el día argentino (CAM-143); null si no tiene. No bloquea. */
+  scheduledToday?: string | null;
+  /** CAM-157, solo en el listado: en un remolque, quién lo arrastra; en un tractor o camión, qué remolque lleva. */
+  coupledWith?: CouplingRef | null;
 }
 
 export type VehicleStatus = 'available' | 'on-trip';
+
+/** Un motivo de "No disponible" (CAM-127), con el texto ya armado por el backend. */
+export interface BlockReason {
+  type: 'blocking_defect' | 'expired_document';
+  message: string;
+}
 
 /** Un usuario, por id y nombre actual. */
 export interface UserRef {
@@ -69,6 +81,10 @@ export interface DefectDetail {
   /** Descripción larga, opcional; se puede dictar (CAM-32). */
   details?: string;
   photoUrl?: string;
+  /** CAM-153: foto sacada sin señal, guardada en el celular hasta poder subirla. */
+  pendingPhoto?: Blob;
+  /** CAM-153: URL local para mostrar pendingPhoto mientras tanto. No se guarda con la inspección pendiente. */
+  pendingPhotoPreview?: string;
 }
 
 export type CheckOutcome = 'ok' | 'defect';
@@ -126,6 +142,96 @@ export interface DefectSummary {
   reportedBy?: string | null;
   /** Descripción larga del defecto (CAM-32); `description` es el título corto. */
   details?: string | null;
+  /** Dónde se reportó (CAM-139): on-road es "Reportado en viaje". */
+  source?: DefectSource;
+  /** CAM-146: presente si apareció durante el viaje (en el pre-viaje ese control dio OK). */
+  occurredOnTrip?: OccurredOnTrip | null;
+  /** CAM-142: días desde que se reportó, si está sin atender (más de 7 días sin OT abierta ni turno); si no, null. */
+  unattendedDays?: number | null;
+}
+
+/** CAM-146: el viaje en que apareció un defecto del post-viaje. */
+export interface OccurredOnTrip {
+  tripId: string;
+  tripStartedAt: string | null;
+  tripEndedAt: string | null;
+  /** El pre-viaje en que el control dio OK; null si el viaje no lo tiene guardado. */
+  preTripInspectionId: string | null;
+  preTripAt: string | null;
+}
+
+/** CAM-139: en el checklist del pre-viaje o del post-viaje, o durante el viaje. */
+export type DefectSource = 'pre-trip' | 'post-trip' | 'on-road';
+
+/** CAM-139: lo que se elige como "qué falla" cuando no es ningún control del checklist. */
+export const ROAD_OTHER_ITEM_ID = 'road-otro';
+
+/** Promedio de horas entre la creación y la finalización de OTs (CAM-134); null si no hay ninguna. */
+export interface RepairAverage {
+  avgHours: number | null;
+  count: number;
+}
+
+export interface RepairTimes extends RepairAverage {
+  internal: RepairAverage;
+  external: RepairAverage;
+}
+
+/** Un vehículo en GET /api/downtime (CAM-134). */
+export interface VehicleDowntime {
+  vehicleId: string;
+  plate: string;
+  /** null si el período todavía no empezó. */
+  availabilityPct: number | null;
+  downtimeHours: number;
+  stops: number;
+  repairs: RepairTimes;
+}
+
+/** GET /api/downtime (CAM-134): disponibilidad y reparaciones en un período, cortado en el momento actual. */
+export interface Downtime {
+  from: string;
+  to: string;
+  fleet: Omit<VehicleDowntime, 'vehicleId' | 'plate'>;
+  /** De más horas fuera de servicio a menos. */
+  vehicles: VehicleDowntime[];
+}
+
+/** GET /api/maintenance-compliance (CAM-155). openWorkOrders es la foto de hoy, sin el período. */
+export interface MaintenanceCompliance {
+  from: string;
+  to: string;
+  preventive: { onTime: number; late: number; onTimePct: number | null };
+  defects: { resolved: number; avgHours: number | null };
+  openWorkOrders: { total: number; under7Days: number; from7To30Days: number; over30Days: number };
+}
+
+/** Una falla de un control recurrente (CAM-135). */
+export interface RecurringDefectOccurrence {
+  defectId: string;
+  reportedAt: string;
+  severity: DefectSeverity;
+  status: DefectStatus;
+  description: string;
+}
+
+/** Un control que falló al menos `threshold` veces en el mismo vehículo dentro de la ventana (CAM-135). */
+export interface RecurringDefect {
+  vehicleId: string;
+  plate: string;
+  itemId: string;
+  itemLabel: string;
+  count: number;
+  lastReportedAt: string;
+  /** Más reciente primero. */
+  occurrences: RecurringDefectOccurrence[];
+}
+
+/** GET /api/defects/recurring (CAM-135). */
+export interface RecurringDefects {
+  threshold: number;
+  windowDays: number;
+  items: RecurringDefect[];
 }
 
 /** Item de `inspections` en GET /api/vehicles/{id}/history (CAM-22). */
@@ -137,6 +243,19 @@ export interface InspectionHistoryItem {
   odometerKm?: number | null;
   notes?: string | null;
   hasBlockingDefect: boolean;
+  /** CAM-152: solo en el post-viaje de un viaje con km fuera de lo normal. */
+  kmAlert?: TripKmAlert | null;
+}
+
+/** CAM-152: la marca de km fuera de lo normal de un viaje, con los números del momento del cierre. */
+export interface TripKmAlert {
+  reason: 'above_average' | 'below_average' | 'below_vehicle_km';
+  /** Post-viaje menos pre-viaje; null sin pre-viaje con km. */
+  tripKm: number | null;
+  /** Promedio de km por viaje del vehículo; null sin viajes suficientes (solo con below_vehicle_km). */
+  averageKm: number | null;
+  declaredKm: number;
+  vehicleKm: number;
 }
 
 /** Item de `maintenance` en GET /api/vehicles/{id}/history: un "marcar como hecho" de un plan (CAM-22). */
@@ -219,6 +338,11 @@ export interface NextMaintenanceSummary {
   dueKm: number | null;
   remainingDays: number | null;
   remainingKm: number | null;
+  /**
+   * CAM-137: cuándo vence por km según lo que anda el vehículo ("2026-11-15"). Solo informativa:
+   * null si no es por km, si no se puede estimar o si ya venció por km.
+   */
+  estimatedDueDate: string | null;
 }
 
 /** Una fila del componente "Estado de la flota" -- GET /api/vehicles?view=fleet-status. */
@@ -232,6 +356,9 @@ export interface FleetStatusRow {
   healthScore: number;
   status: MaintenanceRowStatus;
   nextMaintenance: NextMaintenanceSummary | null;
+  /** CAM-127: si no puede salir y por qué. */
+  blocked?: boolean;
+  blockReasons?: BlockReason[];
 }
 
 export interface FleetStatusPage {
@@ -252,6 +379,8 @@ export interface MaintenancePlan {
   intervalKm: number | null;
   intervalDays: number | null;
   active: boolean;
+  /** CAM-127: el documento que renueva este plan (solo planes por tiempo). */
+  documentType?: VehicleDocumentType | null;
 }
 
 /** Un plan asignado a un vehículo puntual -- GET /api/vehicles/{id}/maintenance-assignments (CAM-40). */
@@ -267,6 +396,9 @@ export interface MaintenanceAssignment {
   nextDueDate: string | null;
   status: MaintenanceRowStatus;
   active: boolean;
+  /** CAM-127: el documento que renueva el plan, y si el vencimiento sale de ese documento cargado. */
+  documentType?: VehicleDocumentType | null;
+  dueDateFromDocument?: boolean;
 }
 
 /** Subconjunto de MaintenanceAssignment que devuelve un completion para refrescar el chip de estado. */
@@ -307,7 +439,7 @@ export interface ScheduledMaintenance {
   scheduledAt: string;
   status: ScheduleStatus;
   notes: string | null;
-  /** OT abierta (asignada o en proceso) vinculada a la programación, si hay una. */
+  /** OT abierta (asignada, en proceso o en espera) vinculada a la programación, si hay una. */
   workOrder?: { id: string; status: WorkOrderStatus; responsible: string | null } | null;
 }
 
@@ -316,8 +448,21 @@ export interface ScheduledMaintenance {
 
 export type WorkOrderSourceType = 'scheduled_maintenance' | 'defect' | 'manual';
 export type WorkOrderExecutionType = 'interno' | 'externo';
-export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'finalizada' | 'cancelada';
+export type WorkOrderStatus = 'asignada' | 'en_proceso' | 'en_espera' | 'finalizada' | 'cancelada';
+
+/** CAM-148: por qué una OT quedó en espera. */
+export type WorkOrderPauseReason = 'esperando_repuesto' | 'esperando_proveedor' | 'esperando_vehiculo' | 'otro';
+
+/** CAM-148: la pausa actual de una OT en espera. */
+export interface WorkOrderPause {
+  reason: WorkOrderPauseReason;
+  comment: string | null;
+  since: string;
+}
 export type WorkOrderExpenseCategory = 'repuesto' | 'mano_de_obra' | 'otro';
+/** Categoría de un gasto operativo del vehículo, que no sale de una OT (CAM-109). */
+export type VehicleExpenseCategory = 'combustible' | 'seguro' | 'patente' | 'vtv' | 'peajes' | 'otro';
+export type ExpenseCategory = WorkOrderExpenseCategory | VehicleExpenseCategory;
 
 export interface WorkOrderExpense {
   id: string;
@@ -331,24 +476,31 @@ export interface WorkOrderExpense {
   receiptPhotoUrl: string | null;
 }
 
-/** De dónde nació la OT de un gasto: un plan (preventivo), un defecto (correctivo) o suelta. */
-export type ExpenseOrigin = 'plan' | 'defect' | 'manual';
+/**
+ * De dónde nació un gasto: una OT de un plan (preventivo), de un defecto (correctivo) o suelta, o
+ * ninguna OT, si es un gasto operativo del vehículo (CAM-109).
+ */
+/** fuel: una carga de combustible (CAM-156), que se edita desde el vehículo y no desde Gastos. */
+export type ExpenseOrigin = 'plan' | 'defect' | 'manual' | 'operating' | 'fuel';
 
-/** Un gasto de mantenimiento con su vehículo y su OT -- GET /api/expenses (CAM-52). */
+/**
+ * Un gasto con su vehículo y, si sale de una, su OT -- GET /api/expenses (CAM-52, CAM-109). En un gasto
+ * operativo (`origin: 'operating'`) los campos de la OT, `executionType` y el comprobante vienen en null.
+ */
 export interface Expense {
   id: string;
-  /** Cuándo se cargó el gasto. */
+  /** En un gasto de OT, cuándo se cargó; en uno operativo, la medianoche argentina de su día. */
   date: string;
   vehicleId: string;
   plate: string | null;
-  category: WorkOrderExpenseCategory;
+  category: ExpenseCategory;
   description: string;
   amount: number;
-  workOrderId: string;
-  workOrderTitle: string;
-  workOrderStatus: WorkOrderStatus;
+  workOrderId: string | null;
+  workOrderTitle: string | null;
+  workOrderStatus: WorkOrderStatus | null;
   origin: ExpenseOrigin;
-  executionType: WorkOrderExecutionType;
+  executionType: WorkOrderExecutionType | null;
   /** Número de la factura o el ticket (CAM-107); null si no se cargó. */
   receiptNumber: string | null;
   /** Foto del comprobante (CAM-107); null si no se adjuntó. */
@@ -367,6 +519,16 @@ export interface VehicleCosts {
   firstKnownKm: number | null;
   kmDriven: number | null;
   costPerKm: number | null;
+}
+
+/** CAM-149: un comentario de una OT, entre el admin y el técnico. No se edita ni se borra. */
+export interface WorkOrderComment {
+  id: string;
+  /** name es el nombre actual del usuario, o el que tenía al comentar si ya no existe. */
+  author: UserRef;
+  authorRole: 'ADMIN' | 'TECNICO';
+  text: string;
+  createdAt: string;
 }
 
 export interface WorkOrderPhoto {
@@ -402,6 +564,10 @@ export interface WorkOrder {
   createdAt: string;
   updatedAt: string;
   finalizedAt: string | null;
+  /** CAM-148: la pausa actual si está en espera; si no, null. */
+  pause: WorkOrderPause | null;
+  /** CAM-148: segundos en espera en total, contando la pausa actual hasta el momento de la respuesta. */
+  pausedSeconds: number;
 }
 
 // ─── Avisos in-app (CAM-96) ────────────────────────────────────────────────
@@ -415,7 +581,20 @@ export type NotificationType =
   | 'blocking_defect_reported'
   | 'work_order_finalized'
   | 'maintenance_due_soon'
-  | 'maintenance_overdue';
+  | 'maintenance_overdue'
+  | 'recurring_defect'
+  | 'document_due_soon'
+  | 'document_expired'
+  | 'vehicle_unavailable'
+  | 'vehicle_available'
+  | 'trip_km_anomaly'
+  | 'fuel_consumption_anomaly'
+  | 'tire_problem_reported'
+  | 'defect_resolved'
+  | 'defect_unattended'
+  | 'scheduled_maintenance_upcoming'
+  | 'trip_started_with_maintenance'
+  | 'work_order_comment';
 
 /** Por dónde sale un aviso (CAM-117). */
 export type NotificationChannel = 'in_app' | 'push' | 'email';
@@ -432,8 +611,9 @@ export interface NotificationSetting {
   channels: NotificationChannel[];
   recipientRoles: Role[];
   recipientUserIds: string[];
-  /** Solo "Mantenimiento por vencer": anticipación en días y km. */
+  /** "Mantenimiento por vencer" (días y km) y "Documento por vencer" (solo días, CAM-127). */
   supportsLead: boolean;
+  supportsLeadKm?: boolean;
   leadDays: number | null;
   leadKm: number | null;
   /** false: rige la configuración por defecto. */
@@ -484,4 +664,303 @@ export interface UserNotification {
   link: string | null;
   createdAt: string;
   readAt: string | null;
+}
+
+// ─── Documentación del vehículo (CAM-127) ──────────────────────────────────
+
+export type VehicleDocumentType =
+  | 'vtv'
+  | 'seguro'
+  | 'cedula_azul'
+  | 'habilitacion_carga'
+  | 'cedula_verde'
+  | 'titulo'
+  | 'otro';
+
+/** al_dia / por_vencer / vencido (desde el día siguiente al vencimiento) / sin_vencimiento. */
+export type VehicleDocumentStatus = 'al_dia' | 'por_vencer' | 'vencido' | 'sin_vencimiento';
+
+export interface VehicleDocument {
+  id: string;
+  vehicleId: string;
+  type: VehicleDocumentType;
+  typeLabel: string;
+  /** El nombre que le puso el admin; el tipo sale de ahí. */
+  name: string | null;
+  displayName: string;
+  number: string | null;
+  issuedAt: string | null;
+  expiresAt: string | null;
+  /** Comprobante (foto o PDF), de POST /api/photos?purpose=document. */
+  fileUrl: string | null;
+  status: VehicleDocumentStatus;
+  /** Días que faltan; negativo si venció. */
+  daysToExpiry: number | null;
+  /** false: ya se renovó (historial). */
+  current: boolean;
+  replacedById: string | null;
+  createdAt: string;
+}
+
+/** GET /api/vehicles/{id}/documents. */
+export interface VehicleDocuments {
+  items: VehicleDocument[];
+  history: VehicleDocument[];
+  /** Obligatorios (VTV, seguro) sin documento vigente: se marcan, no bloquean. */
+  missingRequired: VehicleDocumentType[];
+  /** Anticipación de "por vencer", en días. */
+  leadDays: number;
+}
+
+/** El documento renovado que se carga junto con el mantenimiento de un plan vinculado (CAM-127). */
+export interface DocumentInput {
+  number?: string;
+  expiresAt: string;
+  fileUrl?: string;
+}
+
+// ─── Comparar vehículos (CAM-140) ──────────────────────────────────────────
+
+export type ComparisonReason = 'maintenance_cost_per_km' | 'availability' | 'recurring_defects';
+
+/** Una fila de GET /api/vehicles/comparison. Los km y los costos por km son null sin lecturas suficientes. */
+export interface VehicleComparisonRow {
+  vehicleId: string;
+  plate: string;
+  brand: string | null;
+  model: string | null;
+  vehicleType: string | null;
+  year: number | null;
+  maintenanceCost: number;
+  operatingCost: number;
+  totalCost: number;
+  kmDriven: number | null;
+  maintenanceCostPerKm: number | null;
+  totalCostPerKm: number | null;
+  availabilityPct: number | null;
+  downtimeHours: number;
+  stops: number;
+  recurringControls: number;
+  review: { flagged: boolean; reasons: ComparisonReason[] };
+}
+
+/** El promedio de la flota de cada indicador; null si ningún vehículo lo tiene. */
+export interface VehicleComparisonAverages {
+  maintenanceCost: number | null;
+  operatingCost: number | null;
+  totalCost: number | null;
+  kmDriven: number | null;
+  maintenanceCostPerKm: number | null;
+  totalCostPerKm: number | null;
+  availabilityPct: number | null;
+  downtimeHours: number | null;
+  stops: number | null;
+  recurringControls: number | null;
+}
+
+export interface VehicleComparison {
+  from: string;
+  to: string;
+  vehicles: VehicleComparisonRow[];
+  fleet: VehicleComparisonAverages;
+}
+
+/** CAM-150: plantilla de controles que el admin copia a varios vehículos. */
+export interface ChecklistTemplateItem {
+  id: string;
+  label: string;
+  type: ChecklistItemType;
+  section: Exclude<ChecklistSection, 'posttrip'>;
+}
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  items: ChecklistTemplateItem[];
+  createdAt: string;
+}
+
+export interface ApplyChecklistTemplateResult {
+  templateId: string;
+  added: number;
+  skipped: number;
+  vehicles: { vehicleId: string; plate: string; added: number; skipped: number; skippedLabels: string[] }[];
+}
+
+/** CAM-156: una carga de combustible. consumption: el tramo de tanque lleno a tanque lleno que cierra. */
+export interface FuelLoad {
+  id: string;
+  vehicleId: string;
+  plate: string;
+  loadedAt: string;
+  liters: number;
+  amount: number;
+  odometerKm: number;
+  fullTank: boolean;
+  createdBy: UserRef | null;
+  consumption: { km: number; liters: number; litersPer100Km: number; costPerKm: number } | null;
+  alert: { litersPer100Km: number; averageLitersPer100Km: number } | null;
+}
+
+export interface FuelPeriod {
+  liters: number;
+  amount: number;
+  measuredKm: number;
+  litersPer100Km: number | null;
+  costPerKm: number | null;
+}
+
+export interface VehicleFuel {
+  vehicleId: string;
+  plate: string;
+  months: number;
+  summary: FuelPeriod & { loadCount: number };
+  /** month: "2026-06". */
+  monthly: (FuelPeriod & { month: string })[];
+  loads: FuelLoad[];
+}
+
+/** CAM-157: neumáticos. */
+export type TireStatus = 'stock' | 'mounted' | 'retired';
+
+/** Lo que el chofer ve a simple vista en una cubierta, del más grave al más leve. */
+export type TireConditionCode =
+  | 'se-ve-la-tela'
+  | 'bulto'
+  | 'corte-flanco'
+  | 'pinchada'
+  | 'baja-presion'
+  | 'desgaste-irregular'
+  | 'poco-dibujo';
+
+/** Un relevamiento de una cubierta; active: su defecto sigue abierto y la cubierta montada. */
+export interface TireConditionReport {
+  vehicleId: string;
+  plate: string;
+  position: string;
+  positionLabel: string;
+  conditions: TireConditionCode[];
+  conditionLabels: string[];
+  /** La del defecto que lo acompaña. */
+  severity: 'blocking' | 'non-blocking' | null;
+  reportedAt: string;
+  reportedBy: string | null;
+  defectId: string | null;
+  active: boolean;
+}
+
+export interface Tire {
+  id: string;
+  code: string | null;
+  brand: string;
+  model: string | null;
+  size: string;
+  purchaseDate: string;
+  cost: number;
+  status: TireStatus;
+  retiredAt: string | null;
+  retiredReason: string | null;
+  /** Lo que rodó en todos sus montajes; el auxilio no suma. */
+  km: number;
+  costPerKm: number | null;
+  current: {
+    vehicleId: string;
+    plate: string;
+    position: string;
+    positionLabel: string;
+    mountedAt: string;
+    mountedKm: number;
+  } | null;
+  /** El último problema reportado que sigue abierto; null si no tiene. */
+  condition: TireConditionReport | null;
+}
+
+export interface TireMounting {
+  tireId: string;
+  tireLabel: string;
+  vehicleId: string;
+  plate: string;
+  position: string;
+  positionLabel: string;
+  mountedAt: string;
+  mountedKm: number;
+  removedAt: string | null;
+  removedKm: number | null;
+  km: number;
+}
+
+export interface VehicleTirePosition {
+  position: string;
+  label: string;
+  /** 1 el delantero, 0 el auxilio. */
+  axle: number;
+  side: 'izq' | 'der' | null;
+  wheel: 'simple' | 'exterior' | 'interior';
+  tire: Tire | null;
+}
+
+export interface VehicleTires {
+  vehicleId: string;
+  plate: string;
+  /** Código del catálogo (utils/vehicleTypes); null: sin tipo, sin posiciones. */
+  vehicleType: string | null;
+  odometerKm: number;
+  positions: VehicleTirePosition[];
+  history: TireMounting[];
+}
+
+export interface TireDetail {
+  tire: Tire;
+  mountings: TireMounting[];
+  reports: TireConditionReport[];
+}
+
+export interface TireBrandComparison {
+  minKm: number;
+  brands: {
+    brand: string;
+    tires: number;
+    retired: number;
+    totalKm: number;
+    totalCost: number;
+    costPerKm: number;
+    averageKm: number;
+  }[];
+}
+
+/** Una cubierta con problemas, en una inspección (con "Neumáticos" en defecto). */
+export interface TireConditionInput {
+  position: string;
+  conditions: TireConditionCode[];
+}
+
+/** Para el pre-viaje del chofer: todas las posiciones; solo se reportan las que tienen cubierta. */
+export interface TirePositions {
+  vehicleType: string | null;
+  positions: (Omit<VehicleTirePosition, 'tire'> & { mounted: boolean })[];
+}
+
+/** Enganche de remolques (CAM-157): en un remolque, towedBy; en un tractor o camión rígido, towing. */
+export interface CouplingRef {
+  id: string;
+  plate: string;
+  vehicleType: string | null;
+  coupledAt: string;
+}
+
+export interface Coupling {
+  vehicleId: string;
+  towedBy: CouplingRef | null;
+  towing: CouplingRef | null;
+  /** Los tipos que puede arrastrar. */
+  canTow: string[];
+  history: {
+    trailerId: string;
+    trailerPlate: string;
+    towingId: string;
+    towingPlate: string;
+    coupledAt: string;
+    uncoupledAt: string | null;
+    coupledBy: string | null;
+  }[];
 }

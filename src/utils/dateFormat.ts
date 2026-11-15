@@ -8,6 +8,14 @@ export function formatDayAndTime(iso: string): string {
   return `${day} ${time}`;
 }
 
+/**
+ * "2026-10-07": el día argentino de un instante. Es el día de un gasto operativo (CAM-109), que llega
+ * como la medianoche argentina: en un navegador con otro huso, leerlo en hora local lo correría un día.
+ */
+export function argentinaDateKey(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+}
+
 /** "07/10/2026". */
 export function formatShortDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });

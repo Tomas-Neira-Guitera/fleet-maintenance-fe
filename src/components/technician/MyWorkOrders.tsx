@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { getSessionUserId, getUsername } from '../../services/apiClient';
 import { getWorkOrders } from '../../services/workOrdersService';
 import type { WorkOrder } from '../../types/domain';
-import { AlertOctagonIcon, ClipboardListIcon, WrenchIcon } from '../icons';
+import { AlertOctagonIcon, ClipboardListIcon, ClockIcon, WrenchIcon } from '../icons';
+import { isOpenWorkOrder } from '../../utils/workOrderFormat';
 
 interface MyWorkOrdersProps {
   onSelectWorkOrder: (workOrder: WorkOrder) => void;
@@ -12,12 +13,15 @@ function isBlocking(wo: WorkOrder): boolean {
   return wo.defect?.severity === 'blocking';
 }
 
-/** Defectos bloqueantes primero (el vehículo no puede circular), después en proceso antes que
- *  asignadas; más antigua primero dentro de cada grupo. */
+/** En proceso, después asignadas y al final en espera (CAM-148): lo que se puede hacer ahora primero. */
+const STATUS_ORDER: Partial<Record<WorkOrder['status'], number>> = { en_proceso: 0, asignada: 1, en_espera: 2 };
+
+/** Defectos bloqueantes primero (el vehículo no puede circular), después por estado (STATUS_ORDER);
+ *  más antigua primero dentro de cada grupo. */
 function sortForTechnician(workOrders: WorkOrder[]): WorkOrder[] {
   return [...workOrders].sort((a, b) => {
     if (isBlocking(a) !== isBlocking(b)) return isBlocking(a) ? -1 : 1;
-    if (a.status !== b.status) return a.status === 'en_proceso' ? -1 : 1;
+    if (a.status !== b.status) return (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 }
@@ -38,7 +42,7 @@ export function MyWorkOrders({ onSelectWorkOrder }: MyWorkOrdersProps) {
     getWorkOrders({ technicianId })
       .then((data) => {
         if (cancelled) return;
-        setWorkOrders(sortForTechnician(data.filter((wo) => wo.status === 'asignada' || wo.status === 'en_proceso')));
+        setWorkOrders(sortForTechnician(data.filter(isOpenWorkOrder)));
       })
       .catch(() => {
         if (!cancelled) setError('No se pudieron cargar tus órdenes. Intentá de nuevo.');
@@ -82,6 +86,11 @@ export function MyWorkOrders({ onSelectWorkOrder }: MyWorkOrdersProps) {
                 <span className="status-pill status-pill--warn">
                   <WrenchIcon className="status-pill__icon" />
                   En proceso
+                </span>
+              ) : wo.status === 'en_espera' ? (
+                <span className="status-pill status-pill--info">
+                  <ClockIcon className="status-pill__icon" />
+                  En espera
                 </span>
               ) : (
                 <span className="status-pill status-pill--neutral">

@@ -18,6 +18,7 @@ const STATUS_FILTERS: { value: WorkOrderStatus | ''; label: string }[] = [
   { value: '', label: 'Todos los estados' },
   { value: 'asignada', label: 'Asignada' },
   { value: 'en_proceso', label: 'En proceso' },
+  { value: 'en_espera', label: 'En espera' },
   { value: 'finalizada', label: 'Finalizada' },
   { value: 'cancelada', label: 'Cancelada' },
 ];
@@ -207,7 +208,7 @@ export function WorkOrdersSection({ openWorkOrderId, onDetailClosed }: WorkOrder
                     </span>
                   </td>
                   <td>
-                    <WorkOrderStatusBadge status={wo.status} />
+                    <WorkOrderStatusBadge status={wo.status} pause={wo.pause} />
                   </td>
                   <td>
                     <span className="work-orders__execution">

@@ -23,6 +23,8 @@
   --fg-chart-1: #4768A5;
   --fg-chart-2: #179FA5;
   --fg-chart-3: #843C5B;
+  /* Cuarta serie (CAM-109), para los gastos operativos: pasa el mismo validador junto a las otras tres. */
+  --fg-chart-4: #6B5FB5;
   --fg-chart-track: rgba(62, 74, 66, 0.08);
 
   --fg-font-display: 'Space Grotesk', system-ui, sans-serif;

@@ -8,6 +8,7 @@ import { MaintenancePlanFormModal } from './MaintenancePlanFormModal';
 import { PlanVehiclesModal } from './PlanVehiclesModal';
 import { PlanNotificationsModal } from './PlanNotificationsModal';
 import '../../styles/dashboard.css';
+import { DOCUMENT_TYPE_LABELS } from '../../utils/documentLabels';
 
 function describeInterval(plan: Pick<MaintenancePlan, 'intervalType' | 'intervalKm' | 'intervalDays'>): string {
   const parts: string[] = [];
@@ -127,6 +128,7 @@ export function MaintenancePlansSection() {
                 <p className="vehicle-maintenance-list__detail">
                   {p.category ? `${p.category} · ` : ''}
                   {describeInterval(p)}
+                  {p.documentType ? ` · renueva ${DOCUMENT_TYPE_LABELS[p.documentType]}` : ''}
                 </p>
               </div>
               <div className="vehicle-maintenance-list__actions">

@@ -1,32 +1,61 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
+import { VEHICLE_TABS, type VehicleTab } from '../../hooks/useAdminRoute';
 import { ApiError } from '../../services/apiClient';
+import { isReportedOnRoad } from '../../services/defectsService';
 import { deactivateVehicle, getVehicle, getVehicleHistory, updateVehicle } from '../../services/vehiclesService';
 import { getWorkOrders } from '../../services/workOrdersService';
 import type { DefectSummary, Vehicle, VehicleHistory, WorkOrder, WorkOrderStatus } from '../../types/domain';
 import { formatDayAndTime } from '../../utils/dateFormat';
 import { formatDate, numberFormatter } from '../../utils/maintenanceFormat';
-import { workOrderResponsible } from '../../utils/workOrderFormat';
-import { AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, PencilIcon, PowerIcon } from '../icons';
+import { isOpenWorkOrder, workOrderResponsible } from '../../utils/workOrderFormat';
+import { AlertOctagonIcon, AlertTriangleIcon, ArrowLeftIcon, ChevronRightIcon, HistoryIcon, PencilIcon, PowerIcon } from '../icons';
 import { SeverityBadge } from '../SeverityBadge';
+import { ExportHistoryModal } from './ExportHistoryModal';
+import { VehicleAvailabilityCard } from './VehicleAvailabilityCard';
 import { VehicleChecklistCard } from './VehicleChecklistCard';
 import { VehicleCostsCard } from './VehicleCostsCard';
+import { VehicleDocumentsTab } from './VehicleDocumentsTab';
+import { VehicleFuelTab } from './VehicleFuelTab';
+import { VehicleTiresTab } from './VehicleTiresTab';
 import { VehicleFormModal } from './VehicleFormModal';
+import { OccurredOnTripNote } from '../OccurredOnTripNote';
+import { VehicleQrCard } from './VehicleQrCard';
+import { VehicleRecurringDefectsCard } from './VehicleRecurringDefectsCard';
 import { WorkOrderDetailModal } from './WorkOrderDetailModal';
 import { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
+import { describeTripKmAlert } from '../../utils/tripKmAlert';
+import { isTrailer, vehicleTypeLabel } from '../../utils/vehicleTypes';
+import { CouplingCard } from './CouplingCard';
 import '../../styles/dashboard.css';
 
 interface VehicleDetailProps {
   vehicleId: string;
+  /** Pestaña visible (CAM-127); vive en la URL: /vehiculos/{id}/documentacion. */
+  tab?: VehicleTab;
+  onSelectTab?: (tab: VehicleTab) => void;
   onBack: () => void;
   /** Abre la pestaña Gastos filtrada por este vehículo (CAM-105). */
   onViewExpenses: () => void;
+  /** CAM-157: abre el inventario de cubiertas. */
+  onOpenTires?: () => void;
+  /** CAM-157: abre el vehículo enganchado. */
+  onOpenVehicle?: (vehicleId: string) => void;
 }
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
-/** CAM-87: si está en viaje, quién lo tiene y desde cuándo; CAM-89: si no puede salir, por qué. */
+const TAB_LABEL: Record<VehicleTab, string> = {
+  resumen: 'Resumen',
+  historial: 'Historial',
+  checklist: 'Checklist',
+  documentacion: 'Documentación',
+  combustible: 'Combustible',
+  neumaticos: 'Neumáticos',
+};
+
+/** CAM-87: si está en viaje, quién lo tiene y desde cuándo; CAM-89/CAM-127: si no puede salir (el porqué va aparte). */
 function describeSituation(vehicle: Vehicle): string {
   if (vehicle.status === 'on-trip') {
     const trip = vehicle.currentTrip;
@@ -34,7 +63,7 @@ function describeSituation(vehicle: Vehicle): string {
       .filter(Boolean)
       .join(' · ');
   }
-  return vehicle.blocked ? 'No disponible · defecto bloqueante sin resolver' : 'Disponible';
+  return vehicle.blocked ? 'No disponible' : 'Disponible';
 }
 
 function formatKm(km: number | null | undefined): string {
@@ -53,12 +82,13 @@ function sortDefects(defects: DefectSummary[]): DefectSummary[] {
 
 const WORK_ORDER_STATUS_RANK: Record<WorkOrderStatus, number> = {
   en_proceso: 0,
-  asignada: 1,
-  finalizada: 2,
-  cancelada: 3,
+  en_espera: 1,
+  asignada: 2,
+  finalizada: 3,
+  cancelada: 4,
 };
 
-/** Abiertas (en proceso, después asignadas) primero, más reciente primero dentro de cada grupo. */
+/** Abiertas (en proceso, en espera, después asignadas) primero, más reciente primero dentro de cada grupo. */
 function sortWorkOrders(workOrders: WorkOrder[]): WorkOrder[] {
   return [...workOrders].sort((a, b) => {
     const rankDiff = WORK_ORDER_STATUS_RANK[a.status] - WORK_ORDER_STATUS_RANK[b.status];
@@ -105,7 +135,16 @@ function CollapsibleList<T>({ items, renderItem, limit = LIST_PREVIEW_LIMIT }: C
  * aparte de /history -- son un recurso propio (GET /api/work-orders?vehicleId=),
  * no un campo del historial.
  */
-export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDetailProps) {
+export function VehicleDetail({
+  vehicleId,
+  tab = 'resumen',
+  onSelectTab,
+  onBack,
+  onViewExpenses,
+  onOpenTires,
+  onOpenVehicle,
+}: VehicleDetailProps) {
+  const tabRefs = useRef<Partial<Record<VehicleTab, HTMLButtonElement | null>>>({});
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [history, setHistory] = useState<VehicleHistory | null>(null);
   const [workOrders, setWorkOrders] = useState<WorkOrder[] | null>(null);
@@ -113,6 +152,7 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [exportingHistory, setExportingHistory] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -196,9 +236,24 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
     }
   }
 
+  /** Flechas izquierda/derecha entre pestañas, como pide el patrón de pestañas accesibles. */
+  // CAM-157: un remolque no carga combustible.
+  const visibleTabs = VEHICLE_TABS.filter((t) => t !== 'combustible' || !isTrailer(vehicle?.vehicleType));
+
+  function handleTabKey(e: KeyboardEvent<HTMLButtonElement>) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const index = visibleTabs.indexOf(tab);
+    const next = visibleTabs[(index + (e.key === 'ArrowRight' ? 1 : visibleTabs.length - 1)) % visibleTabs.length];
+    onSelectTab?.(next);
+    tabRefs.current[next]?.focus();
+  }
+
   const inactive = vehicle?.active === false;
+  const blockReasons = vehicle?.blockReasons ?? [];
+  const expiredDocuments = blockReasons.some((r) => r.type === 'expired_document');
   const blockingDefects = history?.defects.filter((d) => d.status === 'open' && d.severity === 'blocking').length ?? 0;
-  const openWorkOrders = workOrders?.filter((wo) => wo.status === 'asignada' || wo.status === 'en_proceso').length ?? 0;
+  const openWorkOrders = workOrders?.filter(isOpenWorkOrder).length ?? 0;
 
   return (
     <section className="vehicle-detail">
@@ -233,6 +288,11 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
             {/* Mismo estilo neutro para las dos acciones; "Dar de baja" solo se tiñe al pasar el
                 mouse (y pide confirmación), así no compite visualmente con el resto de la ficha. */}
             <div className="vehicle-detail__header-actions">
+              {/* También para un vehículo dado de baja: es cuando más se lo pide (venta, auditoría). */}
+              <button type="button" className="vehicle-detail__action-btn" onClick={() => setExportingHistory(true)}>
+                <HistoryIcon width={14} height={14} />
+                Exportar historial
+              </button>
               {!inactive && (
                 <button
                   type="button"
@@ -263,6 +323,59 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
             </p>
           )}
 
+          <div className="vehicle-tabs" role="tablist" aria-label={`Secciones de ${vehicle.plate}`}>
+            {visibleTabs.map((t) => (
+              <button
+                key={t}
+                ref={(el) => {
+                  tabRefs.current[t] = el;
+                }}
+                type="button"
+                role="tab"
+                id={`vehicle-tab-${t}`}
+                aria-selected={tab === t}
+                aria-controls={`vehicle-panel-${t}`}
+                tabIndex={tab === t ? 0 : -1}
+                className={`vehicle-tabs__tab${tab === t ? ' vehicle-tabs__tab--active' : ''}`}
+                onClick={() => onSelectTab?.(t)}
+                onKeyDown={handleTabKey}
+              >
+                {TAB_LABEL[t]}
+                {t === 'documentacion' && expiredDocuments && (
+                  <span className="vehicle-tabs__dot" aria-label="(hay documentos vencidos)" />
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {vehicle && tab === 'resumen' && (
+        <div className="vehicle-detail__panel" role="tabpanel" id="vehicle-panel-resumen" aria-labelledby="vehicle-tab-resumen">
+          {blockReasons.length > 0 && (
+            <div className="vehicle-detail__blocked" role="status">
+              <AlertOctagonIcon width={18} height={18} aria-hidden="true" />
+              <div>
+                <p className="vehicle-detail__blocked-title">No disponible: no puede iniciar un viaje</p>
+                <ul>
+                  {blockReasons.map((r) => (
+                    <li key={r.message}>
+                      {r.message}
+                      {r.type === 'expired_document' && onSelectTab && (
+                        <>
+                          {' · '}
+                          <button type="button" className="doc-link-btn" onClick={() => onSelectTab('documentacion')}>
+                            Ir a Documentación
+                          </button>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           <dl className="vehicle-detail__facts">
             <div>
               <dt>Año</dt>
@@ -270,7 +383,7 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
             </div>
             <div>
               <dt>Tipo</dt>
-              <dd>{vehicle.vehicleType ?? '—'}</dd>
+              <dd>{vehicleTypeLabel(vehicle.vehicleType)}</dd>
             </div>
             <div>
               <dt>Kilometraje</dt>
@@ -282,16 +395,34 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
             </div>
             <div>
               <dt>Situación</dt>
-              <dd>{describeSituation(vehicle)}</dd>
+              <dd className={vehicle.blocked && vehicle.status !== 'on-trip' ? 'vehicle-detail__situation--blocked' : undefined}>
+                {describeSituation(vehicle)}
+              </dd>
             </div>
           </dl>
-        </>
+
+          <div className="vehicle-detail__summary-row">
+            <VehicleCostsCard vehicle={vehicle} onViewExpenses={onViewExpenses} />
+            {/* El QR lleva a la inspección del chofer, que un remolque no tiene (CAM-157). */}
+            {!isTrailer(vehicle.vehicleType) && <VehicleQrCard vehicle={vehicle} />}
+          </div>
+
+          <CouplingCard vehicle={vehicle} readOnly={inactive} onOpenVehicle={onOpenVehicle} />
+
+          <VehicleAvailabilityCard vehicleId={vehicle.id} />
+          <VehicleRecurringDefectsCard vehicleId={vehicle.id} />
+        </div>
       )}
 
-      {vehicle && <VehicleCostsCard vehicleId={vehicle.id} onViewExpenses={onViewExpenses} />}
+      {vehicle && tab === 'historial' && !history && <p className="muted">Cargando historial…</p>}
 
-      {history && (
-        <div className="vehicle-detail__sections">
+      {vehicle && tab === 'historial' && history && (
+        <div
+          className="vehicle-detail__sections"
+          role="tabpanel"
+          id="vehicle-panel-historial"
+          aria-labelledby="vehicle-tab-historial"
+        >
           {/* Inspecciones + Defectos: un defecto nace de una inspección. */}
           <div className="vehicle-detail__column">
             <section className="vehicle-detail__card">
@@ -312,7 +443,15 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
                           {formatDateTime(i.timestamp)} · {formatKm(i.odometerKm)}
                         </span>
                         {i.notes && <span className="vehicle-detail__item-meta">{i.notes}</span>}
+                        {i.kmAlert && (
+                          <span className="vehicle-detail__item-meta vehicle-detail__km-alert">
+                            {describeTripKmAlert(i.kmAlert)}
+                          </span>
+                        )}
                       </div>
+                      {i.kmAlert && (
+                        <span className="fleet-status-badge fleet-status-badge--por_vencer">Km fuera de lo normal</span>
+                      )}
                       {i.hasBlockingDefect && <SeverityBadge severity="blocking" />}
                     </li>
                   )}
@@ -347,7 +486,14 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
                           {formatDateTime(d.createdAt)}
                           {d.reportedBy ? ` · ${d.reportedBy}` : ''}
                           {d.status === 'resuelto' ? ' · Resuelto' : ''}
+                          {isReportedOnRoad(d) && (
+                            <>
+                              {' · '}
+                              <span className="defect-origin-tag">Reportado en viaje</span>
+                            </>
+                          )}
                         </span>
+                        {d.occurredOnTrip && <OccurredOnTripNote occurredOnTrip={d.occurredOnTrip} />}
                       </div>
                       <SeverityBadge severity={d.severity} />
                     </li>
@@ -422,7 +568,7 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
                           {workOrderResponsible(wo) ? ` · ${workOrderResponsible(wo)}` : ''}
                         </span>
                       </div>
-                      <WorkOrderStatusBadge status={wo.status} />
+                      <WorkOrderStatusBadge status={wo.status} pause={wo.pause} />
                     </li>
                   )}
                 />
@@ -432,7 +578,40 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
         </div>
       )}
 
-      {vehicle && <VehicleChecklistCard vehicleId={vehicle.id} plate={vehicle.plate} />}
+      {vehicle && tab === 'checklist' && (
+        <div role="tabpanel" id="vehicle-panel-checklist" aria-labelledby="vehicle-tab-checklist">
+          <VehicleChecklistCard vehicleId={vehicle.id} plate={vehicle.plate} inactive={inactive} />
+        </div>
+      )}
+
+      {vehicle && tab === 'documentacion' && (
+        <div role="tabpanel" id="vehicle-panel-documentacion" aria-labelledby="vehicle-tab-documentacion">
+          <VehicleDocumentsTab vehicleId={vehicle.id} readOnly={inactive} onChanged={() => void reloadVehicle()} />
+        </div>
+      )}
+
+      {vehicle && tab === 'combustible' && (
+        <div role="tabpanel" id="vehicle-panel-combustible" aria-labelledby="vehicle-tab-combustible">
+          <VehicleFuelTab
+            vehicleId={vehicle.id}
+            plate={vehicle.plate}
+            currentKm={vehicle.odometerKm ?? 0}
+            readOnly={inactive}
+            onChanged={() => void reloadVehicle()}
+          />
+        </div>
+      )}
+
+      {vehicle && tab === 'neumaticos' && (
+        <div role="tabpanel" id="vehicle-panel-neumaticos" aria-labelledby="vehicle-tab-neumaticos">
+          <VehicleTiresTab
+            vehicleId={vehicle.id}
+            readOnly={inactive}
+            onOpenTires={onOpenTires}
+            onEditVehicle={() => setEditing(true)}
+          />
+        </div>
+      )}
 
       {editing && vehicle && (
         <VehicleFormModal
@@ -444,6 +623,10 @@ export function VehicleDetail({ vehicleId, onBack, onViewExpenses }: VehicleDeta
             void reloadVehicle();
           }}
         />
+      )}
+
+      {exportingHistory && vehicle && (
+        <ExportHistoryModal vehicle={vehicle} onClose={() => setExportingHistory(false)} />
       )}
 
       {selectedWorkOrder && (

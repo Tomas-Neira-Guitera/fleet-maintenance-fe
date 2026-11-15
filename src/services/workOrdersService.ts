@@ -1,12 +1,4 @@
-import type {
-  WorkOrder,
-  WorkOrderExecutionType,
-  WorkOrderExpense,
-  WorkOrderExpenseCategory,
-  WorkOrderPhoto,
-  WorkOrderSourceType,
-  WorkOrderStatus,
-} from '../types/domain';
+import type { DocumentInput, WorkOrder, WorkOrderExecutionType, WorkOrderExpense, WorkOrderExpenseCategory, WorkOrderComment, WorkOrderPauseReason, WorkOrderPhoto, WorkOrderSourceType, WorkOrderStatus } from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 export interface GetWorkOrdersOptions {
@@ -88,6 +80,11 @@ export interface UpdateWorkOrderInput {
   executionType?: WorkOrderExecutionType;
   externalProvider?: string;
   description?: string;
+  /** CAM-127: al finalizar una OT de un plan que renueva un documento, el documento nuevo. */
+  document?: DocumentInput;
+  /** CAM-148: con status en_espera, el motivo (obligatorio) y un comentario (obligatorio con "otro"). */
+  pauseReason?: WorkOrderPauseReason;
+  pauseComment?: string;
 }
 
 /** PATCH /api/work-orders/{id} -- avanzar/cancelar estado, o editar datos mientras está abierta. */
@@ -149,4 +146,23 @@ export async function deleteWorkOrderPhoto(id: string, photoId: string): Promise
     headers: authHeaders(),
   });
   if (!res.ok) return throwApiError(res, 'No se pudo borrar la foto');
+}
+
+/** CAM-149: los comentarios de una OT, del más viejo al más nuevo. */
+export async function getWorkOrderComments(id: string): Promise<WorkOrderComment[]> {
+  const res = await fetch(`${API_BASE_URL}/api/work-orders/${id}/comments`, { headers: authHeaders() });
+  if (!res.ok) return throwApiError(res, 'No se pudieron cargar los comentarios');
+  const body = (await res.json()) as { items: WorkOrderComment[] };
+  return body.items;
+}
+
+/** CAM-149: el autor sale de la sesión, no se manda. */
+export async function addWorkOrderComment(id: string, text: string): Promise<WorkOrderComment> {
+  const res = await fetch(`${API_BASE_URL}/api/work-orders/${id}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) return throwApiError(res, 'No se pudo enviar el comentario');
+  return res.json() as Promise<WorkOrderComment>;
 }

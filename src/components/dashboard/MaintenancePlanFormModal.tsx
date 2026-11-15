@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ApiError } from '../../services/apiClient';
 import { createMaintenancePlan, updateMaintenancePlan } from '../../services/maintenancePlansService';
-import type { IntervalType, MaintenancePlan } from '../../types/domain';
+import type { IntervalType, MaintenancePlan, VehicleDocumentType } from '../../types/domain';
+import { DOCUMENT_TYPE_LABELS, RENEWABLE_DOCUMENT_TYPES } from '../../utils/documentLabels';
 import { CloseIcon, PowerIcon } from '../icons';
 import '../../styles/dashboard.css';
 import { CharCounter } from '../CharCounter';
@@ -39,6 +40,8 @@ export function MaintenancePlanFormModal({ plan, onClose, onSaved }: Maintenance
   const [intervalType, setIntervalType] = useState<IntervalType>(plan?.intervalType ?? 'km');
   const [intervalKm, setIntervalKm] = useState(plan?.intervalKm != null ? String(plan.intervalKm) : '');
   const [intervalDays, setIntervalDays] = useState(plan?.intervalDays != null ? String(plan.intervalDays) : '');
+  // CAM-127: un plan por tiempo puede renovar un documento (VTV, seguro…); vence cuando vence el documento.
+  const [documentType, setDocumentType] = useState<VehicleDocumentType | ''>(plan?.documentType ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +55,8 @@ export function MaintenancePlanFormModal({ plan, onClose, onSaved }: Maintenance
       category !== (plan.category ?? '') ||
       intervalType !== plan.intervalType ||
       intervalKm !== (plan.intervalKm != null ? String(plan.intervalKm) : '') ||
-      intervalDays !== (plan.intervalDays != null ? String(plan.intervalDays) : ''));
+      intervalDays !== (plan.intervalDays != null ? String(plan.intervalDays) : '') ||
+      documentType !== (plan.documentType ?? ''));
 
   async function handleDeactivate() {
     if (!plan) return;
@@ -88,6 +92,8 @@ export function MaintenancePlanFormModal({ plan, onClose, onSaved }: Maintenance
         intervalType,
         intervalKm: needsKm ? Number(intervalKm) : undefined,
         intervalDays: needsDays ? Number(intervalDays) : undefined,
+        // Solo los planes por tiempo renuevan un documento; "" lo quita al editar.
+        documentType: intervalType === 'time' ? documentType : ('' as const),
       };
       const saved = isEdit && plan ? await updateMaintenancePlan(plan.id, payload) : await createMaintenancePlan(payload);
       onSaved(saved);
@@ -169,6 +175,29 @@ export function MaintenancePlanFormModal({ plan, onClose, onSaved }: Maintenance
                 onChange={(e) => setIntervalDays(e.target.value)}
                 placeholder="Ej: 180"
               />
+            </label>
+          )}
+
+          {intervalType === 'time' && (
+            <label className="schedule-picker__field">
+              Renueva un documento (opcional)
+              <select
+                className="schedule-picker__input"
+                value={documentType}
+                onChange={(e) => setDocumentType(e.target.value as VehicleDocumentType | '')}
+              >
+                <option value="">Ninguno</option>
+                {RENEWABLE_DOCUMENT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {DOCUMENT_TYPE_LABELS[type]}
+                  </option>
+                ))}
+              </select>
+              <span className="muted plan-form__hint">
+                {documentType
+                  ? `Si el vehículo tiene cargado el documento, el plan vence cuando vence el documento. Al marcarlo como hecho se puede cargar el ${DOCUMENT_TYPE_LABELS[documentType]} nuevo.`
+                  : 'Por ejemplo, la revisión técnica renueva la VTV.'}
+              </span>
             </label>
           )}
 
