@@ -778,6 +778,8 @@ export interface ChecklistTemplate {
   name: string;
   items: ChecklistTemplateItem[];
   createdAt: string;
+  /** CAM-159: los vehículos con al menos un control copiado de esta plantilla. */
+  appliedVehicleIds: string[];
 }
 
 export interface ApplyChecklistTemplateResult {
@@ -785,6 +787,13 @@ export interface ApplyChecklistTemplateResult {
   added: number;
   skipped: number;
   vehicles: { vehicleId: string; plate: string; added: number; skipped: number; skippedLabels: string[] }[];
+}
+
+/** CAM-159: lo que se borró al quitar una plantilla. */
+export interface UnapplyChecklistTemplateResult {
+  templateId: string;
+  removed: number;
+  vehicles: { vehicleId: string; plate: string; removed: number; removedLabels: string[] }[];
 }
 
 /** CAM-156: una carga de combustible. consumption: el tramo de tanque lleno a tanque lleno que cierra. */

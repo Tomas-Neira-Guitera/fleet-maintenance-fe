@@ -22,6 +22,8 @@ export function ChecklistTemplatesSection({ onBack }: ChecklistTemplatesSectionP
   const [editing, setEditing] = useState<ChecklistTemplate | 'new' | null>(null);
   const [applying, setApplying] = useState<ChecklistTemplate | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // CAM-159: al aplicar o quitar cambian los vehículos de cada plantilla; se vuelve a pedir la lista.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +37,7 @@ export function ChecklistTemplatesSection({ onBack }: ChecklistTemplatesSectionP
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   function handleSaved(saved: ChecklistTemplate) {
     setTemplates((prev) => {
@@ -77,7 +79,8 @@ export function ChecklistTemplatesSection({ onBack }: ChecklistTemplatesSectionP
         </button>
       </header>
       <p className="vehicle-detail__item-meta">
-        Armá una lista de controles y copiala a varios vehículos de una vez. Cada vehículo se queda con su copia.
+        Armá una lista de controles y copiala a varios vehículos de una vez. Cada vehículo se queda con su copia, y
+        la plantilla se puede quitar después.
       </p>
 
       {error && <p className="error-banner">{error}</p>}
@@ -94,6 +97,10 @@ export function ChecklistTemplatesSection({ onBack }: ChecklistTemplatesSectionP
                 <h2 className="vehicle-detail__card-title">{template.name}</h2>
                 <span className="vehicle-detail__item-meta">
                   {template.items.length} {template.items.length === 1 ? 'control' : 'controles'}
+                  {' · '}
+                  {template.appliedVehicleIds.length === 0
+                    ? 'sin aplicar'
+                    : `aplicada en ${template.appliedVehicleIds.length} ${template.appliedVehicleIds.length === 1 ? 'vehículo' : 'vehículos'}`}
                 </span>
               </header>
               <ul className="checklist-templates__items">
@@ -109,7 +116,7 @@ export function ChecklistTemplatesSection({ onBack }: ChecklistTemplatesSectionP
               </ul>
               <div className="checklist-templates__actions">
                 <button type="button" className="primary-btn" onClick={() => setApplying(template)}>
-                  Aplicar a vehículos
+                  Aplicar o quitar
                 </button>
                 <button type="button" className="vehicle-detail__action-btn" onClick={() => setEditing(template)}>
                   <PencilIcon width={14} height={14} />
@@ -137,7 +144,13 @@ export function ChecklistTemplatesSection({ onBack }: ChecklistTemplatesSectionP
           onSaved={handleSaved}
         />
       )}
-      {applying && <ApplyChecklistTemplateModal template={applying} onClose={() => setApplying(null)} />}
+      {applying && (
+        <ApplyChecklistTemplateModal
+          template={applying}
+          onClose={() => setApplying(null)}
+          onChanged={() => setReloadKey((k) => k + 1)}
+        />
+      )}
     </section>
   );
 }

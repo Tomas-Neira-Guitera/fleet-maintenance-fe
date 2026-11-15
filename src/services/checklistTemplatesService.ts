@@ -1,4 +1,9 @@
-import type { ApplyChecklistTemplateResult, ChecklistTemplate, ChecklistTemplateItem } from '../types/domain';
+import type {
+  ApplyChecklistTemplateResult,
+  ChecklistTemplate,
+  ChecklistTemplateItem,
+  UnapplyChecklistTemplateResult,
+} from '../types/domain';
 import { API_BASE_URL, authHeaders, throwApiError } from './apiClient';
 
 // CAM-150: plantillas de checklist (solo admin).
@@ -50,6 +55,27 @@ export async function applyChecklistTemplate(id: string, vehicleIds: string[]): 
   });
   if (!res.ok) return throwApiError(res, 'No se pudo aplicar la plantilla');
   return res.json() as Promise<ApplyChecklistTemplateResult>;
+}
+
+/** CAM-159: borra de cada vehículo los controles que se copiaron de la plantilla. */
+export async function unapplyChecklistTemplate(id: string, vehicleIds: string[]): Promise<UnapplyChecklistTemplateResult> {
+  const res = await fetch(`${BASE}/${id}/unapply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ vehicleIds }),
+  });
+  if (!res.ok) return throwApiError(res, 'No se pudo quitar la plantilla');
+  return res.json() as Promise<UnapplyChecklistTemplateResult>;
+}
+
+/** "Se quitaron 3 controles de 2 vehículos." */
+export function describeUnapplyResult(result: UnapplyChecklistTemplateResult): string {
+  const count = result.vehicles.length;
+  const from = count === 1 ? result.vehicles[0].plate : `${count} vehículos`;
+  if (result.removed === 0) {
+    return count === 1 ? `${from} no tenía controles de esta plantilla.` : `Esos ${from} no tenían controles de esta plantilla.`;
+  }
+  return `Se ${result.removed === 1 ? 'quitó 1 control' : `quitaron ${result.removed} controles`} de ${from}.`;
 }
 
 /** "Se agregaron 2 controles; 1 ya estaba." */

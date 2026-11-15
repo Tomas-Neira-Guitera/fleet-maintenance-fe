@@ -173,8 +173,8 @@ export function VehicleChecklistCard({ vehicleId, plate, inactive = false }: Veh
         <ApplyChecklistTemplateModal
           vehicle={{ id: vehicleId, plate }}
           onClose={() => setApplyingTemplate(false)}
-          onApplied={(result) => {
-            if (result.added > 0) setReloadKey((k) => k + 1);
+          onChanged={(changes) => {
+            if (changes.added + changes.removed > 0) setReloadKey((k) => k + 1);
           }}
         />
       )}
