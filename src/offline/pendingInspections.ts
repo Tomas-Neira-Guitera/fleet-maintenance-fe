@@ -17,7 +17,7 @@ export interface PendingInspection {
   answers: ChecklistAnswer[];
   notes?: string;
   performedAt: string;
-  /** CAM-157: las cubiertas con problemas, con "Neumáticos" en defecto. */
+  /** CAM-157: los neumáticos con problemas, con "Neumáticos" en defecto. */
   tireConditions?: TireConditionInput[];
   /** CAM-157: el remolque que eligió en el pre-viaje. */
   trailerId?: string;

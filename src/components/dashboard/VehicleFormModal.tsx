@@ -145,7 +145,7 @@ export function VehicleFormModal({ vehicle, trailer = false, onClose, onSaved }:
                 </option>
               ))}
             </select>
-            <small className="vehicle-form__hint">Define sus ejes y sus cubiertas.</small>
+            <small className="vehicle-form__hint">Define sus ejes y sus neumáticos.</small>
           </label>
           <label className="schedule-picker__field">
             Año (opcional)

@@ -383,7 +383,7 @@ export function FuelIcon(props: IconProps) {
   );
 }
 
-/** Cubierta: neumáticos (CAM-157). */
+/** Neumático (CAM-157). */
 export function TireIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

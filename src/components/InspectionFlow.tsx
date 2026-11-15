@@ -58,7 +58,7 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
   NO_OPEN_TRIP: 'ya no tiene un viaje abierto: alguien lo cerró.',
 };
 
-// CAM-157: el control del checklist base donde se marca qué cubierta tiene problemas.
+// CAM-157: el control del checklist base donde se marca qué neumático tiene problemas.
 const TIRES_ITEM_ID = 'ext-neumaticos';
 
 // queued: sin señal, quedó guardada en el celular (CAM-153).
@@ -116,7 +116,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   }, [vehicle.id, type, fallbackItems]);
   const items = useMemo(() => loadedItems ?? [], [loadedItems]);
 
-  // CAM-157: el dibujo del vehículo, para marcar qué cubierta tiene problemas si "Neumáticos" va en defecto. Sin
+  // CAM-157: el dibujo del vehículo, para marcar qué neumático tiene problemas si "Neumáticos" va en defecto. Sin
   // señal, el último que se cargó; sin ninguno (o sin tipo), el chofer lo cuenta en la descripción.
   const [tirePositions, setTirePositions] = useState<TirePositions | null>(null);
   const [tireValues, setTireValues] = useState<TireConditionValue>({});
@@ -197,7 +197,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   const defectCount = checkItems.filter((def) => stateOf(def).outcome === 'defect').length;
   const tiresInDefect = items.some((def) => def.id === TIRES_ITEM_ID && stateOf(def).outcome === 'defect');
   const tireConditions = tiresInDefect ? toTireConditions(tireValues) : [];
-  // Con el dibujo disponible, hay que decir qué cubierta es.
+  // Con el dibujo disponible, hay que decir qué neumático es.
   const tiresValid = !tiresInDefect || !canPickTires || tireConditions.length > 0;
   const allValid = items.every((def) => isItemValid(def, stateOf(def))) && tiresValid;
 

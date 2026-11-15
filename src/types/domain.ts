@@ -823,7 +823,7 @@ export interface VehicleFuel {
 /** CAM-157: neumáticos. */
 export type TireStatus = 'stock' | 'mounted' | 'retired';
 
-/** Lo que el chofer ve a simple vista en una cubierta, del más grave al más leve. */
+/** Lo que el chofer ve a simple vista en un neumático, del más grave al más leve. */
 export type TireConditionCode =
   | 'se-ve-la-tela'
   | 'bulto'
@@ -833,7 +833,7 @@ export type TireConditionCode =
   | 'desgaste-irregular'
   | 'poco-dibujo';
 
-/** Un relevamiento de una cubierta; active: su defecto sigue abierto y la cubierta montada. */
+/** Un relevamiento de un neumático; active: su defecto sigue abierto y el neumático montado. */
 export interface TireConditionReport {
   vehicleId: string;
   plate: string;
@@ -928,13 +928,13 @@ export interface TireBrandComparison {
   }[];
 }
 
-/** Una cubierta con problemas, en una inspección (con "Neumáticos" en defecto). */
+/** Un neumático con problemas, en una inspección (con "Neumáticos" en defecto). */
 export interface TireConditionInput {
   position: string;
   conditions: TireConditionCode[];
 }
 
-/** Para el pre-viaje del chofer: todas las posiciones; solo se reportan las que tienen cubierta. */
+/** Para el pre-viaje del chofer: todas las posiciones; solo se reportan las que tienen neumático. */
 export interface TirePositions {
   vehicleType: string | null;
   positions: (Omit<VehicleTirePosition, 'tire'> & { mounted: boolean })[];

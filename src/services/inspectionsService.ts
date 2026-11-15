@@ -29,7 +29,7 @@ export function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
 export interface SubmissionMeta {
   performedAt?: string;
   clientSubmissionId?: string;
-  /** CAM-157: las cubiertas con problemas; solo con "Neumáticos" en defecto. */
+  /** CAM-157: los neumáticos con problemas; solo con "Neumáticos" en defecto. */
   tireConditions?: TireConditionInput[];
   /** CAM-157: el remolque que lleva ("none": sin remolque); sin el campo, el enganche no cambia. */
   trailerId?: string;

@@ -57,8 +57,9 @@ describe('neumáticos (CAM-157)', () => {
     expect(parseAdminPath('/vehiculos/v-1/neumaticos')).toEqual({ view: 'vehicle', vehicleId: 'v-1', tab: 'neumaticos' });
   });
 
-  it('el inventario tiene su dirección y "cubiertas" no se lee como un vehículo', () => {
-    expect(adminPath({ view: 'tires' })).toBe('/vehiculos/cubiertas');
+  it('el inventario tiene su dirección y "neumaticos" no se lee como un vehículo', () => {
+    expect(adminPath({ view: 'tires' })).toBe('/vehiculos/neumaticos');
+    expect(parseAdminPath('/vehiculos/neumaticos')).toEqual({ view: 'tires' });
     expect(parseAdminPath('/vehiculos/cubiertas')).toEqual({ view: 'tires' });
   });
 });

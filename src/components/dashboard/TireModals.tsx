@@ -55,7 +55,7 @@ interface VehicleModalProps {
   onDone: (updated: VehicleTires) => void;
 }
 
-/** CAM-157: montar una cubierta del stock; si la posición tiene una, es un cambio y se elige qué pasa con ella. */
+/** CAM-157: montar un neumático del stock; si la posición tiene uno, es un cambio y se elige qué pasa con él. */
 export function MountTireModal({ vehicle, slot, onClose, onDone }: VehicleModalProps) {
   const [stock, setStock] = useState<Tire[] | null>(null);
   const [tireId, setTireId] = useState('');
@@ -74,7 +74,7 @@ export function MountTireModal({ vehicle, slot, onClose, onDone }: VehicleModalP
         if (tires.length > 0) setTireId(tires[0].id);
       })
       .catch(() => {
-        if (!cancelled) setError('No se pudo cargar el stock de cubiertas.');
+        if (!cancelled) setError('No se pudo cargar el stock de neumáticos.');
       });
     return () => {
       cancelled = true;
@@ -87,14 +87,14 @@ export function MountTireModal({ vehicle, slot, onClose, onDone }: VehicleModalP
     try {
       onDone(await mountTire(vehicle.vehicleId, tireId, slot.position, changing ? replaced : undefined, reason.trim() || undefined));
     } catch (err) {
-      setError(errorText(err, 'No se pudo montar la cubierta.'));
+      setError(errorText(err, 'No se pudo montar el neumático.'));
       setSaving(false);
     }
   }
 
   return (
     <ModalShell
-      title={changing ? 'Cambiar cubierta' : 'Montar cubierta'}
+      title={changing ? 'Cambiar neumático' : 'Montar neumático'}
       subtitle={`${vehicle.plate} · ${slot.label}`}
       onClose={onClose}
       footer={
@@ -109,11 +109,11 @@ export function MountTireModal({ vehicle, slot, onClose, onDone }: VehicleModalP
       }
     >
       {stock && stock.length === 0 && (
-        <p className="muted">No hay cubiertas en stock. Cargalas en Vehículos → Cubiertas.</p>
+        <p className="muted">No hay neumáticos en stock. Cargalos en Vehículos → Neumáticos.</p>
       )}
       {stock && stock.length > 0 && (
         <label className="schedule-picker__field">
-          Cubierta del stock
+          Neumático del stock
           <select className="schedule-picker__input" value={tireId} onChange={(e) => setTireId(e.target.value)}>
             {stock.map((t) => (
               <option key={t.id} value={t.id}>
@@ -152,7 +152,7 @@ export function MountTireModal({ vehicle, slot, onClose, onDone }: VehicleModalP
   );
 }
 
-/** Sacar una cubierta: vuelve al stock o se da de baja. */
+/** Sacar un neumático: vuelve al stock o se da de baja. */
 export function UnmountTireModal({ vehicle, slot, onClose, onDone }: VehicleModalProps) {
   const [retire, setRetire] = useState(false);
   const [reason, setReason] = useState('');
@@ -165,14 +165,14 @@ export function UnmountTireModal({ vehicle, slot, onClose, onDone }: VehicleModa
     try {
       onDone(await unmountTire(vehicle.vehicleId, slot.position, retire, reason.trim() || undefined));
     } catch (err) {
-      setError(errorText(err, 'No se pudo sacar la cubierta.'));
+      setError(errorText(err, 'No se pudo sacar el neumático.'));
       setSaving(false);
     }
   }
 
   return (
     <ModalShell
-      title="Sacar cubierta"
+      title="Sacar neumático"
       subtitle={`${vehicle.plate} · ${slot.label}`}
       onClose={onClose}
       footer={
@@ -216,7 +216,7 @@ interface TireFormModalProps {
   onSaved: (tire: Tire) => void;
 }
 
-/** Alta y edición de una cubierta. Queda en stock hasta que se monta. */
+/** Alta y edición de un neumático. Queda en stock hasta que se monta. */
 export function TireFormModal({ tire, onClose, onSaved }: TireFormModalProps) {
   const [form, setForm] = useState({
     code: tire?.code ?? '',
@@ -245,14 +245,14 @@ export function TireFormModal({ tire, onClose, onSaved }: TireFormModalProps) {
     try {
       onSaved(tire ? await updateTire(tire.id, input) : await createTire(input));
     } catch (err) {
-      setError(errorText(err, 'No se pudo guardar la cubierta.'));
+      setError(errorText(err, 'No se pudo guardar el neumático.'));
       setSaving(false);
     }
   }
 
   return (
     <ModalShell
-      title={tire ? 'Editar cubierta' : 'Nueva cubierta'}
+      title={tire ? 'Editar neumático' : 'Nuevo neumático'}
       onClose={onClose}
       footer={
         <>

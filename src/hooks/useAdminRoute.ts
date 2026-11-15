@@ -35,7 +35,7 @@ export type AdminRoute =
   | { view: 'vehicle-comparison' }
   // Plantillas de checklist (CAM-150), dentro de Vehículos.
   | { view: 'checklist-templates' }
-  // Inventario de cubiertas (CAM-157), dentro de Vehículos.
+  // Inventario de neumáticos (CAM-157), dentro de Vehículos.
   | { view: 'tires' };
 
 // Mismo criterio que el id de /vehiculos/{id}: solo letras, números y guiones.
@@ -57,7 +57,9 @@ const DEFAULT_ROUTE: AdminRoute = { view: 'tab', tab: 'resumen' };
 const COMPARISON_PATH = '/vehiculos/comparar';
 /** CAM-150. Igual que COMPARISON_PATH, va antes que /vehiculos/{id}. */
 const TEMPLATES_PATH = '/vehiculos/plantillas';
-const TIRES_PATH = '/vehiculos/cubiertas';
+const TIRES_PATH = '/vehiculos/neumaticos';
+// La dirección de antes del cambio de nombre, por links guardados o avisos ya enviados.
+const LEGACY_TIRES_PATH = '/vehiculos/cubiertas';
 
 export function adminPath(route: AdminRoute): string {
   if (route.view === 'defects') return route.filter ? `/defectos?filtro=${DEFECTS_FILTER_PARAM[route.filter]}` : '/defectos';
@@ -82,7 +84,7 @@ export function parseAdminPath(pathname: string, search = ''): AdminRoute | null
   }
   if (path === COMPARISON_PATH) return { view: 'vehicle-comparison' };
   if (path === TEMPLATES_PATH) return { view: 'checklist-templates' };
-  if (path === TIRES_PATH) return { view: 'tires' };
+  if (path === TIRES_PATH || path === LEGACY_TIRES_PATH) return { view: 'tires' };
   if (path === TAB_PATHS.gastos) {
     const vehicleId = new URLSearchParams(search).get('vehiculo');
     if (vehicleId && VEHICLE_ID.test(vehicleId)) return { view: 'vehicle-expenses', vehicleId };

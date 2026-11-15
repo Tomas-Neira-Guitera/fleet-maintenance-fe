@@ -18,23 +18,23 @@ const TRACTOR = positions([
 ]);
 
 describe('vista de arriba del vehículo (CAM-157)', () => {
-  it('dibuja una cubierta por posición, con su estado, y avisa cuál se toca', async () => {
+  it('dibuja un neumático por posición, con su estado, y avisa cuál se toca', async () => {
     const onSelect = vi.fn();
     render(
       <VehicleTopView
         vehicleType="tractor_4x2"
         positions={TRACTOR}
         stateOf={(p) => (p === 'e1-izq' ? 'crit' : p === 'auxilio' ? 'empty' : 'ok')}
-        describe={(p) => (p === 'e1-izq' ? 'Michelin N° 1234, pinchada' : p === 'auxilio' ? 'sin cubierta' : 'Fate')}
+        describe={(p) => (p === 'e1-izq' ? 'Michelin N° 1234, pinchado' : p === 'auxilio' ? 'sin neumático' : 'Fate')}
         selected={null}
         onSelect={onSelect}
       />,
     );
 
     expect(screen.getAllByRole('button')).toHaveLength(7);
-    const front = screen.getByRole('button', { name: 'Delantera izquierda: Michelin N° 1234, pinchada' });
+    const front = screen.getByRole('button', { name: 'Delantera izquierda: Michelin N° 1234, pinchado' });
     expect(front).toHaveClass('top-view__tire--crit');
-    await userEvent.click(screen.getByRole('button', { name: 'Auxilio: sin cubierta' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Auxilio: sin neumático' }));
     expect(onSelect).toHaveBeenCalledWith('auxilio');
   });
 

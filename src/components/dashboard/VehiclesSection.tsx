@@ -45,7 +45,7 @@ interface VehiclesSectionProps {
   onCompare: () => void;
   /** CAM-150: abre las plantillas de checklist. */
   onOpenTemplates: () => void;
-  /** CAM-157: abre el inventario de cubiertas. */
+  /** CAM-157: abre el inventario de neumáticos. */
   onOpenTires: () => void;
 }
 
@@ -116,7 +116,7 @@ export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onO
             Plantillas de checklist
           </button>
           <button type="button" className="secondary-btn vehicles-section__new-btn" onClick={onOpenTires}>
-            Cubiertas
+            Neumáticos
           </button>
           <button type="button" className="secondary-btn vehicles-section__new-btn" onClick={onCompare}>
             Comparar

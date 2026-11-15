@@ -1,11 +1,11 @@
 import type { Tire, TireConditionCode, TireConditionInput, TireStatus } from '../types/domain';
 
-// CAM-157: cómo se muestran las cubiertas y su estado.
+// CAM-157: cómo se muestran los neumáticos y su estado.
 
 export const TIRE_STATUS_LABEL: Record<TireStatus, string> = {
   stock: 'En stock',
-  mounted: 'Montada',
-  retired: 'Dada de baja',
+  mounted: 'Montado',
+  retired: 'Dado de baja',
 };
 
 /** Del más grave al más leve, como los devuelve el backend. */
@@ -13,8 +13,8 @@ export const TIRE_CONDITIONS: { code: TireConditionCode; label: string }[] = [
   { code: 'se-ve-la-tela', label: 'Se ve la tela o el alambre' },
   { code: 'bulto', label: 'Bulto o deformación' },
   { code: 'corte-flanco', label: 'Corte o daño en el flanco' },
-  { code: 'pinchada', label: 'Pinchada' },
-  { code: 'baja-presion', label: 'Baja presión o desinflada' },
+  { code: 'pinchada', label: 'Pinchado' },
+  { code: 'baja-presion', label: 'Baja presión o desinflado' },
   { code: 'desgaste-irregular', label: 'Desgaste irregular' },
   { code: 'poco-dibujo', label: 'Poco dibujo' },
 ];
@@ -23,7 +23,7 @@ export function tireConditionLabel(code: string): string {
   return TIRE_CONDITIONS.find((c) => c.code === code)?.label ?? code;
 }
 
-/** Cómo se pinta una cubierta: sin problemas, a revisar, o grave (su defecto es bloqueante). */
+/** Cómo se pinta un neumático: sin problemas, a revisar, o grave (su defecto es bloqueante). */
 export type TireHealth = 'ok' | 'warn' | 'crit';
 
 export function tireHealth(tire: Pick<Tire, 'condition'> | null | undefined): TireHealth {

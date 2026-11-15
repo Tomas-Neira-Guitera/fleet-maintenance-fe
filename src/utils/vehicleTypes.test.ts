@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { canTow, isTrailer, positionsOf, VEHICLE_TYPES, vehicleTypeLabel } from './vehicleTypes';
 
 describe('catálogo de tipos de vehículo (CAM-157)', () => {
-  it('cuenta las cubiertas como el backend', () => {
+  it('cuenta los neumáticos como el backend', () => {
     const tires = (axles: string[]) => axles.reduce((n, a) => n + (a === 'dual' ? 4 : 2), 0);
     expect(Object.fromEntries(VEHICLE_TYPES.map((t) => [t.code, tires(t.axles)]))).toEqual({
       utilitario: 4,

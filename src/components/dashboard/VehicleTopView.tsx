@@ -6,7 +6,7 @@ import '../../styles/tires.css';
 /** Una posición para dibujar: sale de la pestaña Neumáticos del admin o del pre-viaje del chofer. */
 export type TopViewPosition = Omit<VehicleTirePosition, 'tire'>;
 
-/** ok: sin problemas; warn: a revisar; crit: grave; empty: sin cubierta. */
+/** ok: sin problemas; warn: a revisar; crit: grave; empty: sin neumático. */
 export type TopViewState = 'ok' | 'warn' | 'crit' | 'empty';
 
 interface VehicleTopViewProps {
@@ -16,9 +16,9 @@ interface VehicleTopViewProps {
   /** Lo que se lee al pasar o con lector de pantalla, después del nombre de la posición. */
   describe?: (position: string) => string;
   selected: string | null;
-  /** En una rotación, la cubierta que se está moviendo. */
+  /** En una rotación, el neumático que se está moviendo. */
   rotatingFrom?: string | null;
-  /** Posiciones que no se pueden tocar (por ejemplo, sin cubierta en el pre-viaje). */
+  /** Posiciones que no se pueden tocar (por ejemplo, sin neumático en el pre-viaje). */
   isDisabled?: (position: string) => boolean;
   onSelect: (position: string) => void;
   /** Más chico, para el celular. */
@@ -49,8 +49,8 @@ function tireX(p: TopViewPosition): number {
 }
 
 /**
- * CAM-157: el vehículo visto de arriba, con el frente hacia arriba y cada cubierta en su lugar, pintada según su
- * estado (sin problemas, a revisar, grave o sin cubierta). Tocar una cubierta la elige.
+ * CAM-157: el vehículo visto de arriba, con el frente hacia arriba y cada neumático en su lugar, pintado según su
+ * estado (sin problemas, a revisar, grave o sin neumático). Tocar un neumático lo elige.
  */
 export function VehicleTopView({
   vehicleType,

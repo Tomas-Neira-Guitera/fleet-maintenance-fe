@@ -227,7 +227,7 @@ describe('InspectionFlow — pre-viaje', () => {
   });
 });
 
-describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
+describe('InspectionFlow — neumáticos con problemas (CAM-157)', () => {
   const pos = (position: string, label: string, axle: number, side: 'izq' | 'der' | null, mounted = true) => ({
     position, label, axle, side, wheel: 'simple' as const, mounted,
   });
@@ -247,15 +247,15 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     tirePositionsMock.mockResolvedValue(UTILITARIO);
     renderFlow();
     await screen.findByRole('heading', { name: 'Pre-viaje' });
-    expect(screen.queryByText('¿Qué cubierta tiene el problema?')).not.toBeInTheDocument();
+    expect(screen.queryByText('¿Qué neumático tiene el problema?')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('switch', { name: 'Neumáticos: reportar defecto' }));
-    expect(await screen.findByText('¿Qué cubierta tiene el problema?')).toBeInTheDocument();
-    // Una posición sin cubierta no se puede elegir.
-    expect(screen.getByRole('button', { name: 'Auxilio: sin cubierta' })).toHaveAttribute('aria-disabled', 'true');
+    expect(await screen.findByText('¿Qué neumático tiene el problema?')).toBeInTheDocument();
+    // Una posición sin neumático no se puede elegir.
+    expect(screen.getByRole('button', { name: 'Auxilio: sin neumático' })).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('manda la cubierta y lo que el chofer vio, y completa el título si está vacío', async () => {
+  it('manda el neumático y lo que el chofer vio, y completa el título si está vacío', async () => {
     const user = userEvent.setup();
     tirePositionsMock.mockResolvedValue(UTILITARIO);
     submitMock.mockResolvedValue(result('pre-trip'));
@@ -264,12 +264,12 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
     await user.click(screen.getByRole('button', { name: 'Trasera derecha: sin marcar' }));
     await user.click(screen.getByRole('button', { name: 'Poco dibujo' }));
-    await user.click(screen.getByRole('button', { name: 'Pinchada' }));
+    await user.click(screen.getByRole('button', { name: 'Pinchado' }));
     // El título vacío se completa con lo primero que marcó.
     expect(screen.getByLabelText('Título (obligatorio)')).toHaveValue('Poco dibujo');
 
     await goToSummary(user);
-    expect(screen.getByText(/pinchada, poco dibujo/)).toBeInTheDocument();
+    expect(screen.getByText(/pinchado, poco dibujo/)).toBeInTheDocument();
     await confirmAndSend(user);
 
     expect(submitMock.mock.calls[0][4]?.tireConditions).toEqual([
@@ -277,7 +277,7 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     ]);
   });
 
-  it('con el dibujo disponible hay que decir qué cubierta es', async () => {
+  it('con el dibujo disponible hay que decir qué neumático es', async () => {
     const user = userEvent.setup();
     tirePositionsMock.mockResolvedValue(UTILITARIO);
     renderFlow();
@@ -287,7 +287,7 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     await user.type(screen.getByLabelText('Kilómetros actuales'), '84320');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
 
-    expect(screen.getByText('Marcá al menos una cubierta y qué le ves.')).toBeInTheDocument();
+    expect(screen.getByText('Marcá al menos un neumático y qué le ves.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Resumen' })).not.toBeInTheDocument();
   });
 
@@ -297,7 +297,7 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     renderFlow();
 
     await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
-    expect(screen.queryByText('¿Qué cubierta tiene el problema?')).not.toBeInTheDocument();
+    expect(screen.queryByText('¿Qué neumático tiene el problema?')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Título (obligatorio)'), 'Gastada');
     await goToSummary(user);
     await confirmAndSend(user);
@@ -311,7 +311,7 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     renderFlow();
 
     await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
-    expect(await screen.findByText('¿Qué cubierta tiene el problema?')).toBeInTheDocument();
+    expect(await screen.findByText('¿Qué neumático tiene el problema?')).toBeInTheDocument();
   });
 
   it('el post-viaje no pide el dibujo', async () => {
