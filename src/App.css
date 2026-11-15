@@ -430,6 +430,23 @@
 }
 
 /* Vehicle list */
+/* Búsqueda por patente en la flota del chofer. 16px para que iOS no haga zoom al enfocarla. */
+.vehicle-search {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  background: var(--fg-white);
+  color: var(--fg-text);
+  font-family: var(--fg-font-body);
+  font-size: 16px;
+}
+
+.vehicle-search::placeholder {
+  color: var(--fg-text-muted);
+}
+
 .vehicle-list {
   list-style: none;
   margin: 0;

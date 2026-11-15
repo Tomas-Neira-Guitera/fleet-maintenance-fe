@@ -11,6 +11,7 @@ import { getVehicles } from '../services/vehiclesService';
 import type { Vehicle } from '../types/domain';
 import { formatDayAndTime } from '../utils/dateFormat';
 import { findMyTrip, lastPendingByVehicle, withPending } from '../utils/myTrip';
+import { matchesPlate } from '../utils/plateSearch';
 import { scheduledTodayTime } from '../utils/scheduledToday';
 import { isTrailer } from '../utils/vehicleTypes';
 import { AlertOctagonIcon, CheckCircleIcon, LockClockIcon } from './icons';
@@ -45,6 +46,7 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
   const [error, setError] = useState<string | null>(null);
   // CAM-153: sin señal se muestra la última flota cargada, con la hora.
   const [offlineSince, setOfflineSince] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const currentUserId = getSessionUserId();
   const { items: pendingItems, sessionExpired, sentCount } = usePendingInspections();
 
@@ -81,6 +83,9 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
   const pendingByVehicle = lastPendingByVehicle(waiting);
   // Un chofer tiene un solo viaje abierto: mientras dure, no se le muestra la flota para tomar otro.
   const myTrip = vehicles ? findMyTrip(vehicles, waiting, currentUserId) : null;
+  // CAM-157: los remolques no tienen chofer: se ven y se mantienen desde el admin.
+  const fleet = vehicles?.filter((v) => !isTrailer(v.vehicleType)) ?? [];
+  const shown = fleet.filter((v) => matchesPlate(v.plate, query));
 
   return (
     <div className="screen">
@@ -144,62 +149,80 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
           onReportProblem={onReportProblem}
         />
       ) : (
-        <ul className="vehicle-list">
-          {/* CAM-157: los remolques no tienen chofer: se ven y se mantienen desde el admin. */}
-          {vehicles?.filter((v) => !isTrailer(v.vehicleType)).map((serverVehicle) => {
-            const pending = pendingByVehicle.get(serverVehicle.id);
-            const vehicle = withPending(serverVehicle, pending, currentUserId);
-            const onTrip = vehicle.status === 'on-trip';
-            // CAM-86: un viaje abierto se tiene que poder cerrar aunque el vehículo esté bloqueado.
-            const isBlocked = Boolean(vehicle.blocked) && !onTrip;
-            const tripLine = describeTrip(vehicle);
-            // CAM-127: por qué no puede salir (defecto bloqueante o documento vencido), tal como lo arma el backend.
-            const reasons = isBlocked ? (vehicle.blockReasons ?? []).map((r) => r.message) : [];
-            // CAM-143: no bloquea, solo avisa. Al elegirlo para el pre-viaje sale además una advertencia.
-            const workshopTime = scheduledTodayTime(vehicle);
-            return (
-              <li key={vehicle.id}>
-                <button
-                  type="button"
-                  className={`vehicle-card${isBlocked ? ' vehicle-card--blocked' : onTrip ? ' vehicle-card--muted' : ''}`}
-                  onClick={() => onSelectVehicle(vehicle)}
-                  disabled={isBlocked}
-                >
-                  <div className="vehicle-card__info">
-                    <span className="vehicle-card__plate">{vehicle.plate}</span>
-                    <span className="vehicle-card__model">
-                      {vehicle.brand} {vehicle.model}
-                    </span>
-                    {tripLine && <span className="vehicle-card__trip">{tripLine}</span>}
-                    {pending && <span className="vehicle-card__trip">Pendiente de envío</span>}
-                    {workshopTime && <span className="vehicle-card__workshop">Turno de taller hoy, {workshopTime}</span>}
-                    {reasons.map((reason) => (
-                      <span key={reason} className="vehicle-card__reason">
-                        {reason}
+        <>
+          {fleet.length > 0 && (
+            <input
+              type="search"
+              className="vehicle-search"
+              placeholder="Buscar por patente"
+              aria-label="Buscar por patente"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoCapitalize="characters"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          )}
+          {fleet.length > 0 && shown.length === 0 && (
+            <p className="muted">Ningún vehículo tiene una patente con "{query.trim()}".</p>
+          )}
+          <ul className="vehicle-list">
+            {shown.map((serverVehicle) => {
+              const pending = pendingByVehicle.get(serverVehicle.id);
+              const vehicle = withPending(serverVehicle, pending, currentUserId);
+              const onTrip = vehicle.status === 'on-trip';
+              // CAM-86: un viaje abierto se tiene que poder cerrar aunque el vehículo esté bloqueado.
+              const isBlocked = Boolean(vehicle.blocked) && !onTrip;
+              const tripLine = describeTrip(vehicle);
+              // CAM-127: por qué no puede salir (defecto bloqueante o documento vencido), tal como lo arma el backend.
+              const reasons = isBlocked ? (vehicle.blockReasons ?? []).map((r) => r.message) : [];
+              // CAM-143: no bloquea, solo avisa. Al elegirlo para el pre-viaje sale además una advertencia.
+              const workshopTime = scheduledTodayTime(vehicle);
+              return (
+                <li key={vehicle.id}>
+                  <button
+                    type="button"
+                    className={`vehicle-card${isBlocked ? ' vehicle-card--blocked' : onTrip ? ' vehicle-card--muted' : ''}`}
+                    onClick={() => onSelectVehicle(vehicle)}
+                    disabled={isBlocked}
+                  >
+                    <div className="vehicle-card__info">
+                      <span className="vehicle-card__plate">{vehicle.plate}</span>
+                      <span className="vehicle-card__model">
+                        {vehicle.brand} {vehicle.model}
                       </span>
-                    ))}
-                  </div>
-                  {isBlocked ? (
-                    <span className="status-pill status-pill--crit">
-                      <AlertOctagonIcon className="status-pill__icon" />
-                      No disponible
-                    </span>
-                  ) : onTrip ? (
-                    <span className="status-pill status-pill--info">
-                      <LockClockIcon className="status-pill__icon" />
-                      En viaje
-                    </span>
-                  ) : (
-                    <span className="status-pill status-pill--ok">
-                      <CheckCircleIcon className="status-pill__icon" />
-                      Disponible
-                    </span>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                      {tripLine && <span className="vehicle-card__trip">{tripLine}</span>}
+                      {pending && <span className="vehicle-card__trip">Pendiente de envío</span>}
+                      {workshopTime && <span className="vehicle-card__workshop">Turno de taller hoy, {workshopTime}</span>}
+                      {reasons.map((reason) => (
+                        <span key={reason} className="vehicle-card__reason">
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+                    {isBlocked ? (
+                      <span className="status-pill status-pill--crit">
+                        <AlertOctagonIcon className="status-pill__icon" />
+                        No disponible
+                      </span>
+                    ) : onTrip ? (
+                      <span className="status-pill status-pill--info">
+                        <LockClockIcon className="status-pill__icon" />
+                        En viaje
+                      </span>
+                    ) : (
+                      <span className="status-pill status-pill--ok">
+                        <CheckCircleIcon className="status-pill__icon" />
+                        Disponible
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </div>
   );
