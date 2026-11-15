@@ -32,6 +32,19 @@ describe('findMyTrip', () => {
     expect(trip?.currentTrip?.startedAt).toBe('2026-11-15T09:00:00Z');
   });
 
+  it('un bloqueante en el remolque, guardado sin señal, no deja salir (CAM-159)', () => {
+    const blocked = {
+      ...pending('a', 'pre-trip'),
+      trailerAnswers: [
+        {
+          itemId: 'rem-frenos', label: 'Frenos', section: 'exterior' as const, type: 'check' as const, outcome: 'defect' as const,
+          defect: { severity: 'blocking' as const, description: 'No frena' },
+        },
+      ],
+    };
+    expect(findMyTrip([vehicle('a')], [blocked], ME)).toBeNull();
+  });
+
   it('un post-viaje guardado sin señal ya cerró el viaje', () => {
     expect(findMyTrip([onTrip('a', ME)], [pending('a', 'post-trip')], ME)).toBeNull();
   });

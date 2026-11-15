@@ -179,7 +179,7 @@ export function VehicleFormModal({ vehicle, trailer = false, onClose, onSaved }:
               />
             </label>
           )}
-          {!isEdit && !asTrailer && templates.length > 0 && (
+          {!isEdit && templates.length > 0 && (
             <label className="schedule-picker__field">
               Plantilla de checklist (opcional)
               <select

@@ -10,7 +10,10 @@ import { isTrailer } from './vehicleTypes';
 export function withPending(vehicle: Vehicle, pending: PendingInspection | undefined, currentUserId: string | null): Vehicle {
   if (!pending) return vehicle;
   if (pending.type === 'post-trip') return { ...vehicle, status: 'available', currentTrip: null };
-  const blocking = pending.answers.some((a) => a.outcome === 'defect' && a.defect?.severity === 'blocking');
+  // CAM-159: un bloqueante en el remolque tampoco deja salir.
+  const blocking = [...pending.answers, ...(pending.trailerAnswers ?? [])].some(
+    (a) => a.outcome === 'defect' && a.defect?.severity === 'blocking',
+  );
   if (blocking) {
     const message = 'Reportaste un defecto bloqueante (se envía cuando vuelva la señal).';
     return { ...vehicle, status: 'available', blocked: true, blockReasons: [{ type: 'blocking_defect', message }] };

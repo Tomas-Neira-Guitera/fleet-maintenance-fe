@@ -18,6 +18,27 @@ export function getPreTripItems(): ChecklistItemDef[] {
   return [...PRE_TRIP_EXTERIOR_ITEMS, ...PRE_TRIP_INTERIOR_BASE_ITEMS];
 }
 
+// CAM-159: espejo de ChecklistCatalog.trailerItems del backend. El acoplado no tiene patas y se engancha con la lanza.
+export function getTrailerItems(vehicleType: string | null | undefined): ChecklistItemDef[] {
+  const fullTrailer = vehicleType === 'acoplado';
+  const items: ChecklistItemDef[] = [
+    {
+      id: 'rem-enganche',
+      label: fullTrailer ? 'Lanza y perno de enganche trabados' : 'Perno rey y quinta rueda trabados',
+      type: 'check',
+      section: 'exterior',
+    },
+    { id: 'rem-aire', label: 'Mangueras de aire y cable de luces conectados', type: 'check', section: 'exterior' },
+    { id: 'rem-luces', label: 'Luces, patente y reflectivos', type: 'check', section: 'exterior' },
+    { id: 'rem-neumaticos', label: 'Neumáticos', type: 'check', section: 'exterior' },
+    { id: 'rem-frenos', label: 'Frenos', type: 'check', section: 'exterior' },
+    { id: 'rem-patas', label: 'Patas de apoyo levantadas', type: 'check', section: 'exterior' },
+    { id: 'rem-carga', label: 'Puertas, lona y sujeción de la carga', type: 'check', section: 'exterior' },
+    { id: 'rem-paragolpes', label: 'Paragolpes trasero', type: 'check', section: 'exterior' },
+  ];
+  return fullTrailer ? items.filter((i) => i.id !== 'rem-patas') : items;
+}
+
 export const POST_TRIP_ITEMS: ChecklistItemDef[] = [
   { id: 'post-danos', label: 'Daños nuevos en la carrocería', type: 'check', section: 'posttrip' },
   { id: 'post-luces', label: 'Luces', type: 'check', section: 'posttrip' },

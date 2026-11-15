@@ -127,6 +127,8 @@ export interface Inspection {
 export interface SubmitInspectionResult {
   inspection: Inspection;
   trip: Trip;
+  /** CAM-159: la del remolque revisado en el mismo pre-viaje. */
+  trailerInspection?: Inspection | null;
 }
 
 /** Defecto reportado en una inspección, tal como lo lista GET /api/defects. */

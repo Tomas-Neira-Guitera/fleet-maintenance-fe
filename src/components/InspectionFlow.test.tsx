@@ -38,6 +38,12 @@ const PRE_TRIP: ChecklistItemDef[] = [
   { id: 'int-testigos', label: 'Testigos de tablero', type: 'check', section: 'interior' },
 ];
 
+// CAM-159: checklist de un semirremolque, acortado.
+const TRAILER: ChecklistItemDef[] = [
+  { id: 'rem-enganche', label: 'Perno rey y quinta rueda trabados', type: 'check', section: 'exterior' },
+  { id: 'rem-frenos', label: 'Frenos', type: 'check', section: 'exterior' },
+];
+
 const POST_TRIP: ChecklistItemDef[] = [
   { id: 'post-danos', label: 'Daños nuevos en la carrocería', type: 'check', section: 'posttrip' },
   { id: 'post-luces', label: 'Luces', type: 'check', section: 'posttrip' },
@@ -84,7 +90,9 @@ async function confirmAndSend(user: ReturnType<typeof userEvent.setup>) {
 }
 
 beforeEach(() => {
-  checklistMock.mockImplementation(async (_id, type) => (type === 'pre-trip' ? PRE_TRIP : POST_TRIP));
+  checklistMock.mockImplementation(async (id, type) =>
+    type !== 'pre-trip' ? POST_TRIP : id.startsWith('semi') ? TRAILER : PRE_TRIP,
+  );
   tirePositionsMock.mockResolvedValue({ vehicleType: null, positions: [] });
   saveUsername('carlos.gomez');
   resetPendingInspectionsForTests();
@@ -326,9 +334,12 @@ describe('InspectionFlow — remolque del tractor (CAM-157)', () => {
   const SEMI = { id: 'semi-1', plate: 'ZZ001AA', brand: 'Helvética', model: 'Tri-eje', status: 'available' as const, vehicleType: 'semirremolque_3_ejes' };
   const ACOPLADO = { ...SEMI, id: 'aco-1', plate: 'ZZ002BB', vehicleType: 'acoplado' };
 
-  function renderTractor() {
-    saveCache('vehicles', [TRACTOR, SEMI, ACOPLADO]);
-    couplingMock.mockResolvedValue({ vehicleId: TRACTOR.id, towedBy: null, towing: null, canTow: [], history: [] });
+  function renderTractor(options: { fleet?: Vehicle[]; towing?: string } = {}) {
+    saveCache('vehicles', options.fleet ?? [TRACTOR, SEMI, ACOPLADO]);
+    const towing = options.towing
+      ? { id: options.towing, plate: 'ZZ001AA', vehicleType: 'semirremolque_3_ejes', coupledAt: '2026-11-01T10:00:00Z' }
+      : null;
+    couplingMock.mockResolvedValue({ vehicleId: TRACTOR.id, towedBy: null, towing, canTow: [], history: [] });
     submitMock.mockResolvedValue(result('pre-trip'));
     render(<InspectionFlow vehicle={TRACTOR} type="pre-trip" onDone={vi.fn()} onBack={vi.fn()} onUnavailable={vi.fn()} onLogout={vi.fn()} />);
   }
@@ -347,6 +358,58 @@ describe('InspectionFlow — remolque del tractor (CAM-157)', () => {
     await confirmAndSend(user);
 
     expect(submitMock.mock.calls[0][4]?.trailerId).toBe('semi-1');
+  });
+
+  it('con el remolque elegido muestra su checklist y lo manda en el mismo envío (CAM-159)', async () => {
+    const user = userEvent.setup();
+    renderTractor();
+
+    await user.selectOptions(await screen.findByLabelText('¿Qué remolque llevás?'), 'semi-1');
+    const section = (await screen.findByRole('heading', { name: 'Remolque ZZ001AA' })).closest('section')!;
+    expect(await within(section).findByText('Frenos')).toBeInTheDocument();
+    expect(checklistMock).toHaveBeenCalledWith('semi-1', 'pre-trip');
+    expect(screen.getByText('6 controles en OK')).toBeInTheDocument();
+
+    await user.click(within(section).getByRole('switch', { name: 'Frenos: reportar defecto' }));
+    await user.type(within(section).getByLabelText('Título (obligatorio)'), 'Frena poco');
+    await goToSummary(user);
+    expect(screen.getByText('Remolque: Frenos')).toBeInTheDocument();
+    await confirmAndSend(user);
+
+    const meta = submitMock.mock.calls[0][4]!;
+    expect(meta.trailerAnswers?.map((a) => [a.itemId, a.outcome])).toEqual([
+      ['rem-enganche', 'ok'],
+      ['rem-frenos', 'defect'],
+    ]);
+    expect(meta.trailerAnswers?.[1].defect?.description).toBe('Frena poco');
+  });
+
+  it('revisa el remolque que ya tenía enganchado aunque no lo cambie (CAM-159)', async () => {
+    const user = userEvent.setup();
+    renderTractor({ towing: 'semi-1' });
+
+    expect(await screen.findByRole('heading', { name: 'Remolque ZZ001AA' })).toBeInTheDocument();
+    await screen.findByText('Frenos');
+    await goToSummary(user);
+    await confirmAndSend(user);
+
+    expect(submitMock.mock.calls[0][4]?.trailerId).toBeUndefined();
+    expect(submitMock.mock.calls[0][4]?.trailerAnswers).toHaveLength(2);
+  });
+
+  it('un remolque que no puede salir no deja seguir (CAM-159)', async () => {
+    const user = userEvent.setup();
+    renderTractor({
+      fleet: [TRACTOR, { ...SEMI, blocked: true, blockReasons: [{ type: 'expired_document', message: 'VTV vencida' }] }],
+    });
+
+    const picker = await screen.findByLabelText('¿Qué remolque llevás?');
+    expect(within(picker).getByRole('option', { name: /ZZ001AA.*no puede salir/ })).toBeInTheDocument();
+    await user.selectOptions(picker, 'semi-1');
+    expect(screen.getByText(/ZZ001AA no puede salir: VTV vencida/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Kilómetros actuales'), '84320');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.queryByRole('heading', { name: 'Resumen' })).not.toBeInTheDocument();
   });
 
   it('si no lo cambia, no manda nada y el enganche queda como estaba', async () => {
