@@ -39,6 +39,14 @@ export function getTrailerItems(vehicleType: string | null | undefined): Checkli
   return fullTrailer ? items.filter((i) => i.id !== 'rem-patas') : items;
 }
 
+// CAM-159: espejo de ChecklistCatalog.trailerPostTripItems del backend.
+export const TRAILER_POST_TRIP_ITEMS: ChecklistItemDef[] = [
+  { id: 'rem-post-danos', label: 'Daños nuevos en el remolque', type: 'check', section: 'posttrip' },
+  { id: 'rem-post-luces', label: 'Luces', type: 'check', section: 'posttrip' },
+  { id: 'rem-post-neumaticos', label: 'Neumáticos', type: 'check', section: 'posttrip' },
+  { id: 'rem-post-enganche', label: 'Enganche y mangueras', type: 'check', section: 'posttrip' },
+];
+
 export const POST_TRIP_ITEMS: ChecklistItemDef[] = [
   { id: 'post-danos', label: 'Daños nuevos en la carrocería', type: 'check', section: 'posttrip' },
   { id: 'post-luces', label: 'Luces', type: 'check', section: 'posttrip' },

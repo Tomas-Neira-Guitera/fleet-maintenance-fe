@@ -44,6 +44,11 @@ const TRAILER: ChecklistItemDef[] = [
   { id: 'rem-frenos', label: 'Frenos', type: 'check', section: 'exterior' },
 ];
 
+const TRAILER_POST: ChecklistItemDef[] = [
+  { id: 'rem-post-danos', label: 'Daños nuevos en el remolque', type: 'check', section: 'posttrip' },
+  { id: 'rem-post-luces', label: 'Luces', type: 'check', section: 'posttrip' },
+];
+
 const POST_TRIP: ChecklistItemDef[] = [
   { id: 'post-danos', label: 'Daños nuevos en la carrocería', type: 'check', section: 'posttrip' },
   { id: 'post-luces', label: 'Luces', type: 'check', section: 'posttrip' },
@@ -91,7 +96,7 @@ async function confirmAndSend(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(() => {
   checklistMock.mockImplementation(async (id, type) =>
-    type !== 'pre-trip' ? POST_TRIP : id.startsWith('semi') ? TRAILER : PRE_TRIP,
+    id.startsWith('semi') ? (type === 'pre-trip' ? TRAILER : TRAILER_POST) : type === 'pre-trip' ? PRE_TRIP : POST_TRIP,
   );
   tirePositionsMock.mockResolvedValue({ vehicleType: null, positions: [] });
   saveUsername('carlos.gomez');
@@ -421,6 +426,52 @@ describe('InspectionFlow — remolque del tractor (CAM-157)', () => {
     await confirmAndSend(user);
 
     expect(submitMock.mock.calls[0][4]?.trailerId).toBeUndefined();
+  });
+
+  it('en el post-viaje el remolque arranca en OK y se manda así (CAM-159)', async () => {
+    const user = userEvent.setup();
+    saveCache('vehicles', [TRACTOR, SEMI]);
+    couplingMock.mockResolvedValue({
+      vehicleId: TRACTOR.id, towedBy: null, canTow: [], history: [],
+      towing: { id: 'semi-1', plate: 'ZZ001AA', vehicleType: 'semirremolque_3_ejes', coupledAt: '2026-11-01T10:00:00Z' },
+    });
+    submitMock.mockResolvedValue(result('post-trip'));
+    render(<InspectionFlow vehicle={TRACTOR} type="post-trip" onDone={vi.fn()} onBack={vi.fn()} onUnavailable={vi.fn()} onLogout={vi.fn()} />);
+
+    expect(await screen.findByLabelText('El remolque volvió en OK')).toBeChecked();
+    expect(screen.queryByText('Daños nuevos en el remolque')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('¿Qué remolque llevás?')).not.toBeInTheDocument();
+    await goToSummary(user, 'Kilómetros finales', '84500');
+    expect(screen.getByText('Remolque ZZ001AA: volvió en OK.')).toBeInTheDocument();
+    await confirmAndSend(user);
+
+    expect(submitMock.mock.calls[0][4]?.trailerAnswers?.map((a) => [a.itemId, a.outcome])).toEqual([
+      ['rem-post-danos', 'ok'],
+      ['rem-post-luces', 'ok'],
+    ]);
+  });
+
+  it('si destilda el OK del remolque, marca qué volvió mal (CAM-159)', async () => {
+    const user = userEvent.setup();
+    saveCache('vehicles', [TRACTOR, SEMI]);
+    couplingMock.mockResolvedValue({
+      vehicleId: TRACTOR.id, towedBy: null, canTow: [], history: [],
+      towing: { id: 'semi-1', plate: 'ZZ001AA', vehicleType: 'semirremolque_3_ejes', coupledAt: '2026-11-01T10:00:00Z' },
+    });
+    submitMock.mockResolvedValue(result('post-trip'));
+    render(<InspectionFlow vehicle={TRACTOR} type="post-trip" onDone={vi.fn()} onBack={vi.fn()} onUnavailable={vi.fn()} onLogout={vi.fn()} />);
+
+    await user.click(await screen.findByLabelText('El remolque volvió en OK'));
+    const section = screen.getByRole('heading', { name: 'Remolque ZZ001AA' }).closest('section')!;
+    await user.click(within(section).getByRole('switch', { name: 'Daños nuevos en el remolque: reportar defecto' }));
+    await user.type(within(section).getByLabelText('Título (obligatorio)'), 'Lona rota');
+    await goToSummary(user, 'Kilómetros finales', '84500');
+    expect(screen.getByText('Remolque: Daños nuevos en el remolque')).toBeInTheDocument();
+    await confirmAndSend(user);
+
+    const answers = submitMock.mock.calls[0][4]?.trailerAnswers;
+    expect(answers?.[0]).toMatchObject({ itemId: 'rem-post-danos', outcome: 'defect' });
+    expect(answers?.[0].defect?.description).toBe('Lona rota');
   });
 
   it('un utilitario no tiene remolque', async () => {

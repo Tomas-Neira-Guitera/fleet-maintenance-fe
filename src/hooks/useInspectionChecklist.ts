@@ -19,6 +19,8 @@ export function useInspectionChecklist(
   vehicleId: string | null,
   type: InspectionType,
   fallbackItems: ChecklistItemDef[],
+  // CAM-159: el remolque marca neumáticos también en el post-viaje.
+  withTires: boolean = type === 'pre-trip',
 ): InspectionChecklist {
   const [loaded, setLoaded] = useState<{ vehicleId: string; items: ChecklistItemDef[] } | null>(null);
   const [tires, setTires] = useState<{ vehicleId: string; positions: TirePositions | null } | null>(null);
@@ -41,7 +43,7 @@ export function useInspectionChecklist(
   }, [vehicleId, type, fallbackItems]);
 
   useEffect(() => {
-    if (!vehicleId || type !== 'pre-trip') return;
+    if (!vehicleId || !withTires) return;
     let cancelled = false;
     const cacheKey = tirePositionsCacheKey(vehicleId);
     const cached = () => {
@@ -60,7 +62,7 @@ export function useInspectionChecklist(
     return () => {
       cancelled = true;
     };
-  }, [vehicleId, type]);
+  }, [vehicleId, withTires]);
 
   // Lo cargado para otro vehículo (el chofer cambió de remolque) no vale.
   return {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getPreTripItems, getTrailerItems, POST_TRIP_ITEMS } from '../checklist/checklistDefinitions';
+import { getPreTripItems, getTrailerItems, POST_TRIP_ITEMS, TRAILER_POST_TRIP_ITEMS } from '../checklist/checklistDefinitions';
 import {
   ApiError,
   describeApiError,
@@ -52,6 +52,7 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
 // CAM-157: el control del checklist base donde se marca qué neumático tiene problemas. CAM-159: el del remolque.
 const TIRES_ITEM_ID = 'ext-neumaticos';
 const TRAILER_TIRES_ITEM_ID = 'rem-neumaticos';
+const TRAILER_POST_TRIP_TIRES_ITEM_ID = 'rem-post-neumaticos';
 
 // CAM-159: lo que el chofer cargó del remolque. Si elige otro remolque, arranca de cero.
 interface TrailerForm {
@@ -105,20 +106,22 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
 
   // CAM-157: el pre-viaje de un tractor o camión rígido dice qué remolque lleva. Arranca en el que tiene
   // enganchado; si el chofer no lo cambia, no se manda y el enganche queda como estaba.
-  const tows = type === 'pre-trip' && canTowAny(vehicle.vehicleType);
+  // CAM-159: en el post-viaje no se elige, pero se revisa el que lleva.
+  const canTowTrailer = canTowAny(vehicle.vehicleType);
+  const tows = type === 'pre-trip' && canTowTrailer;
   const trailers = useMemo(
     () =>
-      tows
+      canTowTrailer
         ? (loadCache<Vehicle[]>(VEHICLES_CACHE_KEY)?.data ?? []).filter(
             (v) => v.active !== false && canTow(vehicle.vehicleType, v.vehicleType),
           )
         : [],
-    [tows, vehicle.vehicleType],
+    [canTowTrailer, vehicle.vehicleType],
   );
   const [initialTrailer, setInitialTrailer] = useState<string | null>(null);
   const [trailerChoice, setTrailerChoice] = useState<string | null>(null);
   useEffect(() => {
-    if (!tows) return;
+    if (!canTowTrailer) return;
     let cancelled = false;
     const cacheKey = couplingCacheKey(vehicle.id);
     const apply = (current: string) => {
@@ -135,21 +138,32 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     return () => {
       cancelled = true;
     };
-  }, [tows, vehicle.id]);
+  }, [canTowTrailer, vehicle.id]);
   const trailerId = tows && trailerChoice !== null && trailerChoice !== initialTrailer ? trailerChoice : undefined;
   const checkItems = useMemo(() => items.filter((i) => i.type === 'check'), [items]);
 
-  // CAM-159: el remolque que sale con este pre-viaje (el elegido o el que ya tenía) se revisa en el mismo envío.
-  const towedTrailerId = tows && trailerChoice && trailerChoice !== 'none' ? trailerChoice : null;
+  // CAM-159: el remolque se revisa en el mismo envío: en el pre-viaje, el elegido o el que ya tenía; en el
+  // post-viaje, el que lleva. En el post-viaje arranca en OK y solo se despliega si el chofer lo destilda.
+  const towedTrailerId =
+    type === 'pre-trip'
+      ? tows && trailerChoice && trailerChoice !== 'none' ? trailerChoice : null
+      : initialTrailer && initialTrailer !== 'none' ? initialTrailer : null;
   const towedTrailer = towedTrailerId ? (trailers.find((t) => t.id === towedTrailerId) ?? null) : null;
-  const trailerFallback = useMemo(() => getTrailerItems(towedTrailer?.vehicleType), [towedTrailer?.vehicleType]);
-  const trailerChecklist = useInspectionChecklist(towedTrailerId, 'pre-trip', trailerFallback);
+  const trailerFallback = useMemo(
+    () => (type === 'pre-trip' ? getTrailerItems(towedTrailer?.vehicleType) : TRAILER_POST_TRIP_ITEMS),
+    [type, towedTrailer?.vehicleType],
+  );
+  const trailerChecklist = useInspectionChecklist(towedTrailerId, type, trailerFallback, true);
   const trailerItems = useMemo(() => trailerChecklist.items ?? [], [trailerChecklist.items]);
-  const trailerCheckItems = useMemo(() => trailerItems.filter((i) => i.type === 'check'), [trailerItems]);
+  const trailerTiresItemId = type === 'pre-trip' ? TRAILER_TIRES_ITEM_ID : TRAILER_POST_TRIP_TIRES_ITEM_ID;
+  const [trailerOk, setTrailerOk] = useState(true);
+  const trailerCollapsed = type === 'post-trip' && trailerOk;
+  const activeTrailerItems = useMemo(() => (trailerCollapsed ? [] : trailerItems), [trailerCollapsed, trailerItems]);
+  const trailerCheckItems = useMemo(() => activeTrailerItems.filter((i) => i.type === 'check'), [activeTrailerItems]);
   const trailerTirePositions = trailerChecklist.tirePositions;
   const canPickTrailerTires = Boolean(trailerTirePositions?.positions.some((p) => p.mounted));
   // Un remolque con un bloqueante abierto o un documento vencido no sale: el servidor lo rechazaría igual.
-  const trailerBlockedReason = towedTrailer?.blocked
+  const trailerBlockedReason = type === 'pre-trip' && towedTrailer?.blocked
     ? (towedTrailer.blockReasons ?? []).map((r) => r.message).join('; ') || 'tiene un defecto bloqueante o un documento vencido'
     : null;
 
@@ -183,12 +197,12 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   const tiresValid = !tiresInDefect || !canPickTires || tireConditions.length > 0;
 
   const trailerDefectCount = trailerCheckItems.filter((def) => trailerStateOf(def).outcome === 'defect').length;
-  const trailerTiresInDefect = trailerItems.some(
-    (def) => def.id === TRAILER_TIRES_ITEM_ID && trailerStateOf(def).outcome === 'defect',
+  const trailerTiresInDefect = activeTrailerItems.some(
+    (def) => def.id === trailerTiresItemId && trailerStateOf(def).outcome === 'defect',
   );
   const trailerTireConditions = trailerTiresInDefect ? toTireConditions(trailerState.tires) : [];
   const trailerTiresValid = !trailerTiresInDefect || !canPickTrailerTires || trailerTireConditions.length > 0;
-  const trailerReady = !towedTrailerId || (trailerChecklist.items !== null && !trailerBlockedReason);
+  const trailerReady = !towedTrailerId || trailerCollapsed || (trailerChecklist.items !== null && !trailerBlockedReason);
   const totalChecks = checkItems.length + trailerCheckItems.length;
   const totalDefects = defectCount + trailerDefectCount;
 
@@ -196,7 +210,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     items.every((def) => isItemValid(def, stateOf(def))) &&
     tiresValid &&
     trailerReady &&
-    trailerItems.every((def) => isItemValid(def, trailerStateOf(def))) &&
+    activeTrailerItems.every((def) => isItemValid(def, trailerStateOf(def))) &&
     trailerTiresValid;
 
   function updateItem(id: string, next: ChecklistItemState) {
@@ -227,10 +241,10 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   function updateTrailerTires(next: TireConditionValue) {
     const first = toTireConditions(next)[0]?.conditions[0];
     updateTrailerForm((form) => {
-      const current = form.answers[TRAILER_TIRES_ITEM_ID];
+      const current = form.answers[trailerTiresItemId];
       if (!first || !current?.defect || current.defect.description.trim()) return { ...form, tires: next };
       const titled = { ...current, defect: { ...current.defect, description: tireConditionLabel(first) } };
-      return { ...form, tires: next, answers: { ...form.answers, [TRAILER_TIRES_ITEM_ID]: titled } };
+      return { ...form, tires: next, answers: { ...form.answers, [trailerTiresItemId]: titled } };
     });
   }
 
@@ -289,8 +303,9 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
         defect: state.defect,
       };
     });
+    // En el post-viaje con el remolque en OK, se manda todo en OK: queda su post-viaje en el historial.
     const fullTrailerAnswers: ChecklistAnswer[] = trailerItems.map((def) => {
-      const state = trailerStateOf(def);
+      const state = trailerCollapsed ? initialState(def) : trailerStateOf(def);
       return {
         itemId: def.id,
         label: def.label,
@@ -308,7 +323,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
       clientSubmissionId: newUuid(),
       tireConditions: tireConditions.length > 0 ? tireConditions : undefined,
       trailerId,
-      trailerAnswers: towedTrailerId ? fullTrailerAnswers : undefined,
+      trailerAnswers: towedTrailerId && trailerItems.length > 0 ? fullTrailerAnswers : undefined,
       trailerTireConditions: trailerTireConditions.length > 0 ? trailerTireConditions : undefined,
     };
     const queue = () =>
@@ -486,6 +501,9 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
             ))}
           </ul>
         )}
+        {trailerCollapsed && towedTrailerId && (
+          <p className="muted">Remolque {towedTrailer?.plate ?? ''}: volvió en OK.</p>
+        )}
         {trailerTireConditions.length > 0 && (
           <ul className="tire-picker__summary">
             {trailerTireConditions.map((t) => (
@@ -583,7 +601,13 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
       {towedTrailerId && (
         <section className="checklist-section" aria-label="Checklist del remolque">
           <h2 className="section-title">Remolque {towedTrailer?.plate ?? ''}</h2>
-          {trailerBlockedReason ? (
+          {type === 'post-trip' && (
+            <label className="confirm-check">
+              <input type="checkbox" checked={trailerOk} onChange={(e) => setTrailerOk(e.target.checked)} />
+              El remolque volvió en OK
+            </label>
+          )}
+          {trailerCollapsed ? null : trailerBlockedReason ? (
             <p className="error-banner">
               {towedTrailer?.plate} no puede salir: {trailerBlockedReason}. Elegí otro remolque o salí sin remolque.
             </p>
@@ -599,7 +623,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
                   onChange={(next) => updateTrailerItem(def.id, next)}
                   showValidation={showValidation}
                   defectExtra={
-                    def.id === TRAILER_TIRES_ITEM_ID && canPickTrailerTires && trailerTirePositions ? (
+                    def.id === trailerTiresItemId && canPickTrailerTires && trailerTirePositions ? (
                       <TireConditionPicker
                         tires={trailerTirePositions}
                         value={trailerState.tires}
