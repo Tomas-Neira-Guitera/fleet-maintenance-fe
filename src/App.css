@@ -582,7 +582,7 @@
   color: var(--fg-white);
 }
 
-/* CAM-148: OT en espera, frenada por un motivo. El mismo azul que su badge en el admin. */
+/* Estado informativo: algo en curso, sin alerta (ej. "En viaje", OT "En proceso"). */
 .status-pill--info {
   background: var(--fg-info-bg);
   color: var(--fg-info-text);

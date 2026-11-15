@@ -1122,7 +1122,7 @@
 }
 
 .vehicle-maintenance-list__icon-btn--warn:hover:not(:disabled) {
-  background: var(--fg-warn-bg);
+  background: color-mix(in srgb, var(--fg-warn-bg), var(--fg-warn) 15%);
 }
 
 .vehicle-maintenance-list__icon-btn--ok {
@@ -1132,7 +1132,7 @@
 }
 
 .vehicle-maintenance-list__icon-btn--ok:hover:not(:disabled) {
-  background: var(--fg-ok-bg);
+  background: color-mix(in srgb, var(--fg-ok-bg), var(--fg-ok) 15%);
 }
 
 .vehicle-maintenance-list__icon-btn--danger {
@@ -1142,7 +1142,7 @@
 }
 
 .vehicle-maintenance-list__icon-btn--danger:hover:not(:disabled) {
-  background: var(--fg-crit-bg);
+  background: color-mix(in srgb, var(--fg-crit-bg), var(--fg-critical) 15%);
 }
 
 /* Campo de fecha/hora del picker de programación (CAM-50/CAM-51). */
@@ -2181,14 +2181,14 @@
 }
 
 .work-order-badge--en_proceso {
-  background: var(--fg-warn-bg);
-  color: var(--fg-warn-text);
+  background: var(--fg-info-bg);
+  color: var(--fg-info-text);
 }
 
-/* CAM-148: frenada, ni en curso ni terminada. El azul de los gráficos, que no se usa en estados. */
+/* CAM-148: frenada por un motivo, ni en curso ni terminada. Mismo ámbar que en la vista del técnico. */
 .work-order-badge--en_espera {
-  background: rgba(71, 104, 165, 0.12);
-  color: var(--fg-chart-1);
+  background: var(--fg-warn-bg);
+  color: var(--fg-warn-text);
 }
 
 .work-order-badge--finalizada {
@@ -2238,13 +2238,13 @@
   gap: 12px;
 }
 
-/* CAM-148: por qué está en espera, con el azul de su badge. */
+/* CAM-148: por qué está en espera, con el ámbar de su badge. */
 .wo-detail__pause {
   margin-top: 12px;
   padding: 10px 12px;
-  border-left: 3px solid var(--fg-chart-1);
+  border-left: 3px solid var(--fg-warn);
   border-radius: 6px;
-  background: rgba(71, 104, 165, 0.06);
+  background: var(--fg-warn-bg);
 }
 
 .wo-detail__section {
