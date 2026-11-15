@@ -32,7 +32,7 @@ export function HealthRing({ okCount, total, status, label }: HealthRingProps) {
           cy={SIZE / 2}
           r={RADIUS}
           fill="none"
-          stroke="rgba(62, 74, 66, 0.1)"
+          stroke="rgba(31, 42, 36, 0.1)"
           strokeWidth={STROKE}
         />
         <circle

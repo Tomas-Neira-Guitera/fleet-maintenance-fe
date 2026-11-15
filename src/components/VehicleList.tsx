@@ -196,7 +196,7 @@ export function VehicleList({ onSelectVehicle, notice, confirmation, onReportPro
                     No disponible
                   </span>
                 ) : onTrip ? (
-                  <span className="status-pill status-pill--warn">
+                  <span className="status-pill status-pill--info">
                     <LockClockIcon className="status-pill__icon" />
                     En viaje
                   </span>

@@ -85,7 +85,7 @@
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--fg-crit-bg);
-  color: var(--fg-critical);
+  color: var(--fg-critical-text);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;

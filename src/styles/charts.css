@@ -31,7 +31,7 @@
 
 .chart-card__hint {
   font-size: 12px;
-  color: rgba(62, 74, 66, 0.6);
+  color: rgba(31, 42, 36, 0.6);
 }
 
 .chart-legend {
@@ -42,7 +42,7 @@
   flex-wrap: wrap;
   gap: 4px 16px;
   font-size: 12px;
-  color: rgba(62, 74, 66, 0.75);
+  color: rgba(31, 42, 36, 0.75);
 }
 
 .chart-legend__item {
@@ -133,7 +133,7 @@
 .donut-chart__caption {
   font-size: 11px;
   line-height: 1.25;
-  color: rgba(62, 74, 66, 0.65);
+  color: rgba(31, 42, 36, 0.65);
 }
 
 .donut-chart__legend {
@@ -173,7 +173,7 @@
 
 .donut-chart__row--selected {
   background: var(--fg-bg);
-  border-color: rgba(62, 74, 66, 0.32);
+  border-color: rgba(31, 42, 36, 0.32);
 }
 
 .donut-chart__swatch {
@@ -199,7 +199,7 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  color: rgba(62, 74, 66, 0.6);
+  color: rgba(31, 42, 36, 0.6);
 }
 
 /* --- Barras horizontales --- */
@@ -253,7 +253,7 @@
 
 .bar-list__row--selected {
   background: var(--fg-bg);
-  border-color: rgba(62, 74, 66, 0.32);
+  border-color: rgba(31, 42, 36, 0.32);
 }
 
 .bar-list__row--dimmed {
@@ -261,7 +261,7 @@
 }
 
 .bar-list__row--muted .bar-list__label {
-  color: rgba(62, 74, 66, 0.55);
+  color: rgba(31, 42, 36, 0.55);
 }
 
 .bar-list__label {
@@ -281,7 +281,7 @@
 
 .bar-list__sublabel {
   font-size: 11px;
-  color: rgba(62, 74, 66, 0.6);
+  color: rgba(31, 42, 36, 0.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -372,7 +372,7 @@
 .column-chart__label {
   font-family: var(--fg-font-mono);
   font-size: 11px;
-  fill: rgba(62, 74, 66, 0.6);
+  fill: rgba(31, 42, 36, 0.6);
 }
 
 .column-chart__value {
@@ -408,7 +408,7 @@
 
 .period-filter__separator {
   font-size: 13px;
-  color: rgba(62, 74, 66, 0.6);
+  color: rgba(31, 42, 36, 0.6);
 }
 
 /* Texto opcional delante del select (ej. "Creadas:" en Órdenes de trabajo, CAM-92). */
@@ -564,7 +564,7 @@
 .expenses__top-plate {
   font-family: var(--fg-font-mono);
   font-size: 11px;
-  color: rgba(62, 74, 66, 0.6);
+  color: rgba(31, 42, 36, 0.6);
 }
 
 .expenses__top-amount {
@@ -737,7 +737,7 @@
   color: var(--fg-text);
   text-align: left;
   text-decoration: underline;
-  text-decoration-color: rgba(62, 74, 66, 0.45);
+  text-decoration-color: rgba(31, 42, 36, 0.45);
   text-underline-offset: 3px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -820,7 +820,7 @@
 .user-form__subtitle {
   margin: 2px 0 0;
   font-size: 13px;
-  color: rgba(62, 74, 66, 0.65);
+  color: rgba(31, 42, 36, 0.65);
 }
 
 /* Activar o desactivar: separado del resto del formulario, que edita datos. */
@@ -837,7 +837,7 @@
 .user-form__status-text {
   margin: 0;
   font-size: 13px;
-  color: rgba(62, 74, 66, 0.75);
+  color: rgba(31, 42, 36, 0.75);
 }
 
 .user-form__status-actions {
@@ -877,7 +877,7 @@
 .user-activity__subtitle {
   margin: 4px 0 0;
   font-size: 13px;
-  color: rgba(62, 74, 66, 0.65);
+  color: rgba(31, 42, 36, 0.65);
 }
 
 .user-activity__kpis {

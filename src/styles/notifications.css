@@ -15,7 +15,7 @@
   padding: 6px 12px;
   border-radius: 999px;
   background: var(--fg-ok-bg);
-  color: var(--fg-ok);
+  color: var(--fg-ok-text);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -147,7 +147,7 @@
   padding: 1px 8px;
   border-radius: 999px;
   background: var(--fg-ok-bg);
-  color: var(--fg-ok);
+  color: var(--fg-ok-text);
   font-size: 11px;
   font-weight: 600;
 }
@@ -156,7 +156,7 @@
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: var(--fg-ok);
+  accent-color: var(--fg-ok-text);
   cursor: pointer;
 }
 
@@ -194,7 +194,7 @@
 }
 
 .notif-matrix__warn svg {
-  color: var(--fg-warn);
+  color: var(--fg-warn-text);
 }
 
 .notif-matrix__expand {
@@ -301,7 +301,7 @@
 
 .notif-detail__users input,
 .plan-notif__toggle input {
-  accent-color: var(--fg-ok);
+  accent-color: var(--fg-ok-text);
 }
 
 .notif-detail__save {
@@ -337,7 +337,7 @@
 .notif-detail__email-warning svg {
   flex-shrink: 0;
   margin-top: 2px;
-  color: var(--fg-warn);
+  color: var(--fg-warn-text);
 }
 
 .notif-detail__email-warning p {
@@ -428,7 +428,7 @@
   height: 22px;
   border-radius: 999px;
   background: var(--fg-chart-track);
-  box-shadow: inset 0 0 0 1px rgba(62, 74, 66, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(31, 42, 36, 0.22);
   transition: background-color 0.15s ease;
 }
 
@@ -477,13 +477,13 @@
 }
 
 .notif-chip--on {
-  border-color: var(--fg-ok);
+  border-color: var(--fg-ok-text);
   background: var(--fg-ok-bg);
 }
 
 .notif-chip input {
   margin: 0;
-  accent-color: var(--fg-ok);
+  accent-color: var(--fg-ok-text);
 }
 
 /* Anticipación (días / km), en la matriz y en los avisos de un plan. */
@@ -536,13 +536,13 @@
 }
 
 .plan-notif__option--on {
-  border-color: var(--fg-ok);
+  border-color: var(--fg-ok-text);
   background: var(--fg-ok-bg);
 }
 
 .plan-notif__option input {
   margin-top: 3px;
-  accent-color: var(--fg-ok);
+  accent-color: var(--fg-ok-text);
 }
 
 .plan-notif__summary {

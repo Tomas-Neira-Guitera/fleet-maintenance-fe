@@ -91,7 +91,7 @@
   border: var(--fg-border);
   border-radius: var(--fg-radius);
   background: var(--fg-white);
-  color: var(--fg-critical);
+  color: var(--fg-critical-text);
   cursor: pointer;
 }
 
