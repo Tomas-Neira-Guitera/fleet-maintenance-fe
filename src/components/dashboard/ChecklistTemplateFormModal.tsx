@@ -113,7 +113,7 @@ export function ChecklistTemplateFormModal({ template, onClose, onSaved }: Check
                 >
                   {CHECKLIST_SECTIONS.map((s) => (
                     <option key={s.key} value={s.key}>
-                      {s.key === 'exterior' ? 'Exterior' : 'Cabina'}
+                      {s.short}
                     </option>
                   ))}
                 </select>

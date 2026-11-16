@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ApiError } from '../../services/apiClient';
 import { addVehicleChecklistItem, type NewChecklistItem } from '../../services/checklistService';
 import type { VehicleChecklistItem } from '../../types/domain';
-import { CHECKLIST_LABEL_MAX_LENGTH, CHECKLIST_SECTIONS } from '../../utils/checklistSections';
+import { CHECKLIST_LABEL_MAX_LENGTH, sectionsOf, type ChecklistPhase } from '../../utils/checklistSections';
 import { CharCounter } from '../CharCounter';
 import { CloseIcon } from '../icons';
 import '../../styles/dashboard.css';
@@ -12,13 +12,16 @@ interface AddChecklistItemModalProps {
   plate: string;
   onClose: () => void;
   onAdded: (item: VehicleChecklistItem) => void;
+  /** CAM-159: a qué checklist va, el del pre-viaje o el del post-viaje. */
+  phase?: ChecklistPhase;
 }
 
-/** CAM-31: alta de un ítem propio del vehículo, incluido o no en el checklist pre-viaje del chofer. */
-export function AddChecklistItemModal({ vehicleId, plate, onClose, onAdded }: AddChecklistItemModalProps) {
+/** CAM-31: alta de un ítem propio del vehículo, incluido o no en el checklist del chofer. */
+export function AddChecklistItemModal({ vehicleId, plate, onClose, onAdded, phase = 'pre-trip' }: AddChecklistItemModalProps) {
   const [label, setLabel] = useState('');
   const [enabled, setEnabled] = useState(true);
-  const [section, setSection] = useState<NewChecklistItem['section']>('exterior');
+  const sections = sectionsOf(phase);
+  const [section, setSection] = useState<NewChecklistItem['section']>(sections[0].key);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +41,7 @@ export function AddChecklistItemModal({ vehicleId, plate, onClose, onAdded }: Ad
       <div className="modal modal--narrow">
         <header className="modal__header">
           <div>
-            <h2 className="modal__title">Agregar ítem al vehículo</h2>
+            <h2 className="modal__title">Agregar ítem al {phase === 'post-trip' ? 'post-viaje' : 'pre-viaje'}</h2>
             <p className="modal__subtitle">{plate}</p>
           </div>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Cerrar">
@@ -60,27 +63,30 @@ export function AddChecklistItemModal({ vehicleId, plate, onClose, onAdded }: Ad
             />
             <CharCounter value={label} max={CHECKLIST_LABEL_MAX_LENGTH} />
           </label>
-          <label className="schedule-picker__field">
-            Sección
-            <select
-              className="schedule-picker__input"
-              value={section}
-              onChange={(e) => setSection(e.target.value as NewChecklistItem['section'])}
-            >
-              {CHECKLIST_SECTIONS.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* CAM-159: el post-viaje tiene una sola sección. */}
+          {sections.length > 1 && (
+            <label className="schedule-picker__field">
+              Sección
+              <select
+                className="schedule-picker__input"
+                value={section}
+                onChange={(e) => setSection(e.target.value as NewChecklistItem['section'])}
+              >
+                {sections.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="checklist-toggle">
             <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
             <span>
               Incluir en el checklist del chofer
               <small>
                 {enabled
-                  ? 'El chofer lo revisa en cada pre-viaje.'
+                  ? `El chofer lo revisa en cada ${phase === 'post-trip' ? 'post-viaje' : 'pre-viaje'}.`
                   : 'Queda cargado en el vehículo, pero no se revisa en la inspección.'}
               </small>
             </span>

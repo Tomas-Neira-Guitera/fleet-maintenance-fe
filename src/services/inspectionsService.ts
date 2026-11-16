@@ -29,10 +29,14 @@ export function toWireAnswers(answers: ChecklistAnswer[]): WireAnswer[] {
 export interface SubmissionMeta {
   performedAt?: string;
   clientSubmissionId?: string;
-  /** CAM-157: las cubiertas con problemas; solo con "Neumáticos" en defecto. */
+  /** CAM-157: los neumáticos con problemas; solo con "Neumáticos" en defecto. */
   tireConditions?: TireConditionInput[];
   /** CAM-157: el remolque que lleva ("none": sin remolque); sin el campo, el enganche no cambia. */
   trailerId?: string;
+  /** CAM-159: el checklist del remolque que lleva (el elegido o el que ya tenía). */
+  trailerAnswers?: ChecklistAnswer[];
+  /** CAM-159: los neumáticos del remolque con problemas, con su "Neumáticos" en defecto. */
+  trailerTireConditions?: TireConditionInput[];
 }
 
 /** POST /api/inspections/{vehicleId} -- el chofer es el del token (CAM-85): 401 si la sesión venció. */
@@ -54,6 +58,8 @@ export async function submitInspection(
       clientSubmissionId: meta.clientSubmissionId,
       tireConditions: meta.tireConditions?.length ? meta.tireConditions : undefined,
       trailerId: meta.trailerId,
+      trailerAnswers: meta.trailerAnswers ? toWireAnswers(meta.trailerAnswers) : undefined,
+      trailerTireConditions: meta.trailerTireConditions?.length ? meta.trailerTireConditions : undefined,
     }),
   });
   if (!res.ok) return throwApiError(res, 'No se pudo enviar la inspección');

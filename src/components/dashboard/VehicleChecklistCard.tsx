@@ -6,11 +6,12 @@ import {
   setVehicleChecklistItemEnabled,
 } from '../../services/checklistService';
 import type { VehicleChecklistItem } from '../../types/domain';
-import { CHECKLIST_SECTIONS } from '../../utils/checklistSections';
+import { sectionsOf, type ChecklistPhase } from '../../utils/checklistSections';
 import { TrashIcon } from '../icons';
 import { AddChecklistItemModal } from './AddChecklistItemModal';
 import { ApplyChecklistTemplateModal } from './ApplyChecklistTemplateModal';
 import '../../styles/dashboard.css';
+import '../../styles/tires.css';
 
 interface VehicleChecklistCardProps {
   vehicleId: string;
@@ -21,7 +22,8 @@ interface VehicleChecklistCardProps {
 
 /**
  * CAM-31: ítems de inspección del vehículo. "Quitar" saca un ítem del checklist del chofer pero lo
- * deja cargado en el vehículo; "Eliminar" (solo ítems agregados) lo borra del vehículo.
+ * deja cargado en el vehículo; "Eliminar" (solo ítems agregados) lo borra del vehículo. CAM-159: el
+ * pre-viaje y el post-viaje se configuran por separado.
  */
 export function VehicleChecklistCard({ vehicleId, plate, inactive = false }: VehicleChecklistCardProps) {
   const [items, setItems] = useState<VehicleChecklistItem[] | null>(null);
@@ -29,6 +31,7 @@ export function VehicleChecklistCard({ vehicleId, plate, inactive = false }: Veh
   const [busyId, setBusyId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [applyingTemplate, setApplyingTemplate] = useState(false);
+  const [phase, setPhase] = useState<ChecklistPhase>('pre-trip');
   // Se recarga después de aplicar una plantilla.
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -73,12 +76,13 @@ export function VehicleChecklistCard({ vehicleId, plate, inactive = false }: Veh
     }
   }
 
-  const totalCount = items?.length ?? 0;
+  const phaseSections = sectionsOf(phase);
+  const phaseItems = items?.filter((i) => phaseSections.some((s) => s.key === i.section)) ?? [];
 
   return (
     <section className="vehicle-detail__card vehicle-checklist">
       <header className="vehicle-checklist__header">
-        <h2 className="vehicle-detail__card-title">Checklist de inspección ({totalCount} ítems)</h2>
+        <h2 className="vehicle-detail__card-title">Checklist de inspección ({phaseItems.length} ítems)</h2>
         {items && (
           <div className="vehicle-checklist__header-actions">
             {!inactive && (
@@ -92,8 +96,23 @@ export function VehicleChecklistCard({ vehicleId, plate, inactive = false }: Veh
           </div>
         )}
       </header>
+      <div className="tires-segmented" role="group" aria-label="Qué checklist">
+        {(['pre-trip', 'post-trip'] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            aria-pressed={phase === p}
+            className={`tires-segmented__btn${phase === p ? ' tires-segmented__btn--active' : ''}`}
+            onClick={() => setPhase(p)}
+          >
+            {p === 'pre-trip' ? 'Pre-viaje' : 'Post-viaje'}
+          </button>
+        ))}
+      </div>
       <p className="vehicle-detail__item-meta">
-        Ítems de este vehículo y cuáles revisa el chofer en el pre-viaje. El post-viaje es igual para toda la flota.
+        {phase === 'pre-trip'
+          ? 'Ítems de este vehículo y cuáles revisa el chofer antes de salir.'
+          : 'Ítems de este vehículo y cuáles revisa el chofer al terminar el viaje.'}
       </p>
 
       {error && <p className="error-banner">{error}</p>}
@@ -102,7 +121,7 @@ export function VehicleChecklistCard({ vehicleId, plate, inactive = false }: Veh
       {items && (
         // Con su propia pestaña (CAM-127) se ven todos los ítems, sin scroll interno.
         <div className="vehicle-checklist__sections">
-          {CHECKLIST_SECTIONS.map(({ key, label: sectionLabel }) => {
+          {phaseSections.map(({ key, label: sectionLabel }) => {
             const sectionItems = items.filter((i) => i.section === key);
             if (sectionItems.length === 0) return null;
             return (
@@ -162,6 +181,7 @@ export function VehicleChecklistCard({ vehicleId, plate, inactive = false }: Veh
         <AddChecklistItemModal
           vehicleId={vehicleId}
           plate={plate}
+          phase={phase}
           onClose={() => setAdding(false)}
           onAdded={(created) => {
             setItems((prev) => (prev ? [...prev, created] : [created]));
@@ -173,8 +193,8 @@ export function VehicleChecklistCard({ vehicleId, plate, inactive = false }: Veh
         <ApplyChecklistTemplateModal
           vehicle={{ id: vehicleId, plate }}
           onClose={() => setApplyingTemplate(false)}
-          onApplied={(result) => {
-            if (result.added > 0) setReloadKey((k) => k + 1);
+          onChanged={(changes) => {
+            if (changes.added + changes.removed > 0) setReloadKey((k) => k + 1);
           }}
         />
       )}

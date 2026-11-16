@@ -47,7 +47,7 @@ export function couplingCacheKey(vehicleId: string): string {
   return `coupling.${vehicleId}`;
 }
 
-/** CAM-157: las posiciones con cubierta del vehículo, para anotar el dibujo sin señal. */
+/** CAM-157: las posiciones con neumático del vehículo, para anotar el dibujo sin señal. */
 export function tirePositionsCacheKey(vehicleId: string): string {
   return `tire-positions.${vehicleId}`;
 }

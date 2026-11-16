@@ -9,7 +9,7 @@ interface ChecklistItemCardProps {
   state: ChecklistItemState;
   onChange: (next: ChecklistItemState) => void;
   showValidation?: boolean;
-  /** Se muestra arriba de la carga del defecto, solo con el ítem en defecto (CAM-157: qué cubierta). */
+  /** Se muestra arriba de la carga del defecto, solo con el ítem en defecto (CAM-157: qué neumático). */
   defectExtra?: ReactNode;
 }
 

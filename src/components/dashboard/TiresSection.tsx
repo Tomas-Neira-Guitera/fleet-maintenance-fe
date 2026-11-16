@@ -24,7 +24,7 @@ interface TiresSectionProps {
   onOpenVehicle: (vehicleId: string) => void;
 }
 
-/** Una fila de "Por vehículo": sus posiciones con la cubierta que tiene cada una. */
+/** Una fila de "Por vehículo": sus posiciones con el neumático que tiene cada una. */
 interface VehicleGroup {
   vehicle: Vehicle;
   slots: { position: string; label: string; tire: Tire | null }[];
@@ -61,7 +61,7 @@ function matches(tire: Tire, query: string): boolean {
 }
 
 function HealthBadge({ tire }: { tire: Tire | null }) {
-  if (!tire) return <span className="muted">Sin cubierta</span>;
+  if (!tire) return <span className="muted">Sin neumático</span>;
   const health = tireHealth(tire);
   if (health === 'ok') return <span className="tire-health tire-health--ok">Sin problemas</span>;
   return (
@@ -71,7 +71,7 @@ function HealthBadge({ tire }: { tire: Tire | null }) {
   );
 }
 
-/** CAM-157: inventario de cubiertas en tres vistas: por vehículo, stock y bajas, y costo por km por marca. */
+/** CAM-157: inventario de neumáticos en tres vistas: por vehículo, stock y bajas, y costo por km por marca. */
 export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
   const [tires, setTires] = useState<Tire[] | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -97,7 +97,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
         setVehicles(fleet);
       })
       .catch(() => {
-        if (!cancelled) setError('No se pudieron cargar las cubiertas. Intentá de nuevo.');
+        if (!cancelled) setError('No se pudieron cargar los neumáticos. Intentá de nuevo.');
       });
     return () => {
       cancelled = true;
@@ -120,12 +120,12 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
   function handleRetire(tire: Tire) {
     const reason = window.prompt(`Motivo de la baja de ${tireLabel(tire)} (opcional):`);
     if (reason === null) return;
-    void run(tire, () => retireTire(tire.id, reason.trim() || undefined), 'No se pudo dar de baja la cubierta.');
+    void run(tire, () => retireTire(tire.id, reason.trim() || undefined), 'No se pudo dar de baja el neumático.');
   }
 
   function handleDelete(tire: Tire) {
-    if (!window.confirm(`¿Borrar ${tireLabel(tire)}? Solo se puede si nunca estuvo montada.`)) return;
-    void run(tire, () => deleteTire(tire.id), 'No se pudo borrar la cubierta.');
+    if (!window.confirm(`¿Borrar ${tireLabel(tire)}? Solo se puede si nunca estuvo montado.`)) return;
+    void run(tire, () => deleteTire(tire.id), 'No se pudo borrar el neumático.');
   }
 
   function toggle(vehicleId: string) {
@@ -211,23 +211,23 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
         Volver
       </button>
       <header className="fleet-status__header">
-        <h1 className="fleet-status__title">Cubiertas</h1>
+        <h1 className="fleet-status__title">Neumáticos</h1>
         <div className="tires-header__actions">
           <button type="button" className="primary-btn vehicles-section__new-btn" onClick={() => setEditing('new')}>
-            + Nueva cubierta
+            + Nuevo neumático
           </button>
         </div>
       </header>
 
       {error && <p className="error-banner">{error}</p>}
-      {!tires && !error && <p className="muted">Cargando cubiertas…</p>}
+      {!tires && !error && <p className="muted">Cargando neumáticos…</p>}
 
       {tires && (
         <>
           <div className="tires-kpis">
             <button type="button" className="tires-kpi" onClick={() => { setView('vehicles'); setOnlyProblems(false); }}>
               <span className="tires-kpi__value">{counts.mounted}</span>
-              <span className="tires-kpi__label">Montadas</span>
+              <span className="tires-kpi__label">Montados</span>
             </button>
             <button type="button" className="tires-kpi" onClick={() => { setView('stock'); setStockFilter('stock'); }}>
               <span className="tires-kpi__value">{counts.stock}</span>
@@ -235,7 +235,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
             </button>
             <button type="button" className="tires-kpi" onClick={() => { setView('stock'); setStockFilter('retired'); }}>
               <span className="tires-kpi__value">{counts.retired}</span>
-              <span className="tires-kpi__label">Dadas de baja</span>
+              <span className="tires-kpi__label">Dados de baja</span>
             </button>
             <button
               type="button"
@@ -247,7 +247,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
             </button>
           </div>
 
-          <div className="vehicle-tabs tires-section__tabs" role="tablist" aria-label="Vistas de cubiertas">
+          <div className="vehicle-tabs tires-section__tabs" role="tablist" aria-label="Vistas de neumáticos">
             {(Object.keys(VIEW_LABEL) as View[]).map((v) => (
               <button
                 key={v}
@@ -287,7 +287,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
                       className={`tires-segmented__btn${stockFilter === f ? ' tires-segmented__btn--active' : ''}`}
                       onClick={() => setStockFilter(f)}
                     >
-                      {f === 'all' ? 'Todas' : f === 'stock' ? 'En stock' : 'Dadas de baja'}
+                      {f === 'all' ? 'Todos' : f === 'stock' ? 'En stock' : 'Dados de baja'}
                     </button>
                   ))}
                 </div>
@@ -299,7 +299,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
             <div className="tires-groups">
               {visibleGroups.length === 0 && (
                 <p className="muted">
-                  {onlyProblems ? 'Ninguna cubierta tiene problemas reportados.' : 'No hay vehículos que coincidan.'}
+                  {onlyProblems ? 'Ningún neumático tiene problemas reportados.' : 'No hay vehículos que coincidan.'}
                 </p>
               )}
               {visibleGroups.map((g) => {
@@ -319,7 +319,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
                         <span className="tires-group__type"> · {vehicleTypeLabel(g.vehicle.vehicleType)}</span>
                       </span>
                       <span className={`tires-group__count${g.mounted < g.slots.length ? ' tires-group__count--gap' : ''}`}>
-                        {g.mounted}/{g.slots.length} montadas
+                        {g.mounted}/{g.slots.length} montados
                       </span>
                       {g.problems > 0 ? (
                         <span className="tire-health tire-health--warn">
@@ -335,7 +335,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
                           <thead>
                             <tr>
                               <th>Posición</th>
-                              <th>Cubierta</th>
+                              <th>Neumático</th>
                               <th className="fleet-status__km">Km</th>
                               <th>Estado</th>
                             </tr>
@@ -374,13 +374,13 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
             <div className="fleet-status__table-wrap">
               {stockRows.length === 0 ? (
                 <p className="muted">
-                  {q ? 'No hay cubiertas que coincidan.' : stockFilter === 'retired' ? 'No hay cubiertas dadas de baja.' : 'No hay cubiertas en stock.'}
+                  {q ? 'No hay neumáticos que coincidan.' : stockFilter === 'retired' ? 'No hay neumáticos dados de baja.' : 'No hay neumáticos en stock.'}
                 </p>
               ) : (
                 <table className="fleet-status__table">
                   <thead>
                     <tr>
-                      {sortHeader('tire', 'Cubierta')}
+                      {sortHeader('tire', 'Neumático')}
                       {sortHeader('status', 'Estado')}
                       {sortHeader('purchase', 'Compra')}
                       {sortHeader('km', 'Km', 'fleet-status__km')}
@@ -454,7 +454,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
               <h2 className="vehicle-detail__card-title">Costo por km por marca</h2>
               {comparison.brands.length === 0 ? (
                 <p className="muted">
-                  Todavía no hay cubiertas con {numberFormatter.format(comparison.minKm)} km o más para comparar.
+                  Todavía no hay neumáticos con {numberFormatter.format(comparison.minKm)} km o más para comparar.
                 </p>
               ) : (
                 <>
@@ -470,7 +470,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
                         </span>
                         <span className="tires-brands__value">{formatCostPerKm(b.costPerKm)}</span>
                         <span className="tires-brands__meta">
-                          {b.tires} {b.tires === 1 ? 'cubierta' : 'cubiertas'}
+                          {b.tires} {b.tires === 1 ? 'neumático' : 'neumáticos'}
                           {b.retired > 0 ? ` · ${b.retired} de baja` : ''} · {numberFormatter.format(b.averageKm)} km
                           promedio
                         </span>
@@ -478,7 +478,7 @@ export function TiresSection({ onBack, onOpenVehicle }: TiresSectionProps) {
                     ))}
                   </ul>
                   <p className="vehicle-detail__item-meta">
-                    Costo de compra sobre km recorridos, de las cubiertas con al menos{' '}
+                    Costo de compra sobre km recorridos, de los neumáticos con al menos{' '}
                     {numberFormatter.format(comparison.minKm)} km. Más corta es más barata por km.
                   </p>
                 </>

@@ -32,7 +32,7 @@
 
 .tire-status--stock {
   background: var(--fg-ok-bg);
-  color: var(--fg-ok);
+  color: var(--fg-ok-text);
 }
 
 .tire-status--mounted {
@@ -42,10 +42,10 @@
 
 .tire-status--retired {
   background: var(--fg-crit-bg);
-  color: var(--fg-critical);
+  color: var(--fg-critical-text);
 }
 
-/* Estado de una cubierta según lo que reportaron los choferes. */
+/* Estado de un neumático según lo que reportaron los choferes. */
 .tire-health {
   display: inline-block;
   padding: 2px 8px;
@@ -57,7 +57,7 @@
 
 .tire-health--ok {
   background: var(--fg-ok-bg);
-  color: var(--fg-ok);
+  color: var(--fg-ok-text);
 }
 
 .tire-health--warn {
@@ -67,7 +67,7 @@
 
 .tire-health--crit {
   background: var(--fg-crit-bg);
-  color: var(--fg-critical);
+  color: var(--fg-critical-text);
 }
 
 /* Inventario: números arriba, vistas y barra de búsqueda. */
@@ -111,7 +111,7 @@
 }
 
 .tires-kpi--warn {
-  border-color: var(--fg-warn);
+  border-color: var(--fg-warn-text);
   background: var(--fg-warn-bg);
 }
 
@@ -238,7 +238,7 @@
 }
 
 .tires-group__count--gap {
-  color: var(--fg-critical);
+  color: var(--fg-critical-text);
   font-weight: 600;
 }
 
@@ -594,7 +594,7 @@
 .tire-panel__ok {
   margin: 0;
   font-size: 13px;
-  color: var(--fg-ok);
+  color: var(--fg-ok-text);
   font-weight: 600;
 }
 
@@ -612,7 +612,7 @@
   }
 }
 
-/* Pre-viaje: qué cubierta tiene el problema, dentro del ítem "Neumáticos". */
+/* Pre-viaje: qué neumático tiene el problema, dentro del ítem "Neumáticos". */
 .tire-picker {
   display: flex;
   flex-direction: column;
@@ -671,7 +671,7 @@
 }
 
 .tire-chip--on {
-  border-color: var(--fg-warn);
+  border-color: var(--fg-warn-text);
   background: var(--fg-warn-bg);
   font-weight: 600;
 }
@@ -717,7 +717,7 @@
   background: transparent;
   font: inherit;
   font-size: 13px;
-  color: var(--fg-critical);
+  color: var(--fg-critical-text);
   cursor: pointer;
 }
 

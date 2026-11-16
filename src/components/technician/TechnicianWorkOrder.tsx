@@ -183,12 +183,12 @@ export function TechnicianWorkOrder({ workOrder, onBack, onDone }: TechnicianWor
           <span className="vehicle-meta__plate">{wo.plate ?? '—'}</span> · {SOURCE_LABEL[wo.sourceType]} · {createdLabel}
         </p>
         {wo.status === 'en_proceso' ? (
-          <span className="status-pill status-pill--warn technician-wo__status">
+          <span className="status-pill status-pill--info technician-wo__status">
             <WrenchIcon className="status-pill__icon" />
             En proceso
           </span>
         ) : wo.status === 'en_espera' ? (
-          <span className="status-pill status-pill--info technician-wo__status">
+          <span className="status-pill status-pill--warn technician-wo__status">
             <ClockIcon className="status-pill__icon" />
             En espera
           </span>

@@ -33,7 +33,7 @@ export const NOTIFICATION_EXAMPLE: Record<NotificationType, { title: string; mes
     message: 'AB123CD consumió 45,0 L cada 100 km en los últimos 500 km, un 47% más que su promedio de 30,7 L.',
   },
   tire_problem_reported: {
-    title: 'Cubierta con problemas en AB123CD',
+    title: 'Neumático con problemas en AB123CD',
     message: 'Juan Pérez reportó en AB123CD: Trasera derecha exterior (Michelin X Multi D N° 1234): se ve la tela o el alambre.',
   },
   work_order_finalized: {

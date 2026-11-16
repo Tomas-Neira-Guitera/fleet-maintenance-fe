@@ -1,21 +1,28 @@
 /* FleetGuard design tokens — "Cuidado preventivo" */
 :root {
-  --fg-bg: #F6F2EA;
-  --fg-ok: #6E9277;
-  --fg-warn: #E3A857;
-  --fg-critical: #C1604D;
-  --fg-text: #3E4A42;
+  /* Paleta "Cuidado preventivo" v2: cada estado tiene un relleno y un tono de texto que pasa 4,5:1. */
+  --fg-bg: #F3F4F0;
+  --fg-ok: #27804F;
+  --fg-warn: #E8A33D;
+  --fg-critical: #C8373F;
+  --fg-info: #2F6DB5;
+  --fg-text: #1F2A24;
   --fg-white: #FFFFFF;
   --fg-radius: 12px;
-  --fg-ok-bg: rgba(110, 146, 119, 0.12);
-  --fg-warn-bg: rgba(227, 168, 87, 0.16);
-  --fg-crit-bg: rgba(193, 96, 77, 0.12);
-  --fg-border-color: rgba(62, 74, 66, 0.14);
-  /* Texto secundario (CAM-65): el más claro que todavía pasa 4,5:1 sobre blanco y sobre --fg-bg. */
-  --fg-text-muted: rgba(62, 74, 66, 0.8);
-  --fg-hover: rgba(62, 74, 66, 0.08);
-  /* Sombra de lo que flota sobre la página, como los selectores de fecha y hora (CAM-65). */
-  --fg-shadow-pop: 0 12px 32px rgba(62, 74, 66, 0.18);
+  --fg-ok-text: #1C6B43;
+  --fg-warn-text: #8A4D00;
+  --fg-critical-text: #A8232D;
+  --fg-info-text: #1E5296;
+  --fg-ok-bg: #E2F1E8;
+  --fg-warn-bg: #FCEFD6;
+  --fg-crit-bg: #FBE4E5;
+  --fg-info-bg: #E4EDF8;
+  --fg-accent: #15616D;
+  --fg-focus: #15616D;
+  --fg-border-color: rgba(31, 42, 36, 0.16);
+  --fg-text-muted: #56615B;
+  --fg-hover: rgba(31, 42, 36, 0.07);
+  --fg-shadow-pop: 0 12px 32px rgba(31, 42, 36, 0.18);
   --fg-border: 1px solid var(--fg-border-color);
 
   /* Series de los gráficos (CAM-52, CAM-91): identifican categorías, no estados. Verde, ámbar y
@@ -25,7 +32,7 @@
   --fg-chart-3: #843C5B;
   /* Cuarta serie (CAM-109), para los gastos operativos: pasa el mismo validador junto a las otras tres. */
   --fg-chart-4: #6B5FB5;
-  --fg-chart-track: rgba(62, 74, 66, 0.08);
+  --fg-chart-track: rgba(31, 42, 36, 0.08);
 
   --fg-font-display: 'Space Grotesk', system-ui, sans-serif;
   --fg-font-body: 'Inter', system-ui, sans-serif;
@@ -61,6 +68,12 @@ button, input, textarea {
 
 button {
   cursor: pointer;
+}
+
+/* Foco visible en todo lo interactivo, con el color de acento. */
+:focus-visible {
+  outline: 3px solid var(--fg-focus);
+  outline-offset: 2px;
 }
 
 button:disabled {

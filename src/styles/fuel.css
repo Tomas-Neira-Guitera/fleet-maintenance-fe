@@ -1,28 +1,4 @@
 /* CAM-156: combustible. */
-.vehicle-list__trip-actions {
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.vehicle-card__fuel {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: var(--fg-radius);
-  border: var(--fg-border);
-  background: var(--fg-white);
-  color: var(--fg-text);
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.vehicle-card__fuel svg {
-  width: 16px;
-  height: 16px;
-}
-
 .fuel-form {
   display: flex;
   flex-direction: column;
@@ -85,7 +61,7 @@
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--fg-crit-bg);
-  color: var(--fg-critical);
+  color: var(--fg-critical-text);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;

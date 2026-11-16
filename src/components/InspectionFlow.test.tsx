@@ -38,6 +38,17 @@ const PRE_TRIP: ChecklistItemDef[] = [
   { id: 'int-testigos', label: 'Testigos de tablero', type: 'check', section: 'interior' },
 ];
 
+// CAM-159: checklist de un semirremolque, acortado.
+const TRAILER: ChecklistItemDef[] = [
+  { id: 'rem-enganche', label: 'Perno rey y quinta rueda trabados', type: 'check', section: 'exterior' },
+  { id: 'rem-frenos', label: 'Frenos', type: 'check', section: 'exterior' },
+];
+
+const TRAILER_POST: ChecklistItemDef[] = [
+  { id: 'rem-post-danos', label: 'Daños nuevos en el remolque', type: 'check', section: 'posttrip' },
+  { id: 'rem-post-luces', label: 'Luces', type: 'check', section: 'posttrip' },
+];
+
 const POST_TRIP: ChecklistItemDef[] = [
   { id: 'post-danos', label: 'Daños nuevos en la carrocería', type: 'check', section: 'posttrip' },
   { id: 'post-luces', label: 'Luces', type: 'check', section: 'posttrip' },
@@ -84,7 +95,9 @@ async function confirmAndSend(user: ReturnType<typeof userEvent.setup>) {
 }
 
 beforeEach(() => {
-  checklistMock.mockImplementation(async (_id, type) => (type === 'pre-trip' ? PRE_TRIP : POST_TRIP));
+  checklistMock.mockImplementation(async (id, type) =>
+    id.startsWith('semi') ? (type === 'pre-trip' ? TRAILER : TRAILER_POST) : type === 'pre-trip' ? PRE_TRIP : POST_TRIP,
+  );
   tirePositionsMock.mockResolvedValue({ vehicleType: null, positions: [] });
   saveUsername('carlos.gomez');
   resetPendingInspectionsForTests();
@@ -227,7 +240,7 @@ describe('InspectionFlow — pre-viaje', () => {
   });
 });
 
-describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
+describe('InspectionFlow — neumáticos con problemas (CAM-157)', () => {
   const pos = (position: string, label: string, axle: number, side: 'izq' | 'der' | null, mounted = true) => ({
     position, label, axle, side, wheel: 'simple' as const, mounted,
   });
@@ -247,15 +260,15 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     tirePositionsMock.mockResolvedValue(UTILITARIO);
     renderFlow();
     await screen.findByRole('heading', { name: 'Pre-viaje' });
-    expect(screen.queryByText('¿Qué cubierta tiene el problema?')).not.toBeInTheDocument();
+    expect(screen.queryByText('¿Qué neumático tiene el problema?')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('switch', { name: 'Neumáticos: reportar defecto' }));
-    expect(await screen.findByText('¿Qué cubierta tiene el problema?')).toBeInTheDocument();
-    // Una posición sin cubierta no se puede elegir.
-    expect(screen.getByRole('button', { name: 'Auxilio: sin cubierta' })).toHaveAttribute('aria-disabled', 'true');
+    expect(await screen.findByText('¿Qué neumático tiene el problema?')).toBeInTheDocument();
+    // Una posición sin neumático no se puede elegir.
+    expect(screen.getByRole('button', { name: 'Auxilio: sin neumático' })).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('manda la cubierta y lo que el chofer vio, y completa el título si está vacío', async () => {
+  it('manda el neumático y lo que el chofer vio, y completa el título si está vacío', async () => {
     const user = userEvent.setup();
     tirePositionsMock.mockResolvedValue(UTILITARIO);
     submitMock.mockResolvedValue(result('pre-trip'));
@@ -264,12 +277,12 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
     await user.click(screen.getByRole('button', { name: 'Trasera derecha: sin marcar' }));
     await user.click(screen.getByRole('button', { name: 'Poco dibujo' }));
-    await user.click(screen.getByRole('button', { name: 'Pinchada' }));
+    await user.click(screen.getByRole('button', { name: 'Pinchado' }));
     // El título vacío se completa con lo primero que marcó.
     expect(screen.getByLabelText('Título (obligatorio)')).toHaveValue('Poco dibujo');
 
     await goToSummary(user);
-    expect(screen.getByText(/pinchada, poco dibujo/)).toBeInTheDocument();
+    expect(screen.getByText(/pinchado, poco dibujo/)).toBeInTheDocument();
     await confirmAndSend(user);
 
     expect(submitMock.mock.calls[0][4]?.tireConditions).toEqual([
@@ -277,7 +290,7 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     ]);
   });
 
-  it('con el dibujo disponible hay que decir qué cubierta es', async () => {
+  it('con el dibujo disponible hay que decir qué neumático es', async () => {
     const user = userEvent.setup();
     tirePositionsMock.mockResolvedValue(UTILITARIO);
     renderFlow();
@@ -287,7 +300,7 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     await user.type(screen.getByLabelText('Kilómetros actuales'), '84320');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
 
-    expect(screen.getByText('Marcá al menos una cubierta y qué le ves.')).toBeInTheDocument();
+    expect(screen.getByText('Marcá al menos un neumático y qué le ves.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Resumen' })).not.toBeInTheDocument();
   });
 
@@ -297,7 +310,7 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     renderFlow();
 
     await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
-    expect(screen.queryByText('¿Qué cubierta tiene el problema?')).not.toBeInTheDocument();
+    expect(screen.queryByText('¿Qué neumático tiene el problema?')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Título (obligatorio)'), 'Gastada');
     await goToSummary(user);
     await confirmAndSend(user);
@@ -311,13 +324,21 @@ describe('InspectionFlow — cubiertas con problemas (CAM-157)', () => {
     renderFlow();
 
     await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
-    expect(await screen.findByText('¿Qué cubierta tiene el problema?')).toBeInTheDocument();
+    expect(await screen.findByText('¿Qué neumático tiene el problema?')).toBeInTheDocument();
   });
 
-  it('el post-viaje no pide el dibujo', async () => {
+  it('en el post-viaje también aparece el dibujo con Neumáticos en defecto (CAM-159)', async () => {
+    const user = userEvent.setup();
+    checklistMock.mockImplementation(async (_id, type) =>
+      type === 'pre-trip'
+        ? PRE_TRIP
+        : [...POST_TRIP.slice(0, 2), { id: 'post-neumaticos', label: 'Neumáticos', type: 'check', section: 'posttrip' }, POST_TRIP[2]],
+    );
+    tirePositionsMock.mockResolvedValue(UTILITARIO);
     renderFlow('post-trip');
-    await screen.findByRole('heading', { name: 'Post-viaje' });
-    expect(tirePositionsMock).not.toHaveBeenCalled();
+
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(await screen.findByText('¿Qué neumático tiene el problema?')).toBeInTheDocument();
   });
 });
 
@@ -326,9 +347,12 @@ describe('InspectionFlow — remolque del tractor (CAM-157)', () => {
   const SEMI = { id: 'semi-1', plate: 'ZZ001AA', brand: 'Helvética', model: 'Tri-eje', status: 'available' as const, vehicleType: 'semirremolque_3_ejes' };
   const ACOPLADO = { ...SEMI, id: 'aco-1', plate: 'ZZ002BB', vehicleType: 'acoplado' };
 
-  function renderTractor() {
-    saveCache('vehicles', [TRACTOR, SEMI, ACOPLADO]);
-    couplingMock.mockResolvedValue({ vehicleId: TRACTOR.id, towedBy: null, towing: null, canTow: [], history: [] });
+  function renderTractor(options: { fleet?: Vehicle[]; towing?: string } = {}) {
+    saveCache('vehicles', options.fleet ?? [TRACTOR, SEMI, ACOPLADO]);
+    const towing = options.towing
+      ? { id: options.towing, plate: 'ZZ001AA', vehicleType: 'semirremolque_3_ejes', coupledAt: '2026-11-01T10:00:00Z' }
+      : null;
+    couplingMock.mockResolvedValue({ vehicleId: TRACTOR.id, towedBy: null, towing, canTow: [], history: [] });
     submitMock.mockResolvedValue(result('pre-trip'));
     render(<InspectionFlow vehicle={TRACTOR} type="pre-trip" onDone={vi.fn()} onBack={vi.fn()} onUnavailable={vi.fn()} onLogout={vi.fn()} />);
   }
@@ -349,6 +373,89 @@ describe('InspectionFlow — remolque del tractor (CAM-157)', () => {
     expect(submitMock.mock.calls[0][4]?.trailerId).toBe('semi-1');
   });
 
+  it('con el remolque elegido muestra su checklist y lo manda en el mismo envío (CAM-159)', async () => {
+    const user = userEvent.setup();
+    renderTractor();
+
+    await user.selectOptions(await screen.findByLabelText('¿Qué remolque llevás?'), 'semi-1');
+    const section = (await screen.findByRole('heading', { name: 'Remolque ZZ001AA' })).closest('section')!;
+    expect(await within(section).findByText('Frenos')).toBeInTheDocument();
+    expect(checklistMock).toHaveBeenCalledWith('semi-1', 'pre-trip');
+    expect(screen.getByText('6 controles en OK')).toBeInTheDocument();
+
+    await user.click(within(section).getByRole('switch', { name: 'Frenos: reportar defecto' }));
+    await user.type(within(section).getByLabelText('Título (obligatorio)'), 'Frena poco');
+    await goToSummary(user);
+    expect(screen.getByText('Remolque: Frenos')).toBeInTheDocument();
+    await confirmAndSend(user);
+
+    const meta = submitMock.mock.calls[0][4]!;
+    expect(meta.trailerAnswers?.map((a) => [a.itemId, a.outcome])).toEqual([
+      ['rem-enganche', 'ok'],
+      ['rem-frenos', 'defect'],
+    ]);
+    expect(meta.trailerAnswers?.[1].defect?.description).toBe('Frena poco');
+  });
+
+  it('revisa el remolque que ya tenía enganchado aunque no lo cambie (CAM-159)', async () => {
+    const user = userEvent.setup();
+    renderTractor({ towing: 'semi-1' });
+
+    expect(await screen.findByRole('heading', { name: 'Remolque ZZ001AA' })).toBeInTheDocument();
+    await screen.findByText('Frenos');
+    await goToSummary(user);
+    await confirmAndSend(user);
+
+    expect(submitMock.mock.calls[0][4]?.trailerId).toBeUndefined();
+    expect(submitMock.mock.calls[0][4]?.trailerAnswers).toHaveLength(2);
+  });
+
+  it('con Neumáticos del remolque en defecto aparece el dibujo del remolque (CAM-159)', async () => {
+    const user = userEvent.setup();
+    checklistMock.mockImplementation(async (id, type) =>
+      id === 'semi-1'
+        ? [{ id: type === 'pre-trip' ? 'rem-neumaticos' : 'rem-post-neumaticos', label: 'Neumáticos', type: 'check', section: type === 'pre-trip' ? 'exterior' : 'posttrip' }]
+        : type === 'pre-trip' ? PRE_TRIP : POST_TRIP,
+    );
+    const dual = (position: string, label: string, side: 'izq' | 'der', wheel: 'exterior' | 'interior') => ({
+      position, label, axle: 1, side, wheel, mounted: true,
+    });
+    tirePositionsMock.mockImplementation(async (id) =>
+      id === 'semi-1'
+        ? {
+            vehicleType: 'semirremolque_2_ejes',
+            positions: [
+              dual('e1-izq-ext', 'Eje 1 izquierda exterior', 'izq', 'exterior'),
+              dual('e1-izq-int', 'Eje 1 izquierda interior', 'izq', 'interior'),
+              dual('e1-der-int', 'Eje 1 derecha interior', 'der', 'interior'),
+              dual('e1-der-ext', 'Eje 1 derecha exterior', 'der', 'exterior'),
+            ],
+          }
+        : { vehicleType: null, positions: [] },
+    );
+    renderTractor({ towing: 'semi-1' });
+
+    const section = (await screen.findByRole('heading', { name: 'Remolque ZZ001AA' })).closest('section')!;
+    await user.click(await within(section).findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(await within(section).findByText('¿Qué neumático tiene el problema?')).toBeInTheDocument();
+    expect(tirePositionsMock).toHaveBeenCalledWith('semi-1');
+  });
+
+  it('un remolque que no puede salir no deja seguir (CAM-159)', async () => {
+    const user = userEvent.setup();
+    renderTractor({
+      fleet: [TRACTOR, { ...SEMI, blocked: true, blockReasons: [{ type: 'expired_document', message: 'VTV vencida' }] }],
+    });
+
+    const picker = await screen.findByLabelText('¿Qué remolque llevás?');
+    expect(within(picker).getByRole('option', { name: /ZZ001AA.*no puede salir/ })).toBeInTheDocument();
+    await user.selectOptions(picker, 'semi-1');
+    expect(screen.getByText(/ZZ001AA no puede salir: VTV vencida/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Kilómetros actuales'), '84320');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.queryByRole('heading', { name: 'Resumen' })).not.toBeInTheDocument();
+  });
+
   it('si no lo cambia, no manda nada y el enganche queda como estaba', async () => {
     const user = userEvent.setup();
     renderTractor();
@@ -358,6 +465,52 @@ describe('InspectionFlow — remolque del tractor (CAM-157)', () => {
     await confirmAndSend(user);
 
     expect(submitMock.mock.calls[0][4]?.trailerId).toBeUndefined();
+  });
+
+  it('en el post-viaje el remolque arranca en OK y se manda así (CAM-159)', async () => {
+    const user = userEvent.setup();
+    saveCache('vehicles', [TRACTOR, SEMI]);
+    couplingMock.mockResolvedValue({
+      vehicleId: TRACTOR.id, towedBy: null, canTow: [], history: [],
+      towing: { id: 'semi-1', plate: 'ZZ001AA', vehicleType: 'semirremolque_3_ejes', coupledAt: '2026-11-01T10:00:00Z' },
+    });
+    submitMock.mockResolvedValue(result('post-trip'));
+    render(<InspectionFlow vehicle={TRACTOR} type="post-trip" onDone={vi.fn()} onBack={vi.fn()} onUnavailable={vi.fn()} onLogout={vi.fn()} />);
+
+    expect(await screen.findByLabelText('El remolque volvió en OK')).toBeChecked();
+    expect(screen.queryByText('Daños nuevos en el remolque')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('¿Qué remolque llevás?')).not.toBeInTheDocument();
+    await goToSummary(user, 'Kilómetros finales', '84500');
+    expect(screen.getByText('Remolque ZZ001AA: volvió en OK.')).toBeInTheDocument();
+    await confirmAndSend(user);
+
+    expect(submitMock.mock.calls[0][4]?.trailerAnswers?.map((a) => [a.itemId, a.outcome])).toEqual([
+      ['rem-post-danos', 'ok'],
+      ['rem-post-luces', 'ok'],
+    ]);
+  });
+
+  it('si destilda el OK del remolque, marca qué volvió mal (CAM-159)', async () => {
+    const user = userEvent.setup();
+    saveCache('vehicles', [TRACTOR, SEMI]);
+    couplingMock.mockResolvedValue({
+      vehicleId: TRACTOR.id, towedBy: null, canTow: [], history: [],
+      towing: { id: 'semi-1', plate: 'ZZ001AA', vehicleType: 'semirremolque_3_ejes', coupledAt: '2026-11-01T10:00:00Z' },
+    });
+    submitMock.mockResolvedValue(result('post-trip'));
+    render(<InspectionFlow vehicle={TRACTOR} type="post-trip" onDone={vi.fn()} onBack={vi.fn()} onUnavailable={vi.fn()} onLogout={vi.fn()} />);
+
+    await user.click(await screen.findByLabelText('El remolque volvió en OK'));
+    const section = screen.getByRole('heading', { name: 'Remolque ZZ001AA' }).closest('section')!;
+    await user.click(within(section).getByRole('switch', { name: 'Daños nuevos en el remolque: reportar defecto' }));
+    await user.type(within(section).getByLabelText('Título (obligatorio)'), 'Lona rota');
+    await goToSummary(user, 'Kilómetros finales', '84500');
+    expect(screen.getByText('Remolque: Daños nuevos en el remolque')).toBeInTheDocument();
+    await confirmAndSend(user);
+
+    const answers = submitMock.mock.calls[0][4]?.trailerAnswers;
+    expect(answers?.[0]).toMatchObject({ itemId: 'rem-post-danos', outcome: 'defect' });
+    expect(answers?.[0].defect?.description).toBe('Lona rota');
   });
 
   it('un utilitario no tiene remolque', async () => {

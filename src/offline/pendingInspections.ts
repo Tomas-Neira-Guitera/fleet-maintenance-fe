@@ -17,10 +17,13 @@ export interface PendingInspection {
   answers: ChecklistAnswer[];
   notes?: string;
   performedAt: string;
-  /** CAM-157: las cubiertas con problemas, con "Neumáticos" en defecto. */
+  /** CAM-157: los neumáticos con problemas, con "Neumáticos" en defecto. */
   tireConditions?: TireConditionInput[];
   /** CAM-157: el remolque que eligió en el pre-viaje. */
   trailerId?: string;
+  /** CAM-159: el checklist del remolque que llevaba, y sus neumáticos con problemas. */
+  trailerAnswers?: ChecklistAnswer[];
+  trailerTireConditions?: TireConditionInput[];
   status: 'pending' | 'rejected';
   /** Por qué el servidor la rechazó. */
   error?: string;
@@ -177,12 +180,14 @@ async function sync(): Promise<SyncResult> {
       continue;
     }
     try {
-      const answers = await uploadPendingPhotos(item);
+      const { answers, trailerAnswers } = await uploadPendingPhotos(item);
       await submitInspection(item.vehicleId, item.type, answers, item.notes, {
         performedAt: item.performedAt,
         clientSubmissionId: item.id,
         tireConditions: item.tireConditions,
         trailerId: item.trailerId,
+        trailerAnswers,
+        trailerTireConditions: item.trailerTireConditions,
       });
       await store.remove(item.id);
       sent++;
@@ -204,20 +209,28 @@ async function sync(): Promise<SyncResult> {
   return { sent };
 }
 
-/** Sube las fotos sacadas sin señal y guarda el avance, para no volver a subirlas si después se corta. */
-async function uploadPendingPhotos(item: PendingInspection): Promise<ChecklistAnswer[]> {
-  let answers = item.answers;
-  for (const answer of item.answers) {
-    const photo = answer.defect?.pendingPhoto;
-    if (!photo) continue;
-    const file = photo instanceof File ? photo : new File([photo], 'defecto.jpg', { type: photo.type || 'image/jpeg' });
-    const { photoUrl } = await uploadDefectPhoto(file);
-    answers = answers.map((a) =>
-      a.itemId === answer.itemId && a.defect ? { ...a, defect: { ...a.defect, photoUrl, pendingPhoto: undefined } } : a,
-    );
-    await store.put({ ...item, answers });
+/**
+ * Sube las fotos sacadas sin señal y guarda el avance, para no volver a subirlas si después se corta. CAM-159: también
+ * las del checklist del remolque.
+ */
+async function uploadPendingPhotos(
+  item: PendingInspection,
+): Promise<{ answers: ChecklistAnswer[]; trailerAnswers?: ChecklistAnswer[] }> {
+  let current = item;
+  for (const key of ['answers', 'trailerAnswers'] as const) {
+    for (const answer of current[key] ?? []) {
+      const photo = answer.defect?.pendingPhoto;
+      if (!photo) continue;
+      const file = photo instanceof File ? photo : new File([photo], 'defecto.jpg', { type: photo.type || 'image/jpeg' });
+      const { photoUrl } = await uploadDefectPhoto(file);
+      const updated = (current[key] ?? []).map((a) =>
+        a.itemId === answer.itemId && a.defect ? { ...a, defect: { ...a.defect, photoUrl, pendingPhoto: undefined } } : a,
+      );
+      current = { ...current, [key]: updated };
+      await store.put(current);
+    }
   }
-  return answers;
+  return { answers: current.answers, trailerAnswers: current.trailerAnswers };
 }
 
 // 409 del envío: el vehículo cambió mientras la inspección esperaba la señal.
@@ -229,6 +242,8 @@ const CONFLICT_MESSAGES: Record<string, string> = {
 };
 
 function rejectionMessage(err: unknown, item: PendingInspection): string {
+  // CAM-159: el backend dice qué remolque no podía salir y por qué.
+  if (err instanceof ApiError && err.status === 409 && err.errorCode === 'TRAILER_BLOCKED') return err.message;
   if (err instanceof ApiError && err.status === 409 && CONFLICT_MESSAGES[err.errorCode ?? '']) {
     return `${item.plate} ${CONFLICT_MESSAGES[err.errorCode ?? '']}`;
   }

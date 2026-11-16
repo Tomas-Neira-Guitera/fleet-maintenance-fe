@@ -12,8 +12,8 @@ interface TireConditionPickerProps {
 }
 
 /**
- * CAM-157: con "Neumáticos" en defecto, el chofer toca en el dibujo la cubierta con problemas y marca lo que ve.
- * Puede marcar varias cubiertas y varios estados en cada una.
+ * CAM-157: con "Neumáticos" en defecto, el chofer toca en el dibujo el neumático con problemas y marca lo que ve.
+ * Puede marcar varios neumáticos y varios estados en cada uno.
  */
 export function TireConditionPicker({ tires, value, onChange, invalid }: TireConditionPickerProps) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function TireConditionPicker({ tires, value, onChange, invalid }: TireCon
 
   return (
     <div className={`tire-picker${invalid ? ' tire-picker--invalid' : ''}`}>
-      <p className="tire-picker__title">¿Qué cubierta tiene el problema?</p>
+      <p className="tire-picker__title">¿Qué neumático tiene el problema?</p>
       <p className="tire-picker__hint">Tocala en el dibujo y marcá lo que ves. Podés marcar más de una.</p>
       {tires.vehicleType && (
         <VehicleTopView
@@ -49,7 +49,7 @@ export function TireConditionPicker({ tires, value, onChange, invalid }: TireCon
             !byPosition.get(position)?.mounted ? 'empty' : (value[position]?.length ?? 0) > 0 ? 'warn' : 'ok'
           }
           describe={(position) => {
-            if (!byPosition.get(position)?.mounted) return 'sin cubierta';
+            if (!byPosition.get(position)?.mounted) return 'sin neumático';
             const conditions = value[position] ?? [];
             return conditions.length > 0 ? conditions.map(tireConditionLabel).join(', ').toLowerCase() : 'sin marcar';
           }}
@@ -101,7 +101,7 @@ export function TireConditionPicker({ tires, value, onChange, invalid }: TireCon
           ))}
         </ul>
       )}
-      {invalid && <p className="field-error">Marcá al menos una cubierta y qué le ves.</p>}
+      {invalid && <p className="field-error">Marcá al menos un neumático y qué le ves.</p>}
     </div>
   );
 }

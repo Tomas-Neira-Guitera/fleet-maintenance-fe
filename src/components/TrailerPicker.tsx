@@ -10,7 +10,10 @@ interface TrailerPickerProps {
   onChange: (value: string) => void;
 }
 
-/** CAM-157: en el pre-viaje de un tractor o camión rígido, qué remolque lleva. El remolque suma los km del viaje. */
+/**
+ * CAM-157: en el pre-viaje de un tractor o camión rígido, qué remolque lleva. El remolque suma los km del viaje.
+ * CAM-159: el que no puede salir se marca; si lo elige, el pre-viaje le pide cambiarlo.
+ */
 export function TrailerPicker({ trailers, value, onChange }: TrailerPickerProps) {
   return (
     <section className="checklist-section">
@@ -29,6 +32,7 @@ export function TrailerPicker({ trailers, value, onChange }: TrailerPickerProps)
           {trailers.map((t) => (
             <option key={t.id} value={t.id}>
               {t.plate} · {vehicleTypeLabel(t.vehicleType)}
+              {t.blocked ? ' (no puede salir)' : ''}
             </option>
           ))}
         </select>

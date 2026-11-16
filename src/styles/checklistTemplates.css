@@ -91,7 +91,7 @@
   border: var(--fg-border);
   border-radius: var(--fg-radius);
   background: var(--fg-white);
-  color: var(--fg-critical);
+  color: var(--fg-critical-text);
   cursor: pointer;
 }
 
@@ -126,6 +126,27 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* CAM-159: marca de los vehículos que ya tienen la plantilla. */
+.apply-template__applied {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--fg-ok-bg);
+  color: var(--fg-ok-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* CAM-159: qué pasa al quitar la plantilla, antes de confirmar. */
+.apply-template__warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--fg-radius);
+  background: var(--fg-warn-bg);
+  color: var(--fg-warn-text);
+  font-size: 13px;
 }
 
 .apply-template__result-list {

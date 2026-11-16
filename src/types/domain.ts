@@ -127,6 +127,8 @@ export interface Inspection {
 export interface SubmitInspectionResult {
   inspection: Inspection;
   trip: Trip;
+  /** CAM-159: la del remolque revisado en el mismo pre-viaje. */
+  trailerInspection?: Inspection | null;
 }
 
 /** Defecto reportado en una inspección, tal como lo lista GET /api/defects. */
@@ -770,7 +772,7 @@ export interface ChecklistTemplateItem {
   id: string;
   label: string;
   type: ChecklistItemType;
-  section: Exclude<ChecklistSection, 'posttrip'>;
+  section: ChecklistSection;
 }
 
 export interface ChecklistTemplate {
@@ -778,6 +780,8 @@ export interface ChecklistTemplate {
   name: string;
   items: ChecklistTemplateItem[];
   createdAt: string;
+  /** CAM-159: los vehículos con al menos un control copiado de esta plantilla. */
+  appliedVehicleIds: string[];
 }
 
 export interface ApplyChecklistTemplateResult {
@@ -785,6 +789,13 @@ export interface ApplyChecklistTemplateResult {
   added: number;
   skipped: number;
   vehicles: { vehicleId: string; plate: string; added: number; skipped: number; skippedLabels: string[] }[];
+}
+
+/** CAM-159: lo que se borró al quitar una plantilla. */
+export interface UnapplyChecklistTemplateResult {
+  templateId: string;
+  removed: number;
+  vehicles: { vehicleId: string; plate: string; removed: number; removedLabels: string[] }[];
 }
 
 /** CAM-156: una carga de combustible. consumption: el tramo de tanque lleno a tanque lleno que cierra. */
@@ -823,7 +834,7 @@ export interface VehicleFuel {
 /** CAM-157: neumáticos. */
 export type TireStatus = 'stock' | 'mounted' | 'retired';
 
-/** Lo que el chofer ve a simple vista en una cubierta, del más grave al más leve. */
+/** Lo que el chofer ve a simple vista en un neumático, del más grave al más leve. */
 export type TireConditionCode =
   | 'se-ve-la-tela'
   | 'bulto'
@@ -833,7 +844,7 @@ export type TireConditionCode =
   | 'desgaste-irregular'
   | 'poco-dibujo';
 
-/** Un relevamiento de una cubierta; active: su defecto sigue abierto y la cubierta montada. */
+/** Un relevamiento de un neumático; active: su defecto sigue abierto y el neumático montado. */
 export interface TireConditionReport {
   vehicleId: string;
   plate: string;
@@ -928,13 +939,13 @@ export interface TireBrandComparison {
   }[];
 }
 
-/** Una cubierta con problemas, en una inspección (con "Neumáticos" en defecto). */
+/** Un neumático con problemas, en una inspección (con "Neumáticos" en defecto). */
 export interface TireConditionInput {
   position: string;
   conditions: TireConditionCode[];
 }
 
-/** Para el pre-viaje del chofer: todas las posiciones; solo se reportan las que tienen cubierta. */
+/** Para el pre-viaje del chofer: todas las posiciones; solo se reportan las que tienen neumático. */
 export interface TirePositions {
   vehicleType: string | null;
   positions: (Omit<VehicleTirePosition, 'tire'> & { mounted: boolean })[];

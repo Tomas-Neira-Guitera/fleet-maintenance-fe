@@ -83,12 +83,12 @@ export function MyWorkOrders({ onSelectWorkOrder }: MyWorkOrdersProps) {
                 )}
               </div>
               {wo.status === 'en_proceso' ? (
-                <span className="status-pill status-pill--warn">
+                <span className="status-pill status-pill--info">
                   <WrenchIcon className="status-pill__icon" />
                   En proceso
                 </span>
               ) : wo.status === 'en_espera' ? (
-                <span className="status-pill status-pill--info">
+                <span className="status-pill status-pill--warn">
                   <ClockIcon className="status-pill__icon" />
                   En espera
                 </span>

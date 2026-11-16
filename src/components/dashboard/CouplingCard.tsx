@@ -96,7 +96,7 @@ export function CouplingCard({ vehicle, readOnly = false, onOpenVehicle }: Coupl
           )}
           {trailer && (
             <p className="vehicle-detail__item-meta">
-              Mientras está enganchado, suma los km de lo que lo arrastra: así se cuentan sus cubiertas y sus
+              Mientras está enganchado, suma los km de lo que lo arrastra: así se cuentan sus neumáticos y sus
               mantenimientos por km.
             </p>
           )}

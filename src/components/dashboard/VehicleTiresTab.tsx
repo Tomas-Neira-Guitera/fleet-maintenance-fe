@@ -16,17 +16,17 @@ type Action = { kind: 'mount' | 'unmount'; slot: VehicleTirePosition };
 
 interface VehicleTiresTabProps {
   vehicleId: string;
-  /** Un vehículo dado de baja se ve, pero no se le montan ni rotan cubiertas. */
+  /** Un vehículo dado de baja se ve, pero no se le montan ni rotan neumáticos. */
   readOnly?: boolean;
-  /** Abre el inventario de cubiertas. */
+  /** Abre el inventario de neumáticos. */
   onOpenTires?: () => void;
   /** Lleva a editar el vehículo, para elegir su tipo. */
   onEditVehicle?: () => void;
 }
 
 /**
- * CAM-157: el vehículo visto de arriba con sus cubiertas, pintadas según lo que reportaron los choferes. Las
- * posiciones salen de su tipo. Tocar una cubierta muestra al costado sus datos y qué hacer con ella; para rotar,
+ * CAM-157: el vehículo visto de arriba con sus neumáticos, pintados según lo que reportaron los choferes. Las
+ * posiciones salen de su tipo. Tocar un neumático muestra al costado sus datos y qué hacer con él; para rotar,
  * se toca "Rotar" y después la posición destino.
  */
 export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEditVehicle }: VehicleTiresTabProps) {
@@ -43,7 +43,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
       .then((loaded) => {
         if (cancelled) return;
         setData(loaded);
-        // Arranca con la primera con problemas (o la primera montada), para que el panel no quede vacío.
+        // Arranca con el primero con problemas (o el primero montado), para que el panel no quede vacío.
         setSelected(
           loaded.positions.find((p) => tireHealth(p.tire) !== 'ok')?.position ??
             loaded.positions.find((p) => p.tire)?.position ??
@@ -52,7 +52,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
         );
       })
       .catch(() => {
-        if (!cancelled) setError('No se pudieron cargar las cubiertas del vehículo.');
+        if (!cancelled) setError('No se pudieron cargar los neumáticos del vehículo.');
       });
     return () => {
       cancelled = true;
@@ -79,7 +79,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
       setData(await rotateTires(vehicleId, rotatingFrom, position));
       setSelected(position);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo rotar la cubierta.');
+      setError(err instanceof ApiError ? err.message : 'No se pudo rotar el neumático.');
     } finally {
       setBusy(false);
       setRotatingFrom(null);
@@ -99,26 +99,26 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
           {data?.vehicleType && (
             <p className="vehicle-detail__item-meta">
               {vehicleTypeLabel(data.vehicleType)} · el auxilio no suma km
-              {problems > 0 && ` · ${problems} ${problems === 1 ? 'cubierta' : 'cubiertas'} a revisar`}
+              {problems > 0 && ` · ${problems} ${problems === 1 ? 'neumático' : 'neumáticos'} a revisar`}
             </p>
           )}
         </div>
         <div className="tires-header__actions">
           {onOpenTires && (
             <button type="button" className="vehicle-detail__action-btn" onClick={onOpenTires}>
-              Ver todas las cubiertas
+              Ver todos los neumáticos
             </button>
           )}
         </div>
       </header>
 
       {error && <p className="error-banner">{error}</p>}
-      {!data && !error && <p className="muted">Cargando cubiertas…</p>}
+      {!data && !error && <p className="muted">Cargando neumáticos…</p>}
 
       {data && !data.vehicleType && (
         <div className="tire-layout-picker">
           <p className="muted">
-            Este vehículo no tiene tipo. El tipo define sus ejes y sus cubiertas: elegilo para poder cargarlas.
+            Este vehículo no tiene tipo. El tipo define sus ejes y sus neumáticos: elegilo para poder cargarlos.
           </p>
           {onEditVehicle && !readOnly && (
             <button type="button" className="secondary-btn" onClick={onEditVehicle}>
@@ -140,7 +140,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
               }}
               describe={(position) => {
                 const t = data.positions.find((p) => p.position === position)?.tire;
-                if (!t) return 'sin cubierta';
+                if (!t) return 'sin neumático';
                 return t.condition ? `${tireLabel(t)}, ${t.condition.conditionLabels.join(', ').toLowerCase()}` : tireLabel(t);
               }}
               selected={selected}
@@ -151,7 +151,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
               <span className="tires-legend__ok">Sin problemas</span>
               <span className="tires-legend__warn">A revisar</span>
               <span className="tires-legend__crit">Grave</span>
-              <span className="tires-legend__empty">Sin cubierta</span>
+              <span className="tires-legend__empty">Sin neumático</span>
             </div>
           </div>
 
@@ -159,7 +159,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
             {rotatingFrom ? (
               <>
                 <p className="tire-panel__rotate">
-                  Tocá en el dibujo a dónde va la cubierta de <strong>{fromLabel}</strong>. Si esa posición tiene
+                  Tocá en el dibujo a dónde va el neumático de <strong>{fromLabel}</strong>. Si esa posición tiene
                   una, se intercambian.
                 </p>
                 <button type="button" className="secondary-btn" onClick={() => setRotatingFrom(null)} disabled={busy}>
@@ -178,7 +178,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
                         <span>
                           Lo reportó {tire.condition.reportedBy ?? 'un chofer'} el {formatShortDate(tire.condition.reportedAt)}
                           {tire.condition.severity === 'blocking' ? ', como defecto bloqueante' : ''}. Se va cuando se
-                          resuelve el defecto o se saca la cubierta.
+                          resuelve el defecto o se saca el neumático.
                         </span>
                       </div>
                     ) : (
@@ -198,7 +198,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
                         <dd>{formatCostPerKm(tire.costPerKm)}</dd>
                       </div>
                       <div>
-                        <dt>Montada</dt>
+                        <dt>Montado</dt>
                         <dd>
                           {tire.current
                             ? `${formatShortDate(tire.current.mountedAt)} · ${numberFormatter.format(tire.current.mountedKm)} km`
@@ -228,7 +228,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
                   </>
                 ) : (
                   <>
-                    <p className="muted">Sin cubierta.</p>
+                    <p className="muted">Sin neumático.</p>
                     {!readOnly && (
                       <div className="tire-slot__actions">
                         <button type="button" className="primary-btn" onClick={() => setAction({ kind: 'mount', slot })}>
@@ -240,7 +240,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
                 )}
               </>
             ) : (
-              <p className="muted">Tocá una cubierta en el dibujo.</p>
+              <p className="muted">Tocá un neumático en el dibujo.</p>
             )}
           </div>
         </div>
@@ -253,9 +253,9 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
             <table className="fleet-status__table">
               <thead>
                 <tr>
-                  <th>Cubierta</th>
+                  <th>Neumático</th>
                   <th>Posición</th>
-                  <th>Montada</th>
+                  <th>Montado</th>
                   <th>Sacada</th>
                   <th className="fleet-status__km">Km en la posición</th>
                 </tr>
@@ -271,7 +271,7 @@ export function VehicleTiresTab({ vehicleId, readOnly = false, onOpenTires, onEd
                     <td>
                       {m.removedAt
                         ? `${formatShortDate(m.removedAt)} · ${numberFormatter.format(m.removedKm ?? 0)} km`
-                        : 'Sigue puesta'}
+                        : 'Sigue puesto'}
                     </td>
                     <td className="fleet-status__km">{numberFormatter.format(m.km)}</td>
                   </tr>

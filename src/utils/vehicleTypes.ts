@@ -1,4 +1,4 @@
-// Espejo de VehicleType del backend: el tipo define los ejes, las cubiertas y qué remolque arrastra (CAM-157).
+// Espejo de VehicleType del backend: el tipo define los ejes, los neumáticos y qué remolque arrastra (CAM-157).
 
 export type VehicleTypeCode =
   | 'utilitario'
@@ -23,14 +23,14 @@ export interface VehicleTypeDef {
 }
 
 export const VEHICLE_TYPES: VehicleTypeDef[] = [
-  { code: 'utilitario', label: 'Utilitario', kind: 'motor', axles: ['simple', 'simple'], hint: 'Furgón, pickup o camioneta · 4 cubiertas' },
-  { code: 'camion_4x2', label: 'Camión rígido 4x2', kind: 'rigid', axles: ['simple', 'dual'], hint: 'Trasero dual · 6 cubiertas' },
-  { code: 'camion_6x4', label: 'Camión rígido 6x2 / 6x4', kind: 'rigid', axles: ['simple', 'dual', 'dual'], hint: 'Dos ejes traseros duales · 10 cubiertas' },
-  { code: 'tractor_4x2', label: 'Tractor 4x2', kind: 'tractor', axles: ['simple', 'dual'], hint: 'Trasero dual · 6 cubiertas' },
-  { code: 'tractor_6x4', label: 'Tractor 6x4', kind: 'tractor', axles: ['simple', 'dual', 'dual'], hint: 'Dos ejes traseros duales · 10 cubiertas' },
-  { code: 'semirremolque_2_ejes', label: 'Semirremolque 2 ejes', kind: 'semitrailer', axles: ['dual', 'dual'], hint: 'Lo arrastra un tractor · 8 cubiertas' },
-  { code: 'semirremolque_3_ejes', label: 'Semirremolque 3 ejes', kind: 'semitrailer', axles: ['dual', 'dual', 'dual'], hint: 'Lo arrastra un tractor · 12 cubiertas' },
-  { code: 'acoplado', label: 'Acoplado', kind: 'full_trailer', axles: ['dual', 'dual'], hint: 'Lo arrastra un camión rígido · 8 cubiertas' },
+  { code: 'utilitario', label: 'Utilitario', kind: 'motor', axles: ['simple', 'simple'], hint: 'Furgón, pickup o camioneta · 4 neumáticos' },
+  { code: 'camion_4x2', label: 'Camión rígido 4x2', kind: 'rigid', axles: ['simple', 'dual'], hint: 'Trasero dual · 6 neumáticos' },
+  { code: 'camion_6x4', label: 'Camión rígido 6x2 / 6x4', kind: 'rigid', axles: ['simple', 'dual', 'dual'], hint: 'Dos ejes traseros duales · 10 neumáticos' },
+  { code: 'tractor_4x2', label: 'Tractor 4x2', kind: 'tractor', axles: ['simple', 'dual'], hint: 'Trasero dual · 6 neumáticos' },
+  { code: 'tractor_6x4', label: 'Tractor 6x4', kind: 'tractor', axles: ['simple', 'dual', 'dual'], hint: 'Dos ejes traseros duales · 10 neumáticos' },
+  { code: 'semirremolque_2_ejes', label: 'Semirremolque 2 ejes', kind: 'semitrailer', axles: ['dual', 'dual'], hint: 'Lo arrastra un tractor · 8 neumáticos' },
+  { code: 'semirremolque_3_ejes', label: 'Semirremolque 3 ejes', kind: 'semitrailer', axles: ['dual', 'dual', 'dual'], hint: 'Lo arrastra un tractor · 12 neumáticos' },
+  { code: 'acoplado', label: 'Acoplado', kind: 'full_trailer', axles: ['dual', 'dual'], hint: 'Lo arrastra un camión rígido · 8 neumáticos' },
 ];
 
 export function vehicleTypeDef(code: string | null | undefined): VehicleTypeDef | null {

@@ -28,7 +28,7 @@ function tire(id: string, brand: string, status: Tire['status'], current?: [stri
     condition: problem
       ? {
           vehicleId: current![0], plate: current![1], position: current![2], positionLabel: 'Delantera derecha',
-          conditions: ['pinchada'], conditionLabels: ['Pinchada'], severity: 'non-blocking',
+          conditions: ['pinchada'], conditionLabels: ['Pinchado'], severity: 'non-blocking',
           reportedAt: '2026-11-01T10:00:00Z', reportedBy: 'chofer1', defectId: 'd-1', active: true,
         }
       : null,
@@ -55,13 +55,13 @@ beforeEach(() => {
   });
 });
 
-describe('inventario de cubiertas (CAM-157)', () => {
+describe('inventario de neumáticos (CAM-157)', () => {
   it('arranca por vehículo, con los que tienen problemas primero', async () => {
     render(<TiresSection onBack={vi.fn()} onOpenVehicle={vi.fn()} />);
 
     const groups = await screen.findAllByRole('button', { expanded: false });
     expect(groups[0]).toHaveTextContent('BB222BB');
-    expect(groups[0]).toHaveTextContent('1/5 montadas');
+    expect(groups[0]).toHaveTextContent('1/5 montados');
     expect(groups[0]).toHaveTextContent('1 a revisar');
     expect(screen.getByRole('button', { name: /A revisar/ })).toHaveTextContent('1');
   });
@@ -73,7 +73,7 @@ describe('inventario de cubiertas (CAM-157)', () => {
 
     await user.click(await screen.findByRole('button', { name: /BB222BB/ }));
     const row = screen.getByRole('row', { name: /Delantera derecha/ });
-    expect(within(row).getByText('Pinchada')).toBeInTheDocument();
+    expect(within(row).getByText('Pinchado')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Ver neumáticos de BB222BB' }));
     expect(onOpenVehicle).toHaveBeenCalledWith('v-b');
   });
@@ -96,9 +96,9 @@ describe('inventario de cubiertas (CAM-157)', () => {
     expect(screen.getByText('Fate N° t-4')).toBeInTheDocument();
     expect(screen.queryByText('Fate N° t-1')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Dadas de baja', pressed: false }));
+    await user.click(screen.getByRole('button', { name: 'Dados de baja', pressed: false }));
     expect(screen.queryByText('Pirelli N° t-3')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Todas' }));
+    await user.click(screen.getByRole('button', { name: 'Todos' }));
     await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'pirelli');
     expect(screen.queryByText('Fate N° t-4')).not.toBeInTheDocument();
   });

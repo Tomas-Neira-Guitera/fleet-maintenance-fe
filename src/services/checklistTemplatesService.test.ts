@@ -1,7 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { describeApplyResult } from './checklistTemplatesService';
+import { describeApplyResult, describeUnapplyResult } from './checklistTemplatesService';
 
 const result = (added: number, skipped: number) => ({ templateId: 't-1', added, skipped, vehicles: [] });
+
+const unapplied = (removed: number[]) => ({
+  templateId: 't-1',
+  removed: removed.reduce((a, b) => a + b, 0),
+  vehicles: removed.map((n, i) => ({ vehicleId: `v-${i}`, plate: `AA${i}00AA`, removed: n, removedLabels: [] })),
+});
+
+describe('resultado de quitar una plantilla (CAM-159)', () => {
+  it('dice cuántos controles se quitaron y de dónde', () => {
+    expect(describeUnapplyResult(unapplied([3]))).toBe('Se quitaron 3 controles de AA000AA.');
+    expect(describeUnapplyResult(unapplied([1]))).toBe('Se quitó 1 control de AA000AA.');
+    expect(describeUnapplyResult(unapplied([2, 2]))).toBe('Se quitaron 4 controles de 2 vehículos.');
+  });
+
+  it('sin nada copiado de la plantilla, lo dice', () => {
+    expect(describeUnapplyResult(unapplied([0]))).toBe('AA000AA no tenía controles de esta plantilla.');
+    expect(describeUnapplyResult(unapplied([0, 0]))).toBe('Esos 2 vehículos no tenían controles de esta plantilla.');
+  });
+});
 
 describe('resultado de aplicar una plantilla (CAM-150)', () => {
   it('dice lo agregado y, si hubo, lo que ya estaba', () => {

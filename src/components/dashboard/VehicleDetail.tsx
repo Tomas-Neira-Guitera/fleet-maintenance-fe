@@ -36,7 +36,7 @@ interface VehicleDetailProps {
   onBack: () => void;
   /** Abre la pestaña Gastos filtrada por este vehículo (CAM-105). */
   onViewExpenses: () => void;
-  /** CAM-157: abre el inventario de cubiertas. */
+  /** CAM-157: abre el inventario de neumáticos. */
   onOpenTires?: () => void;
   /** CAM-157: abre el vehículo enganchado. */
   onOpenVehicle?: (vehicleId: string) => void;
