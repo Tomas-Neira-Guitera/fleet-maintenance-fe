@@ -402,6 +402,37 @@ describe('InspectionFlow — remolque del tractor (CAM-157)', () => {
     expect(submitMock.mock.calls[0][4]?.trailerAnswers).toHaveLength(2);
   });
 
+  it('con Neumáticos del remolque en defecto aparece el dibujo del remolque (CAM-159)', async () => {
+    const user = userEvent.setup();
+    checklistMock.mockImplementation(async (id, type) =>
+      id === 'semi-1'
+        ? [{ id: type === 'pre-trip' ? 'rem-neumaticos' : 'rem-post-neumaticos', label: 'Neumáticos', type: 'check', section: type === 'pre-trip' ? 'exterior' : 'posttrip' }]
+        : type === 'pre-trip' ? PRE_TRIP : POST_TRIP,
+    );
+    const dual = (position: string, label: string, side: 'izq' | 'der', wheel: 'exterior' | 'interior') => ({
+      position, label, axle: 1, side, wheel, mounted: true,
+    });
+    tirePositionsMock.mockImplementation(async (id) =>
+      id === 'semi-1'
+        ? {
+            vehicleType: 'semirremolque_2_ejes',
+            positions: [
+              dual('e1-izq-ext', 'Eje 1 izquierda exterior', 'izq', 'exterior'),
+              dual('e1-izq-int', 'Eje 1 izquierda interior', 'izq', 'interior'),
+              dual('e1-der-int', 'Eje 1 derecha interior', 'der', 'interior'),
+              dual('e1-der-ext', 'Eje 1 derecha exterior', 'der', 'exterior'),
+            ],
+          }
+        : { vehicleType: null, positions: [] },
+    );
+    renderTractor({ towing: 'semi-1' });
+
+    const section = (await screen.findByRole('heading', { name: 'Remolque ZZ001AA' })).closest('section')!;
+    await user.click(await within(section).findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(await within(section).findByText('¿Qué neumático tiene el problema?')).toBeInTheDocument();
+    expect(tirePositionsMock).toHaveBeenCalledWith('semi-1');
+  });
+
   it('un remolque que no puede salir no deja seguir (CAM-159)', async () => {
     const user = userEvent.setup();
     renderTractor({
