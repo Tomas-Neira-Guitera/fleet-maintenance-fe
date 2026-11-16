@@ -360,6 +360,13 @@
   margin-bottom: 16px;
 }
 
+/* CAM-159: buscador por patente, marca o modelo, sobre la tabla. */
+.vehicles-section__search {
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 12px;
+}
+
 .vehicles-section__tab-count {
   margin-left: 6px;
   padding: 1px 7px;

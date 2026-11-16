@@ -3,6 +3,7 @@ import { getVehicles } from '../../services/vehiclesService';
 import type { OdometerResult } from '../../services/vehiclesService';
 import type { Vehicle } from '../../types/domain';
 import { numberFormatter } from '../../utils/maintenanceFormat';
+import { matchesVehicle } from '../../utils/plateSearch';
 import { isTrailer, vehicleTypeLabel } from '../../utils/vehicleTypes';
 import { AlertTriangleIcon, ChevronRightIcon } from '../icons';
 import { ImportVehiclesModal } from './ImportVehiclesModal';
@@ -14,13 +15,13 @@ function formatKm(km: number): string {
   return `${numberFormatter.format(km)} km`;
 }
 
-/** Se recuerda entre montajes: al volver del detalle de un vehículo, la sección se vuelve a
- *  montar y sin esto el filtro "Ver dados de baja" volvería siempre a destildarse. */
-let lastShowInactive = false;
-// CAM-157: lo mismo con la pestaña (vehículos o remolques).
+/** Se recuerda entre montajes: al volver del detalle de un vehículo, la sección se vuelve a montar y
+ *  sin esto volvería siempre a la primera pestaña (CAM-157: vehículos o remolques; CAM-159: dados de baja). */
 let lastKind: Kind = 'vehicles';
 
-type Kind = 'vehicles' | 'trailers';
+type Kind = 'vehicles' | 'trailers' | 'inactive';
+
+const TAB_LABEL: Record<Kind, string> = { vehicles: 'Vehículos', trailers: 'Remolques', inactive: 'Dados de baja' };
 
 function rememberKind(kind: Kind) {
   lastKind = kind;
@@ -51,19 +52,24 @@ interface VehiclesSectionProps {
 
 export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onOpenTires }: VehiclesSectionProps) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
+  // CAM-159: los dados de baja van en su propia pestaña.
+  const [inactive, setInactive] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(lastShowInactive);
   const [kind, setKind] = useState<Kind>(lastKind);
+  // CAM-159: por patente, marca o modelo, en la pestaña abierta.
+  const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
   // CAM-154: alta de la flota desde un archivo.
   const [importing, setImporting] = useState(false);
   const [odometerTarget, setOdometerTarget] = useState<Vehicle | null>(null);
   const mountedRef = useRef(true);
 
-  function load(active: boolean) {
-    getVehicles(active)
-      .then((data) => {
-        if (mountedRef.current) setVehicles(data);
+  function load() {
+    Promise.all([getVehicles(true), getVehicles(false)])
+      .then(([active, retired]) => {
+        if (!mountedRef.current) return;
+        setVehicles(active);
+        setInactive(retired);
       })
       .catch(() => {
         if (mountedRef.current) setError('No se pudo cargar la flota. Intentá de nuevo.');
@@ -72,15 +78,15 @@ export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onO
 
   useEffect(() => {
     mountedRef.current = true;
-    load(!showInactive);
+    load();
     return () => {
       mountedRef.current = false;
     };
-  }, [showInactive]);
+  }, []);
 
   function handleCreated() {
     setCreating(false);
-    load(!showInactive);
+    load();
   }
 
   function handleOdometerUpdated(result: OdometerResult) {
@@ -97,21 +103,16 @@ export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onO
 
   const trailers = vehicles?.filter((v) => isTrailer(v.vehicleType)) ?? [];
   const motorVehicles = vehicles?.filter((v) => !isTrailer(v.vehicleType)) ?? [];
-  const listed = kind === 'trailers' ? trailers : motorVehicles;
+  const byKind: Record<Kind, Vehicle[]> = { vehicles: motorVehicles, trailers, inactive: inactive ?? [] };
+  const listed = byKind[kind].filter((v) => matchesVehicle(v, query));
   const noun = kind === 'trailers' ? 'remolques' : 'vehículos';
+  const loaded = vehicles !== null && inactive !== null;
 
   return (
     <section className="fleet-status vehicles-section">
       <header className="fleet-status__header">
         <h1 className="fleet-status__title">Vehículos</h1>
         <div className="vehicles-section__header-actions">
-          <label className="vehicles-section__toggle">
-            <input type="checkbox" checked={showInactive} onChange={(e) => {
-                lastShowInactive = e.target.checked;
-                setShowInactive(e.target.checked);
-              }} />
-            Ver dados de baja
-          </label>
           <button type="button" className="secondary-btn vehicles-section__new-btn" onClick={onOpenTemplates}>
             Plantillas de checklist
           </button>
@@ -131,7 +132,7 @@ export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onO
       </header>
 
       <div className="vehicle-tabs vehicles-section__tabs" role="tablist" aria-label="Qué listar">
-        {(['vehicles', 'trailers'] as const).map((k) => (
+        {(['vehicles', 'trailers', 'inactive'] as const).map((k) => (
           <button
             key={k}
             type="button"
@@ -140,11 +141,20 @@ export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onO
             className={`vehicle-tabs__tab${kind === k ? ' vehicle-tabs__tab--active' : ''}`}
             onClick={() => selectKind(k)}
           >
-            {k === 'vehicles' ? 'Vehículos' : 'Remolques'}
-            {vehicles && <span className="vehicles-section__tab-count">{k === 'vehicles' ? motorVehicles.length : trailers.length}</span>}
+            {TAB_LABEL[k]}
+            {loaded && <span className="vehicles-section__tab-count">{byKind[k].length}</span>}
           </button>
         ))}
       </div>
+
+      <input
+        type="search"
+        className="schedule-picker__input vehicles-section__search"
+        placeholder="Buscar por patente, marca o modelo"
+        aria-label="Buscar vehículos"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
 
       {error && (
         <p className="error-banner error-banner--icon">
@@ -152,9 +162,9 @@ export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onO
           {error}
         </p>
       )}
-      {!vehicles && !error && <p className="muted">Cargando flota…</p>}
+      {!loaded && !error && <p className="muted">Cargando flota…</p>}
 
-      {vehicles && (
+      {loaded && (
         <div className="fleet-status__table-wrap">
           <table className="fleet-status__table vehicles-section__table">
             <thead>
@@ -248,7 +258,11 @@ export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onO
           </table>
           {listed.length === 0 && (
             <p className="muted">
-              {showInactive ? `No hay ${noun} dados de baja.` : `No hay ${noun} en la flota todavía.`}
+              {query.trim()
+                ? `Ningún vehículo coincide con "${query.trim()}".`
+                : kind === 'inactive'
+                  ? 'No hay vehículos ni remolques dados de baja.'
+                  : `No hay ${noun} en la flota todavía.`}
             </p>
           )}
         </div>
@@ -258,7 +272,7 @@ export function VehiclesSection({ onOpenVehicle, onCompare, onOpenTemplates, onO
         <VehicleFormModal trailer={kind === 'trailers'} onClose={() => setCreating(false)} onSaved={handleCreated} />
       )}
 
-      {importing && <ImportVehiclesModal onClose={() => setImporting(false)} onImported={() => load(!showInactive)} />}
+      {importing && <ImportVehiclesModal onClose={() => setImporting(false)} onImported={() => load()} />}
 
       {odometerTarget && (
         <UpdateOdometerModal
