@@ -50,6 +50,7 @@ export const TRAILER_POST_TRIP_ITEMS: ChecklistItemDef[] = [
 export const POST_TRIP_ITEMS: ChecklistItemDef[] = [
   { id: 'post-danos', label: 'Daños nuevos en la carrocería', type: 'check', section: 'posttrip' },
   { id: 'post-luces', label: 'Luces', type: 'check', section: 'posttrip' },
+  { id: 'post-neumaticos', label: 'Neumáticos', type: 'check', section: 'posttrip' },
   { id: 'post-fugas', label: 'Fugas visibles', type: 'check', section: 'posttrip' },
   { id: 'post-km', label: 'Kilómetros finales', type: 'number', section: 'posttrip', required: true },
 ];

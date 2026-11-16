@@ -51,6 +51,7 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
 
 // CAM-157: el control del checklist base donde se marca qué neumático tiene problemas. CAM-159: el del remolque.
 const TIRES_ITEM_ID = 'ext-neumaticos';
+const POST_TRIP_TIRES_ITEM_ID = 'post-neumaticos';
 const TRAILER_TIRES_ITEM_ID = 'rem-neumaticos';
 const TRAILER_POST_TRIP_TIRES_ITEM_ID = 'rem-post-neumaticos';
 
@@ -99,7 +100,9 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   const fallbackItems = useMemo(() => (type === 'pre-trip' ? getPreTripItems() : POST_TRIP_ITEMS), [type]);
   // CAM-157: con el checklist viene el dibujo del vehículo, para marcar qué neumático tiene problemas si
   // "Neumáticos" va en defecto. Sin dibujo (o sin tipo), el chofer lo cuenta en la descripción.
-  const { items: loadedItems, tirePositions } = useInspectionChecklist(vehicle.id, type, fallbackItems);
+  // CAM-159: el dibujo también en el post-viaje, con su propio "Neumáticos".
+  const { items: loadedItems, tirePositions } = useInspectionChecklist(vehicle.id, type, fallbackItems, true);
+  const tiresItemId = type === 'pre-trip' ? TIRES_ITEM_ID : POST_TRIP_TIRES_ITEM_ID;
   const items = useMemo(() => loadedItems ?? [], [loadedItems]);
   const [tireValues, setTireValues] = useState<TireConditionValue>({});
   const canPickTires = Boolean(tirePositions?.positions.some((p) => p.mounted));
@@ -191,7 +194,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
   }
 
   const defectCount = checkItems.filter((def) => stateOf(def).outcome === 'defect').length;
-  const tiresInDefect = items.some((def) => def.id === TIRES_ITEM_ID && stateOf(def).outcome === 'defect');
+  const tiresInDefect = items.some((def) => def.id === tiresItemId && stateOf(def).outcome === 'defect');
   const tireConditions = tiresInDefect ? toTireConditions(tireValues) : [];
   // Con el dibujo disponible, hay que decir qué neumático es.
   const tiresValid = !tiresInDefect || !canPickTires || tireConditions.length > 0;
@@ -222,9 +225,9 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
     // Si el chofer todavía no escribió el título del defecto, se completa con lo primero que marcó.
     const first = toTireConditions(next)[0]?.conditions[0];
     setAnswers((prev) => {
-      const current = prev[TIRES_ITEM_ID];
+      const current = prev[tiresItemId];
       if (!first || !current?.defect || current.defect.description.trim()) return prev;
-      return { ...prev, [TIRES_ITEM_ID]: { ...current, defect: { ...current.defect, description: tireConditionLabel(first) } } };
+      return { ...prev, [tiresItemId]: { ...current, defect: { ...current.defect, description: tireConditionLabel(first) } } };
     });
   }
 
@@ -579,7 +582,7 @@ export function InspectionFlow({ vehicle, type, onDone, onBack, onUnavailable, o
                 onChange={(next) => updateItem(def.id, next)}
                 showValidation={showValidation}
                 defectExtra={
-                  def.id === TIRES_ITEM_ID && canPickTires && tirePositions ? (
+                  def.id === tiresItemId && canPickTires && tirePositions ? (
                     <TireConditionPicker
                       tires={tirePositions}
                       value={tireValues}

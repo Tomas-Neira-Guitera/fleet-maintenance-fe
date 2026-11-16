@@ -327,10 +327,18 @@ describe('InspectionFlow — neumáticos con problemas (CAM-157)', () => {
     expect(await screen.findByText('¿Qué neumático tiene el problema?')).toBeInTheDocument();
   });
 
-  it('el post-viaje no pide el dibujo', async () => {
+  it('en el post-viaje también aparece el dibujo con Neumáticos en defecto (CAM-159)', async () => {
+    const user = userEvent.setup();
+    checklistMock.mockImplementation(async (_id, type) =>
+      type === 'pre-trip'
+        ? PRE_TRIP
+        : [...POST_TRIP.slice(0, 2), { id: 'post-neumaticos', label: 'Neumáticos', type: 'check', section: 'posttrip' }, POST_TRIP[2]],
+    );
+    tirePositionsMock.mockResolvedValue(UTILITARIO);
     renderFlow('post-trip');
-    await screen.findByRole('heading', { name: 'Post-viaje' });
-    expect(tirePositionsMock).not.toHaveBeenCalled();
+
+    await user.click(await screen.findByRole('switch', { name: 'Neumáticos: reportar defecto' }));
+    expect(await screen.findByText('¿Qué neumático tiene el problema?')).toBeInTheDocument();
   });
 });
 
