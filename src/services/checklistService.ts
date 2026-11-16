@@ -26,7 +26,7 @@ export async function getVehicleChecklistConfig(vehicleId: string): Promise<Vehi
 
 export interface NewChecklistItem {
   label: string;
-  section: Exclude<ChecklistSection, 'posttrip'>;
+  section: ChecklistSection;
   /** false = queda cargado en el vehículo pero no entra en el checklist del chofer. */
   enabled: boolean;
 }

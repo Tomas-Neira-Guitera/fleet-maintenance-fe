@@ -772,7 +772,7 @@ export interface ChecklistTemplateItem {
   id: string;
   label: string;
   type: ChecklistItemType;
-  section: Exclude<ChecklistSection, 'posttrip'>;
+  section: ChecklistSection;
 }
 
 export interface ChecklistTemplate {

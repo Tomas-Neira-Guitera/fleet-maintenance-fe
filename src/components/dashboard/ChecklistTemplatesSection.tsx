@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ApiError } from '../../services/apiClient';
 import { deleteChecklistTemplate, getChecklistTemplates } from '../../services/checklistTemplatesService';
 import type { ChecklistTemplate } from '../../types/domain';
+import { sectionShortLabel } from '../../utils/checklistSections';
 import { ArrowLeftIcon, PencilIcon, TrashIcon } from '../icons';
 import { ApplyChecklistTemplateModal } from './ApplyChecklistTemplateModal';
 import { ChecklistTemplateFormModal } from './ChecklistTemplateFormModal';
@@ -108,7 +109,7 @@ export function ChecklistTemplatesSection({ onBack }: ChecklistTemplatesSectionP
                   <li key={item.id}>
                     {item.label}
                     <span className="vehicle-detail__item-meta">
-                      {item.section === 'exterior' ? 'Exterior' : 'Cabina'}
+                      {sectionShortLabel(item.section)}
                       {item.type === 'number' ? ' · número' : ''}
                     </span>
                   </li>
